@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "SiteSettings": {
+      "title": "Site Settings",
+      "description": "Global website branding and contact settings",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string", "description": "URL or data string for site logo" },
+        "portalName": { "type": "string", "description": "Primary brand or app name" },
+        "tagline": { "type": "string", "description": "Short tagline or subtitle" },
+        "helplinePhone": { "type": "string", "description": "Primary contact phone number" },
+        "helplineWhatsapp": { "type": "string", "description": "WhatsApp contact number" },
+        "helplineEmail": { "type": "string", "description": "Official support email address" },
+        "officeAddress": { "type": "string", "description": "Physical office address" },
+        "heroHeadline": { "type": "string", "description": "Main hero section headline" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" },
+        "updatedBy": { "type": "string", "description": "UID of admin user" }
+      },
+      "required": ["portalName", "logoUrl"]
+    }
+  },
+  "firestore": {
+    "/settings/branding": {
+      "schema": "SiteSettings",
+      "description": "Global branding and contact settings"
+    }
+  }
+}

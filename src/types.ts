@@ -135,3 +135,24 @@ export interface UserProfile {
   };
 }
 
+export interface SiteSettings {
+  logoUrl: string;
+  faviconUrl?: string;
+  portalName: string;
+  tagline: string;
+  helplinePhone: string;
+  helplineWhatsapp: string;
+  helplineEmail: string;
+  officeAddress: string;
+  heroHeadline: string;
+  announcementBarText: string;
+  announcementBarActive: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  seoCanonicalUrl?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+

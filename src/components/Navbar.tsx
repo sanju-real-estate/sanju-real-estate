@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Building2, MapPin, Heart, PlusCircle, UserCheck, ChevronDown, Search, Menu, X, Calculator, Phone } from 'lucide-react';
+import { Building2, MapPin, Heart, PlusCircle, UserCheck, ChevronDown, Search, Menu, X, Calculator, Phone, ShieldCheck } from 'lucide-react';
 import { INDIAN_CITIES } from '../data/cities';
 import { APP_LOGO } from '../assets/logo';
 
@@ -15,7 +15,8 @@ export const Navbar: React.FC = () => {
     currentUser,
     openAuthModal,
     logout,
-    showToast
+    showToast,
+    siteSettings
   } = useApp();
 
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
@@ -33,7 +34,7 @@ export const Navbar: React.FC = () => {
     setCitySearchTerm('');
   };
 
-  const handleNavClick = (view: 'home' | 'listings' | 'post-property' | 'dashboard' | 'valuation', listingType?: string) => {
+  const handleNavClick = (view: 'home' | 'listings' | 'post-property' | 'dashboard' | 'valuation' | 'admin', listingType?: string) => {
     if (view === 'post-property' && !currentUser) {
       openAuthModal('signup');
       showToast('Please login or sign up first to post your property free!', 'info');
@@ -55,15 +56,15 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-1.5 sm:gap-3 truncate">
             <span className="flex items-center gap-1.5 font-medium text-emerald-400 text-[11px] sm:text-xs truncate">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-              <span className="truncate">Jaipur Properties Hub</span>
+              <span className="truncate">{siteSettings.portalName}</span>
             </span>
             <span className="text-gray-500">|</span>
             <a 
-              href="tel:+919772117575" 
+              href={`tel:${siteSettings.helplinePhone}`}
               className="flex items-center gap-1 text-emerald-400 font-extrabold hover:text-emerald-300 transition-colors text-[11px] sm:text-xs shrink-0"
             >
               <Phone className="w-3 h-3 text-emerald-400 shrink-0" />
-              <span>+91 97721 17575</span>
+              <span>{siteSettings.helplinePhone}</span>
             </a>
           </div>
 
@@ -75,54 +76,59 @@ export const Navbar: React.FC = () => {
               <Calculator className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Price Estimator</span>
             </button>
+            <span className="text-gray-600">|</span>
+            <button
+              onClick={() => handleNavClick('admin')}
+              className="hover:text-white flex items-center gap-1 text-amber-400 font-bold transition-colors cursor-pointer py-0.5 text-[11px] sm:text-xs"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+              <span>Admin Login</span>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Main Navigation */}
       <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16 gap-1 sm:gap-4">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
           
           {/* Logo & City Selector */}
-          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             <button 
               onClick={() => handleNavClick('home')}
               className="flex items-center gap-1.5 sm:gap-2 group text-left cursor-pointer shrink-0"
             >
               <img 
-                src={APP_LOGO} 
-                alt="Jaipur Properties Logo" 
+                src={siteSettings.logoUrl || APP_LOGO} 
+                alt={`${siteSettings.portalName} Logo`} 
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   const target = e.currentTarget;
                   if (!target.dataset.tried) {
                     target.dataset.tried = '1';
-                    target.src = '/assets/images/logo1.jpg';
-                  } else if (target.dataset.tried === '1') {
-                    target.dataset.tried = '2';
-                    target.src = '/logo1.jpg';
+                    target.src = APP_LOGO;
                   }
                 }}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shadow-xs group-hover:scale-105 transition-transform border border-gray-200 shrink-0"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shadow-xs group-hover:scale-105 transition-transform border border-gray-200 shrink-0 bg-white"
               />
               <div className="flex flex-col min-w-0">
-                <span className="font-extrabold text-xs sm:text-base tracking-tight text-gray-900 group-hover:text-red-600 transition-colors leading-tight truncate max-w-[100px] xs:max-w-none">
-                  Jaipur Properties
+                <span className="font-extrabold text-xs sm:text-sm md:text-base tracking-tight text-gray-900 group-hover:text-red-600 transition-colors leading-tight truncate max-w-[130px] sm:max-w-[180px] md:max-w-[240px]">
+                  {siteSettings.portalName}
                 </span>
-                <span className="text-[10px] text-gray-500 font-medium hidden md:inline -mt-0.5">
-                  Official Portal
+                <span className="text-[10px] text-gray-500 font-medium hidden md:inline -mt-0.5 truncate max-w-[160px]">
+                  {siteSettings.tagline || 'Official Property Portal'}
                 </span>
               </div>
             </button>
 
             {/* City Dropdown Selector */}
-            <div className="relative shrink">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-gray-700 hover:text-red-600 bg-gray-50 hover:bg-red-50/50 border border-gray-200 px-1.5 sm:px-2.5 py-1 rounded-lg transition-all cursor-pointer max-w-[85px] xs:max-w-none"
+                className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-gray-700 hover:text-red-600 bg-gray-50 hover:bg-red-50/50 border border-gray-200 px-2 sm:px-2.5 py-1 rounded-lg transition-all cursor-pointer shrink-0"
               >
                 <MapPin className="w-3 h-3 text-red-600 shrink-0" />
-                <span className="truncate">{selectedCity}</span>
+                <span className="truncate max-w-[70px] sm:max-w-[100px]">{selectedCity}</span>
                 <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
               </button>
 
@@ -179,11 +185,11 @@ export const Navbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Center Navigation Tabs (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1">
+          {/* Center Navigation Tabs (Desktop xl+) */}
+          <nav className="hidden xl:flex items-center gap-1 shrink-0">
             <button
               onClick={() => handleNavClick('listings', 'Buy')}
-              className={`px-3.5 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+              className={`px-3 py-2 text-xs xl:text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                 activeView === 'listings' ? 'text-red-600 bg-red-50 font-semibold' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
               }`}
             >
@@ -191,19 +197,19 @@ export const Navbar: React.FC = () => {
             </button>
             <button
               onClick={() => handleNavClick('listings', 'Rent')}
-              className="px-3.5 py-2 text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+              className="px-3 py-2 text-xs xl:text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
             >
               Rent
             </button>
             <button
               onClick={() => handleNavClick('listings', 'Commercial')}
-              className="px-3.5 py-2 text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+              className="px-3 py-2 text-xs xl:text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
             >
               Commercial
             </button>
             <button
               onClick={() => handleNavClick('listings', 'New Projects')}
-              className="px-3.5 py-2 text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+              className="px-3 py-2 text-xs xl:text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
             >
               <span>New Projects</span>
               <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">New</span>
@@ -211,17 +217,7 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Right Action CTAs */}
-          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0 ml-auto">
-            {/* Broker Helpline Badge - Hidden on tiny mobile screens because top banner already shows phone number */}
-            <a
-              href="tel:+919772117575"
-              className="hidden sm:flex items-center gap-1 sm:gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 shadow-xs"
-              title="Call Jaipur Properties Helpline"
-            >
-              <Phone className="w-3.5 h-3.5 text-white shrink-0 animate-bounce" />
-              <span className="inline text-[11px] sm:text-xs font-black">9772117575</span>
-            </a>
-
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
             {/* Wishlist Icon */}
             <button
               onClick={() => handleNavClick('dashboard')}
@@ -236,10 +232,10 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
-            {/* User Dashboard (md+) */}
+            {/* User Dashboard (lg+) */}
             <button
               onClick={() => handleNavClick('dashboard')}
-              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer shrink-0 ${
+              className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer shrink-0 ${
                 activeView === 'dashboard'
                   ? 'border-red-600 bg-red-50 text-red-600'
                   : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
@@ -249,18 +245,19 @@ export const Navbar: React.FC = () => {
               <span>Dashboard</span>
             </button>
 
-            {/* Post Property FREE Banner CTA */}
+            {/* Admin Panel Button (Always Prominent) */}
             <button
-              onClick={() => handleNavClick('post-property')}
-              className="bg-red-600 hover:bg-red-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
+              onClick={() => handleNavClick('admin')}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Admin Panel & Site Settings"
             >
-              <PlusCircle className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-[11px] sm:text-xs">Post FREE</span>
+              <ShieldCheck className="w-4 h-4 text-white" />
+              <span>Admin Panel</span>
             </button>
 
             {/* Auth Button or User Profile */}
             {currentUser ? (
-              <div className="hidden sm:flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs">
+              <div className="hidden sm:flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs shrink-0">
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="max-w-[80px] truncate">{currentUser.name}</span>
                 <button
@@ -280,10 +277,10 @@ export const Navbar: React.FC = () => {
               </button>
             )}
 
-            {/* Mobile menu toggle button */}
+            {/* Mobile / Tablet Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1.5 text-gray-700 hover:text-gray-900 lg:hidden rounded-lg hover:bg-gray-100 cursor-pointer shrink-0"
+              className="p-1.5 text-gray-700 hover:text-gray-900 xl:hidden rounded-lg hover:bg-gray-100 cursor-pointer shrink-0"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -324,6 +321,18 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1">
+            <button
+              onClick={() => handleNavClick('admin')}
+              className="text-left py-3 px-3.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl min-h-[44px] flex items-center justify-between shadow-sm cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-white shrink-0" />
+                <span>Admin Panel Login</span>
+              </div>
+              <span className="text-[10px] bg-white/20 text-white font-extrabold px-2 py-0.5 rounded-full">
+                Admin
+              </span>
+            </button>
             <button
               onClick={() => handleNavClick('home')}
               className="text-left py-3 px-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-xl min-h-[44px] flex items-center"
@@ -397,12 +406,12 @@ export const Navbar: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    openAuthModal('signup');
-                    setIsMobileMenuOpen(false);
+                    handleNavClick('admin');
                   }}
-                  className="bg-red-600 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center cursor-pointer"
+                  className="bg-red-600 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  Register Free
+                  <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                  <span>Admin Panel</span>
                 </button>
               </div>
             )}

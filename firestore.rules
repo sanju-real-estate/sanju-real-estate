@@ -14,8 +14,14 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-        resource.data.role == 'admin' || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'admin');
+        (resource == null || resource.data.role == 'admin' || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'admin'));
+    }
+
+    // Global site settings (branding, logo, contact details)
+    match /settings/{settingDoc} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
     // Users collection

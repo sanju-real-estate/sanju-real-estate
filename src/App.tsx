@@ -7,17 +7,18 @@ import { PropertyListingPage } from './components/PropertyListingPage';
 import { PropertyDetailPage } from './components/PropertyDetailPage';
 import { PostPropertyPortal } from './components/PostPropertyPortal';
 import { UserDashboard } from './components/UserDashboard';
+import { AdminDashboard } from './components/AdminDashboard';
 import { LeadModal } from './components/LeadModal';
 import { AiAssistantDrawer } from './components/AiAssistantDrawer';
 import { AuthModal } from './components/AuthModal';
 import { ToastContainer } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Property } from './types';
-import { Building2, Phone, Mail, MapPin, Heart, ShieldCheck, Sparkles, ChevronRight, Calculator, PlusCircle } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, Heart, ShieldCheck, Sparkles, ChevronRight, Calculator, PlusCircle, Settings } from 'lucide-react';
 import { APP_LOGO } from './assets/logo';
 
 const MainContent: React.FC = () => {
-  const { activeView, selectedProperty, setActiveView, setFilters } = useApp();
+  const { activeView, selectedProperty, setActiveView, setFilters, siteSettings } = useApp();
   const [modalProperty, setModalProperty] = useState<Property | null>(null);
 
   const handleContactClick = (property: Property) => {
@@ -59,6 +60,10 @@ const MainContent: React.FC = () => {
         {(activeView === 'dashboard' || activeView === 'valuation') && (
           <UserDashboard />
         )}
+
+        {activeView === 'admin' && (
+          <AdminDashboard />
+        )}
       </main>
 
       {/* Contact Owner Lead Modal */}
@@ -86,23 +91,16 @@ const MainContent: React.FC = () => {
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-2">
                 <img 
-                  src={APP_LOGO} 
-                  alt="Jaipur Properties Hub Logo" 
+                  src={siteSettings.logoUrl || APP_LOGO} 
+                  alt={`${siteSettings.portalName} Logo`} 
                   referrerPolicy="no-referrer"
                   onError={(e) => {
-                    const target = e.currentTarget;
-                    if (!target.dataset.tried) {
-                      target.dataset.tried = '1';
-                      target.src = '/assets/images/logo1.jpg';
-                    } else if (target.dataset.tried === '1') {
-                      target.dataset.tried = '2';
-                      target.src = '/logo1.jpg';
-                    }
+                    e.currentTarget.src = APP_LOGO;
                   }}
-                  className="w-10 h-10 rounded-full object-cover shadow-md border border-slate-700"
+                  className="w-10 h-10 rounded-full object-cover shadow-md border border-slate-700 bg-white"
                 />
                 <span className="font-extrabold text-xl text-white tracking-tight">
-                  Jaipur Properties Hub
+                  {siteSettings.portalName}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded ml-1">
                   Verified Portal
@@ -110,7 +108,7 @@ const MainContent: React.FC = () => {
               </div>
 
               <p className="text-gray-400 leading-relaxed max-w-sm">
-                India's premier real estate marketplace. Explore verified owner properties, zero brokerage listings, instant property valuations, and direct site visit bookings.
+                {siteSettings.tagline || 'India premier real estate marketplace for verified owner properties.'}
               </p>
 
               <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 max-w-sm space-y-1">
@@ -118,12 +116,12 @@ const MainContent: React.FC = () => {
                   Official Broker Helpline
                 </span>
                 <div className="flex items-center justify-between gap-2">
-                  <a href="tel:+919772117575" className="text-lg font-extrabold text-white hover:text-red-400 transition-colors flex items-center gap-1.5">
+                  <a href={`tel:${siteSettings.helplinePhone}`} className="text-lg font-extrabold text-white hover:text-red-400 transition-colors flex items-center gap-1.5">
                     <Phone className="w-4 h-4 text-emerald-400" />
-                    <span>+91 97721 17575</span>
+                    <span>{siteSettings.helplinePhone}</span>
                   </a>
                   <a 
-                    href="https://wa.me/919772117575?text=Hello%20Jaipur%20Properties%20Hub" 
+                    href={`https://wa.me/${siteSettings.helplineWhatsapp.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(siteSettings.portalName)}`} 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
@@ -135,18 +133,11 @@ const MainContent: React.FC = () => {
 
               <div className="flex items-center gap-3 pt-2">
                 <button
-                  onClick={() => setActiveView('post-property')}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold shadow-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => setActiveView('admin')}
+                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition-colors flex items-center gap-2 cursor-pointer"
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Post Property FREE</span>
-                </button>
-                <button
-                  onClick={() => setActiveView('valuation')}
-                  className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Calculator className="w-4 h-4 text-amber-400" />
-                  <span>Property Valuation</span>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Admin Panel Login</span>
                 </button>
               </div>
             </div>

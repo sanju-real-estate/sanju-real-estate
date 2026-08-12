@@ -18,7 +18,8 @@ export const UserDashboard: React.FC = () => {
     deleteProperty, 
     viewPropertyDetail,
     selectedCity,
-    showToast
+    showToast,
+    siteSettings
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'wishlist' | 'posted' | 'leads' | 'valuation'>('wishlist');
@@ -77,24 +78,17 @@ export const UserDashboard: React.FC = () => {
         {/* Header Title */}
         <div className="mb-6 flex items-center gap-3">
           <img 
-            src={APP_LOGO} 
-            alt="Jaipur Properties Hub Logo" 
+            src={siteSettings.logoUrl || APP_LOGO} 
+            alt={`${siteSettings.portalName} Logo`} 
             referrerPolicy="no-referrer"
             onError={(e) => {
-              const target = e.currentTarget;
-              if (!target.dataset.tried) {
-                target.dataset.tried = '1';
-                target.src = '/assets/images/logo1.jpg';
-              } else if (target.dataset.tried === '1') {
-                target.dataset.tried = '2';
-                target.src = '/logo1.jpg';
-              }
+              e.currentTarget.src = APP_LOGO;
             }}
-            className="w-12 h-12 rounded-full object-cover shadow-md border border-gray-200 shrink-0"
+            className="w-12 h-12 rounded-full object-cover shadow-md border border-gray-200 shrink-0 bg-white"
           />
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-              User Dashboard & Inquiries Hub
+              {siteSettings.portalName} – Dashboard
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
               Manage saved properties, track direct leads, and compute property valuation reports.

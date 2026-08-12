@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Property, Inquiry, FilterState, ListingType, PropertyType, PostedBy, FurnishingStatus, ConstructionStatus, UserProfile } from '../types';
+import { Property, Inquiry, FilterState, ListingType, PropertyType, PostedBy, FurnishingStatus, ConstructionStatus, UserProfile, SiteSettings } from '../types';
 import { INITIAL_PROPERTIES, INITIAL_INQUIRIES } from '../data/mockData';
-import { auth, db } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -22,6 +22,19 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  logoUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=120&q=80',
+  portalName: 'Jaipur Properties Hub',
+  tagline: 'Jaipur’s #1 Verified Real Estate & Property Portal',
+  helplinePhone: '+91 97721 17575',
+  helplineWhatsapp: '+91 97721 17575',
+  helplineEmail: 'support@jaipurproperties.hub',
+  officeAddress: 'Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017',
+  heroHeadline: 'Find Your Dream Property in Pink City, Jaipur',
+  announcementBarText: '✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!',
+  announcementBarActive: true
+};
+
 interface ToastMessage {
   id: string;
   message: string;
@@ -33,7 +46,7 @@ interface AppContextType {
   wishlistIds: string[];
   inquiries: Inquiry[];
   selectedCity: string;
-  activeView: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation';
+  activeView: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin';
   selectedProperty: Property | null;
   filters: FilterState;
   toasts: ToastMessage[];
@@ -41,10 +54,11 @@ interface AppContextType {
   currentUser: UserProfile | null;
   isAuthModalOpen: boolean;
   authMode: 'login' | 'signup';
+  siteSettings: SiteSettings;
   
   // Actions
   setSelectedCity: (city: string) => void;
-  setActiveView: (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation') => void;
+  setActiveView: (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin') => void;
   setSelectedProperty: (property: Property | null) => void;
   toggleWishlist: (propertyId: string) => void;
   addProperty: (property: Omit<Property, 'id' | 'viewsCount' | 'leadsCount' | 'postedDate'>) => Property;
@@ -63,6 +77,7 @@ interface AppContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (fullName: string, email: string, phone: string, password: string, confirmPassword: string, userType: UserProfile['userType'], city?: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateSiteSettings: (newSettings: Partial<SiteSettings>) => Promise<void>;
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -119,7 +134,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [selectedCity, setSelectedCity] = useState<string>('Jaipur');
-  const [activeView, setActiveView] = useState<'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin'>('home');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(INITIAL_PROPERTIES[0]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -141,7 +156,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
   const openAuthModal = (mode: 'login' | 'signup' = 'login') => {
-    showToast('You are already logged in as Guest/Owner. All features are fully unlocked!', 'success');
+    setAuthMode(mode);
+    setIsAuthModalOpen(true);
   };
 
   const closeAuthModal = () => {
@@ -149,35 +165,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const login = async (email: string, password: string) => {
-    setCurrentUser({
-      id: 'guest-user-001',
-      name: email ? email.split('@')[0] : 'Jaipur Property Owner',
-      fullName: email ? email.split('@')[0] : 'Jaipur Property Owner',
-      email: email || 'owner@jaipurproperties.hub',
-      phone: '+91 9876543210',
-      city: 'Jaipur',
-      userType: 'Owner',
-      role: 'admin',
-      isVerified: true
-    });
-    showToast('Logged in successfully!', 'success');
-    setActiveView('dashboard');
+    try {
+      setCurrentUser({
+        id: 'user-' + Date.now().toString(),
+        name: email ? email.split('@')[0] : 'Jaipur Property Owner',
+        fullName: email ? email.split('@')[0] : 'Jaipur Property Owner',
+        email: email || 'owner@jaipurproperties.hub',
+        phone: '+91 97721 17575',
+        city: 'Jaipur',
+        userType: 'Owner',
+        role: 'admin',
+        isVerified: true
+      });
+      setIsAuthModalOpen(false);
+      showToast('Logged in successfully!', 'success');
+    } catch (e) {
+      showToast('Login failed. Please try again.', 'error');
+    }
   };
 
   const signup = async (fullName: string, email: string, phone: string, password: string, confirmPassword: string, userType: UserProfile['userType'], city: string = 'Jaipur') => {
-    setCurrentUser({
-      id: 'guest-user-001',
-      name: fullName || 'Jaipur Property User',
-      fullName: fullName || 'Jaipur Property User',
-      email: email || 'user@jaipurproperties.hub',
-      phone: phone || '+91 9876543210',
-      city: city || 'Jaipur',
-      userType: userType || 'Owner',
-      role: 'admin',
-      isVerified: true
-    });
-    showToast(`Welcome, ${fullName || 'User'}! Account active.`, 'success');
-    setActiveView('dashboard');
+    try {
+      setCurrentUser({
+        id: 'user-' + Date.now().toString(),
+        name: fullName || 'Jaipur Property User',
+        fullName: fullName || 'Jaipur Property User',
+        email: email || 'user@jaipurproperties.hub',
+        phone: phone || '+91 97721 17575',
+        city: city || 'Jaipur',
+        userType: userType || 'Owner',
+        role: 'admin',
+        isVerified: true
+      });
+      setIsAuthModalOpen(false);
+      showToast(`Welcome, ${fullName || 'User'}! Account created successfully.`, 'success');
+    } catch (e) {
+      showToast('Sign up failed. Please try again.', 'error');
+    }
   };
 
   const logout = async () => {
@@ -292,6 +316,112 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFilters(DEFAULT_FILTERS);
   };
 
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
+    try {
+      const cached = localStorage.getItem('mb_site_settings');
+      if (cached) return { ...DEFAULT_SITE_SETTINGS, ...JSON.parse(cached) };
+    } catch (e) {}
+    return DEFAULT_SITE_SETTINGS;
+  });
+
+  // Load global branding settings from Firestore
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'branding');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as SiteSettings;
+          setSiteSettings(prev => ({ ...prev, ...data }));
+          localStorage.setItem('mb_site_settings', JSON.stringify({ ...DEFAULT_SITE_SETTINGS, ...data }));
+        }
+      } catch (err) {
+        console.warn('Firestore branding settings load notice:', err);
+      }
+    };
+    fetchSettings().catch(err => console.warn('fetchSettings catch:', err));
+  }, []);
+
+  // Update HTML document head tags (SEO & Favicon) dynamically when siteSettings changes
+  useEffect(() => {
+    if (siteSettings) {
+      // Document Title
+      if (siteSettings.seoTitle || siteSettings.portalName) {
+        document.title = siteSettings.seoTitle || `${siteSettings.portalName} | Real Estate Portal`;
+      }
+      
+      // Meta description
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      if (siteSettings.seoDescription || siteSettings.tagline) {
+        metaDesc.setAttribute('content', siteSettings.seoDescription || siteSettings.tagline);
+      }
+
+      // Meta keywords
+      let metaKeywords = document.querySelector('meta[name="keywords"]');
+      if (!metaKeywords) {
+        metaKeywords = document.createElement('meta');
+        metaKeywords.setAttribute('name', 'keywords');
+        document.head.appendChild(metaKeywords);
+      }
+      if (siteSettings.seoKeywords) {
+        metaKeywords.setAttribute('content', siteSettings.seoKeywords);
+      }
+
+      // Canonical URL
+      if (siteSettings.seoCanonicalUrl) {
+        let canonicalLink = document.querySelector('link[rel="canonical"]');
+        if (!canonicalLink) {
+          canonicalLink = document.createElement('link');
+          canonicalLink.setAttribute('rel', 'canonical');
+          document.head.appendChild(canonicalLink);
+        }
+        canonicalLink.setAttribute('href', siteSettings.seoCanonicalUrl);
+      }
+
+      // Favicon URL
+      if (siteSettings.faviconUrl || siteSettings.logoUrl) {
+        let faviconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+        if (!faviconLink) {
+          faviconLink = document.createElement('link');
+          faviconLink.setAttribute('rel', 'icon');
+          document.head.appendChild(faviconLink);
+        }
+        faviconLink.href = siteSettings.faviconUrl || siteSettings.logoUrl;
+      }
+    }
+  }, [siteSettings]);
+
+  const updateSiteSettings = async (newSettings: Partial<SiteSettings>) => {
+    const updated = { 
+      ...siteSettings, 
+      ...newSettings, 
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser?.id || 'admin-user'
+    };
+    setSiteSettings(updated);
+    try {
+      localStorage.setItem('mb_site_settings', JSON.stringify(updated));
+    } catch (e) {}
+
+    try {
+      const docRef = doc(db, 'settings', 'branding');
+      await setDoc(docRef, updated, { merge: true });
+      showToast('Global branding settings successfully persisted to Firestore!', 'success');
+    } catch (error) {
+      console.error('Error persisting site settings to Firestore:', error);
+      try {
+        handleFirestoreError(error, OperationType.WRITE, 'settings/branding');
+      } catch (e) {
+        showToast('Branding updated locally. Note: Firestore save failed or offline.', 'warning');
+      }
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       properties,
@@ -306,6 +436,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currentUser,
       isAuthModalOpen,
       authMode,
+      siteSettings,
       setSelectedCity,
       setActiveView,
       setSelectedProperty,
@@ -325,7 +456,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       closeAuthModal,
       login,
       signup,
-      logout
+      logout,
+      updateSiteSettings
     }}>
       {children}
     </AppContext.Provider>

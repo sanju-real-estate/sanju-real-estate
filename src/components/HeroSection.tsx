@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Search, MapPin, Home, Layers, ArrowRight, Building, Key, PlusCircle, CheckCircle2 } from 'lucide-react';
+import { Search, MapPin, Home, Layers, ArrowRight, Building, Key, PlusCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { ListingType, PropertyType } from '../types';
 import { APP_LOGO } from '../assets/logo';
 
 export const HeroSection: React.FC = () => {
-  const { selectedCity, setFilters, setActiveView } = useApp();
+  const { selectedCity, setFilters, setActiveView, siteSettings } = useApp();
 
   const [activeTab, setActiveTab] = useState<ListingType>('Buy');
   const [localityInput, setLocalityInput] = useState('');
@@ -71,30 +71,27 @@ export const HeroSection: React.FC = () => {
         {/* Title Header */}
         <div className="text-center max-w-3xl mx-auto mb-8 space-y-3 flex flex-col items-center">
           <img 
-            src={APP_LOGO} 
-            alt="Jaipur Properties Logo" 
+            src={siteSettings.logoUrl || APP_LOGO} 
+            alt={`${siteSettings.portalName} Logo`} 
             referrerPolicy="no-referrer"
             onError={(e) => {
               const target = e.currentTarget;
               if (!target.dataset.tried) {
                 target.dataset.tried = '1';
-                target.src = '/assets/images/logo1.jpg';
-              } else if (target.dataset.tried === '1') {
-                target.dataset.tried = '2';
-                target.src = '/logo1.jpg';
+                target.src = APP_LOGO;
               }
             }}
-            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover shadow-lg border-2 border-red-500/80 mb-1"
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover shadow-lg border-2 border-red-500/80 mb-1 bg-white"
           />
           <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-500/30 text-red-300 px-3.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md">
             <CheckCircle2 className="w-3.5 h-3.5 text-red-400" />
             <span>Smart Search & Instant Owner Listings</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Jaipur Properties Hub – <span className="text-red-500">Properties in Jaipur</span>
+            {siteSettings.portalName} – <span className="text-red-500">{siteSettings.heroHeadline || 'Properties in Jaipur'}</span>
           </h1>
           <p className="text-sm sm:text-base text-gray-300 font-normal">
-            Explore the best properties in Jaipur with Jaipur Properties Hub. Buy, sell, rent or invest in residential and commercial real estate in Jaipur with verified owner listings and direct enquiries.
+            {siteSettings.tagline || 'Explore verified residential & commercial properties in Jaipur with direct owner enquiries.'}
           </p>
         </div>
 
@@ -275,26 +272,26 @@ export const HeroSection: React.FC = () => {
 
         </div>
 
-        {/* Sell / Post Property High-Impact Banner */}
-        <div className="mt-8 bg-gradient-to-r from-red-900/80 via-red-800/80 to-slate-900 p-5 rounded-2xl border border-red-500/30 shadow-xl max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md">
+        {/* Verified Admin & Helpline Banner */}
+        <div className="mt-8 bg-gradient-to-r from-slate-900 via-red-950 to-slate-900 p-5 rounded-2xl border border-red-500/30 shadow-xl max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md">
           <div className="space-y-1 text-center sm:text-left">
-            <div className="inline-block bg-amber-400 text-slate-950 text-[10px] uppercase font-black px-2 py-0.5 rounded">
-              SELLER & AGENT PORTAL
+            <div className="inline-block bg-emerald-400 text-slate-950 text-[10px] uppercase font-black px-2 py-0.5 rounded">
+              VERIFIED PROPERTY PORTAL
             </div>
             <h3 className="text-lg font-bold text-white">
-              Are you an Owner or Builder looking to sell/rent?
+              Direct Verified Owner & Builder Properties
             </h3>
             <p className="text-xs text-red-200">
-              Post your property for <span className="font-bold text-white">FREE</span> & get direct buyer inquiries with zero brokerage.
+              Zero Brokerage • Direct Contact • Instant Valuation Reports • Admin Managed
             </p>
           </div>
 
           <button
-            onClick={() => setActiveView('post-property')}
-            className="shrink-0 bg-white hover:bg-amber-300 text-slate-950 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer group"
+            onClick={() => setActiveView('admin')}
+            className="shrink-0 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer group"
           >
-            <PlusCircle className="w-4 h-4 text-red-600 group-hover:scale-110 transition-transform" />
-            <span>Post Property for FREE</span>
+            <ShieldCheck className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+            <span>Admin Panel Login</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
