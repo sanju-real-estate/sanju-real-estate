@@ -56,6 +56,7 @@ export const UserDashboard: React.FC = () => {
         })
       });
 
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.valuation) {
         setValuationResult(data.valuation);

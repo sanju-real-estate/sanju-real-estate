@@ -38,6 +38,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
             propertyType: property.propertyType
           })
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (isMounted && data.insights) {
           setLocalityInsights(data.insights);

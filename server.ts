@@ -24,7 +24,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // Gemini AI Locality Insights
-app.post("/api/gemini/insights", async (req, res) => {
+app.post(["/api/gemini/insights", "/api/gemini/locality-insights"], async (req, res) => {
   try {
     const { city, locality } = req.body;
     const ai = getAi();
@@ -87,6 +87,38 @@ app.post("/api/gemini/insights", async (req, res) => {
         nearbyHighlights: ["Metro station nearby", "Shopping centers", "Schools & hospitals", "Green parks"],
         futureOutlook: "Strong potential for appreciation over next 3 years."
       }
+    });
+  }
+});
+
+// Gemini AI Property Description Generator
+app.post("/api/gemini/ai-description", async (req, res) => {
+  try {
+    const { propertyType, bhk, city, locality, areaSqFt, expectedPrice, furnishing, amenities, keyHighlights } = req.body;
+    const ai = getAi();
+    if (!ai) {
+      return res.json({
+        description: `Stunning ${bhk || 3} BHK ${propertyType || 'Apartment'} for sale in ${locality || 'prime locality'}, ${city || 'Jaipur'}. Spanning ${areaSqFt || 1200} sq.ft carpet area with ${furnishing || 'Semi-Furnished'} layout. Features key amenities such as ${Array.isArray(amenities) ? amenities.slice(0, 3).join(', ') : 'Security, Power Backup, Clubhouse'}. Perfect opportunity for families and investors.`
+      });
+    }
+
+    const prompt = `Write a compelling, professional 3-paragraph real estate listing description for a ${bhk || 3} BHK ${propertyType || 'Apartment'} located in ${locality}, ${city}. Carpet area: ${areaSqFt} sq.ft. Price: ${expectedPrice}. Furnishing: ${furnishing}. Amenities: ${Array.isArray(amenities) ? amenities.join(', ') : ''}. Highlights: ${keyHighlights || ''}. Highlight luxury, location advantages, connectivity, and investment value.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    const text = response.text;
+    if (text) {
+      return res.json({ description: text.trim() });
+    }
+    throw new Error("Empty AI description response");
+  } catch (error: any) {
+    console.error("AI Description Error:", error);
+    const { propertyType, bhk, city, locality, areaSqFt } = req.body;
+    return res.json({
+      description: `Beautiful ${bhk || 3} BHK ${propertyType || 'Apartment'} located in prime locality of ${locality || 'Vaishali Nagar'}, ${city || 'Jaipur'}. Offering ${areaSqFt || 1250} sq.ft of well-planned living space with high-grade construction, excellent natural lighting, and modern society amenities.`
     });
   }
 });

@@ -136,6 +136,7 @@ export const PostPropertyPortal: React.FC = () => {
         })
       });
 
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.description) {
         setDescription(data.description);
