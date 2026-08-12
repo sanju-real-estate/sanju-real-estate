@@ -1,0 +1,8 @@
+{
+  "name": "Jaipur Properties Hub",
+  "description": "Premier Jaipur real estate marketplace for buying, renting, and selling residential & commercial properties with AI valuation, verified owner listings, and zero brokerage options.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
