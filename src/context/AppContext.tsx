@@ -331,9 +331,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProperties(prev => [newProperty, ...prev]);
 
     if (isSupabaseConfigured()) {
-      supabase.from('properties').insert([newProperty]).then(({ error }) => {
-        if (error) console.warn('Supabase insert property warning:', error.message);
-      });
+      supabase.from('properties').insert([newProperty]).then(
+        ({ error }) => { if (error) console.warn('Supabase insert property warning:', error.message); },
+        (err) => { console.warn('Supabase insert error:', err); }
+      );
       showToast('🎉 Your property has been published to Supabase!', 'success');
     } else {
       showToast('🎉 Your property has been published successfully!', 'success');
@@ -345,9 +346,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProperty = (propertyId: string, updates: Partial<Property>) => {
     setProperties(prev => prev.map(p => p.id === propertyId ? { ...p, ...updates } : p));
     if (isSupabaseConfigured()) {
-      supabase.from('properties').update(updates).eq('id', propertyId).then(({ error }) => {
-        if (error) console.warn('Supabase update property warning:', error.message);
-      });
+      supabase.from('properties').update(updates).eq('id', propertyId).then(
+        ({ error }) => { if (error) console.warn('Supabase update property warning:', error.message); },
+        (err) => { console.warn('Supabase update error:', err); }
+      );
     }
     showToast('Property details updated successfully', 'success');
   };
@@ -356,9 +358,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProperties(prev => prev.filter(p => p.id !== propertyId));
     setWishlistIds(prev => prev.filter(id => id !== propertyId));
     if (isSupabaseConfigured()) {
-      supabase.from('properties').delete().eq('id', propertyId).then(({ error }) => {
-        if (error) console.warn('Supabase delete property warning:', error.message);
-      });
+      supabase.from('properties').delete().eq('id', propertyId).then(
+        ({ error }) => { if (error) console.warn('Supabase delete property warning:', error.message); },
+        (err) => { console.warn('Supabase delete error:', err); }
+      );
     }
     showToast('Property listing deleted', 'info');
   };
@@ -375,9 +378,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProperties(prev => prev.map(p => p.id === inquiryData.propertyId ? { ...p, leadsCount: p.leadsCount + 1 } : p));
 
     if (isSupabaseConfigured()) {
-      supabase.from('inquiries').insert([newInquiry]).then(({ error }) => {
-        if (error) console.warn('Supabase insert inquiry warning:', error.message);
-      });
+      supabase.from('inquiries').insert([newInquiry]).then(
+        ({ error }) => { if (error) console.warn('Supabase insert inquiry warning:', error.message); },
+        (err) => { console.warn('Supabase inquiry error:', err); }
+      );
     }
 
     showToast('Your inquiry & visit request has been sent to the property owner!', 'success');
@@ -386,9 +390,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateInquiryStatus = (inquiryId: string, status: Inquiry['status']) => {
     setInquiries(prev => prev.map(i => i.id === inquiryId ? { ...i, status } : i));
     if (isSupabaseConfigured()) {
-      supabase.from('inquiries').update({ status }).eq('id', inquiryId).then(({ error }) => {
-        if (error) console.warn('Supabase update inquiry warning:', error.message);
-      });
+      supabase.from('inquiries').update({ status }).eq('id', inquiryId).then(
+        ({ error }) => { if (error) console.warn('Supabase update inquiry warning:', error.message); },
+        (err) => { console.warn('Supabase update inquiry error:', err); }
+      );
     }
     showToast(`Lead status updated to "${status}"`, 'info');
   };
