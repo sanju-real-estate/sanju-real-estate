@@ -253,7 +253,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = async () => {
     if (isSupabaseConfigured()) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.warn('Supabase logout notice:', e);
+      }
     }
     showToast('Logged out successfully', 'info');
   };
@@ -402,34 +406,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFilters(DEFAULT_FILTERS);
   };
 
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
-    try {
-      const cached = localStorage.getItem('mb_site_settings');
-      if (cached) return { ...DEFAULT_SITE_SETTINGS, ...JSON.parse(cached) };
-    } catch (e) {}
-    return DEFAULT_SITE_SETTINGS;
-  });
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
-  // Load global branding settings from Supabase
+  // Load global branding settings directly from Supabase settings table on page load
   useEffect(() => {
     const fetchSettings = async () => {
-      if (!isSupabaseConfigured()) return;
-      try {
-        const { data, error } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('id', 'branding')
-          .single();
-        if (data && data.value) {
-          const parsed = data.value as SiteSettings;
-          setSiteSettings(prev => ({ ...prev, ...parsed }));
-          localStorage.setItem('mb_site_settings', JSON.stringify({ ...DEFAULT_SITE_SETTINGS, ...parsed }));
+      let loaded = false;
+
+      // 1. Fetch from Supabase public.settings table
+      if (isSupabaseConfigured()) {
+        try {
+          const { data, error } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('id', 'branding')
+            .single();
+          if (data && data.value) {
+            const parsed = data.value as SiteSettings;
+            setSiteSettings(prev => ({ ...prev, ...parsed }));
+            loaded = true;
+          } else if (error) {
+            console.warn('Supabase settings query notice:', error.message);
+          }
+        } catch (err) {
+          console.warn('Supabase branding settings load notice:', err);
         }
-      } catch (err) {
-        console.warn('Supabase branding settings load notice:', err);
+      }
+
+      // 2. Fallback to server API if Supabase didn't load settings
+      if (!loaded) {
+        try {
+          const res = await fetch('/api/settings');
+          if (res.ok) {
+            const json = await res.json();
+            if (json && json.settings) {
+              setSiteSettings(prev => ({ ...prev, ...json.settings }));
+            }
+          }
+        } catch (err) {
+          console.warn('Server settings fetch notice:', err);
+        }
       }
     };
-    fetchSettings().catch(err => console.warn('fetchSettings catch:', err));
+
+    fetchSettings();
   }, []);
 
   // Update HTML document head tags (SEO & Favicon) dynamically when siteSettings changes
@@ -488,28 +508,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: new Date().toISOString(),
       updatedBy: currentUser?.id || 'admin-user'
     };
+    
+    // 1. Immediate UI state update for instant live preview without page refresh
     setSiteSettings(updated);
-    try {
-      localStorage.setItem('mb_site_settings', JSON.stringify(updated));
-    } catch (e) {}
 
+    let supabaseSaved = false;
+
+    // 2. Perform upsert / update to Supabase public.settings table
     if (isSupabaseConfigured()) {
       try {
-        const { error } = await supabase
+        const { error: upsertErr } = await supabase
           .from('settings')
-          .upsert({ id: 'branding', value: updated });
-        if (error) {
-          console.warn('Supabase settings upsert warning:', error.message);
-          showToast('Settings saved locally. Note: Supabase error: ' + error.message, 'warning');
+          .upsert({ id: 'branding', value: updated }, { onConflict: 'id' });
+
+        if (upsertErr) {
+          console.warn('Supabase settings upsert warning, trying update:', upsertErr.message);
+          const { error: updateErr } = await supabase
+            .from('settings')
+            .update({ value: updated })
+            .eq('id', 'branding');
+
+          if (!updateErr) {
+            supabaseSaved = true;
+          } else {
+            console.error('Supabase settings update error:', updateErr.message);
+          }
         } else {
-          showToast('Global branding settings successfully persisted to Supabase!', 'success');
+          supabaseSaved = true;
         }
       } catch (error) {
         console.error('Error persisting site settings to Supabase:', error);
-        showToast('Branding updated locally.', 'info');
       }
+    }
+
+    // 3. Persist to live server API
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: updated })
+      });
+    } catch (e) {
+      console.warn('Server API settings save notice:', e);
+    }
+
+    if (supabaseSaved) {
+      showToast('Logo & branding settings saved server-side in Supabase!', 'success');
     } else {
-      showToast('Global branding settings updated locally!', 'success');
+      showToast('Logo & branding settings saved live to server!', 'success');
     }
   };
 

@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
@@ -9,7 +10,43 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
+let globalSiteSettings: any = null;
+
+try {
+  if (fs.existsSync(SETTINGS_FILE_PATH)) {
+    const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
+    globalSiteSettings = JSON.parse(raw);
+  }
+} catch (e) {
+  console.warn("Could not load initial site_settings.json:", e);
+}
+
+// Global Site Settings API
+app.get("/api/settings", (req, res) => {
+  res.json({ settings: globalSiteSettings });
+});
+
+app.post("/api/settings", (req, res) => {
+  try {
+    const { settings } = req.body;
+    if (settings) {
+      globalSiteSettings = settings;
+      try {
+        fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), "utf-8");
+      } catch (err) {
+        console.warn("Could not write site_settings.json:", err);
+      }
+      return res.json({ status: "ok", settings: globalSiteSettings });
+    }
+    return res.status(400).json({ error: "Missing settings payload" });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 // Initialize Google GenAI
 const getAi = () => {

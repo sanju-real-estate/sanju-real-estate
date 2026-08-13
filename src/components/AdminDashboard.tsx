@@ -1027,10 +1027,10 @@ export const AdminDashboard: React.FC = () => {
               <div className="mt-4 p-3 bg-gray-50 rounded-2xl border border-gray-200 text-xs text-gray-600 space-y-1">
                 <p className="font-bold text-gray-800 flex items-center gap-1">
                   <Database className="w-3.5 h-3.5 text-red-600" />
-                  Firestore Sync Status
+                  Supabase Sync Status
                 </p>
                 <p className="text-[11px] text-gray-500">
-                  Collection: <code className="bg-gray-200 px-1 py-0.5 rounded font-mono text-[10px]">settings/branding</code>
+                  Table: <code className="bg-gray-200 px-1 py-0.5 rounded font-mono text-[10px]">public.settings (id: 'branding')</code>
                 </p>
               </div>
             </div>
