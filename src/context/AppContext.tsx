@@ -1,29 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Property, Inquiry, FilterState, ListingType, PropertyType, PostedBy, FurnishingStatus, ConstructionStatus, UserProfile, SiteSettings } from '../types';
 import { INITIAL_PROPERTIES, INITIAL_INQUIRIES } from '../data/mockData';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged 
-} from 'firebase/auth';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  collection, 
-  getDocs, 
-  query, 
-  where, 
-  addDoc, 
-  deleteDoc,
-  serverTimestamp
-} from 'firebase/firestore';
+import { APP_LOGO } from '../assets/logo';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
-  logoUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=120&q=80',
+  logoUrl: APP_LOGO,
+  faviconUrl: APP_LOGO,
   portalName: 'Jaipur Properties Hub',
   tagline: 'Jaipur’s #1 Verified Real Estate & Property Portal',
   helplinePhone: '+91 97721 17575',
@@ -166,6 +149,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const login = async (email: string, password: string) => {
     try {
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          showToast(error.message, 'error');
+          return;
+        }
+        if (data.user) {
+          setCurrentUser({
+            id: data.user.id,
+            name: data.user.user_metadata?.fullName || email.split('@')[0],
+            fullName: data.user.user_metadata?.fullName || email.split('@')[0],
+            email: data.user.email || email,
+            phone: data.user.user_metadata?.phone || '+91 97721 17575',
+            city: data.user.user_metadata?.city || 'Jaipur',
+            userType: data.user.user_metadata?.userType || 'Owner',
+            role: 'admin',
+            isVerified: true
+          });
+          setIsAuthModalOpen(false);
+          showToast('Logged in with Supabase successfully!', 'success');
+          return;
+        }
+      }
+
+      // Local fallback mode
       setCurrentUser({
         id: 'user-' + Date.now().toString(),
         name: email ? email.split('@')[0] : 'Jaipur Property Owner',
@@ -184,8 +192,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const signup = async (fullName: string, email: string, phone: string, password: string, confirmPassword: string, userType: UserProfile['userType'], city: string = 'Jaipur') => {
+  const signup = async (
+    fullName: string, 
+    email: string, 
+    phone: string, 
+    password: string, 
+    confirmPassword: string, 
+    userType: UserProfile['userType'], 
+    city: string = 'Jaipur'
+  ) => {
     try {
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { fullName, phone, userType, city }
+          }
+        });
+        if (error) {
+          showToast(error.message, 'error');
+          return;
+        }
+        if (data.user) {
+          setCurrentUser({
+            id: data.user.id,
+            name: fullName || email.split('@')[0],
+            fullName: fullName || email.split('@')[0],
+            email: data.user.email || email,
+            phone: phone || '+91 97721 17575',
+            city: city || 'Jaipur',
+            userType: userType || 'Owner',
+            role: 'admin',
+            isVerified: true
+          });
+          setIsAuthModalOpen(false);
+          showToast(`Welcome, ${fullName || 'User'}! Account registered in Supabase.`, 'success');
+          return;
+        }
+      }
+
+      // Local fallback mode
       setCurrentUser({
         id: 'user-' + Date.now().toString(),
         name: fullName || 'Jaipur Property User',
@@ -205,10 +252,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = async () => {
-    showToast('Session active (Login-free mode enabled)', 'info');
+    if (isSupabaseConfigured()) {
+      await supabase.auth.signOut();
+    }
+    showToast('Logged out successfully', 'info');
   };
 
-  // Sync to localStorage
+  // Sync state to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('mb_properties', JSON.stringify(properties));
@@ -279,18 +329,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setProperties(prev => [newProperty, ...prev]);
-    showToast('🎉 Your property has been published successfully to Firebase Firestore!', 'success');
+
+    if (isSupabaseConfigured()) {
+      supabase.from('properties').insert([newProperty]).then(({ error }) => {
+        if (error) console.warn('Supabase insert property warning:', error.message);
+      });
+      showToast('🎉 Your property has been published to Supabase!', 'success');
+    } else {
+      showToast('🎉 Your property has been published successfully!', 'success');
+    }
+
     return newProperty;
   };
 
   const updateProperty = (propertyId: string, updates: Partial<Property>) => {
     setProperties(prev => prev.map(p => p.id === propertyId ? { ...p, ...updates } : p));
+    if (isSupabaseConfigured()) {
+      supabase.from('properties').update(updates).eq('id', propertyId).then(({ error }) => {
+        if (error) console.warn('Supabase update property warning:', error.message);
+      });
+    }
     showToast('Property details updated successfully', 'success');
   };
 
   const deleteProperty = (propertyId: string) => {
     setProperties(prev => prev.filter(p => p.id !== propertyId));
     setWishlistIds(prev => prev.filter(id => id !== propertyId));
+    if (isSupabaseConfigured()) {
+      supabase.from('properties').delete().eq('id', propertyId).then(({ error }) => {
+        if (error) console.warn('Supabase delete property warning:', error.message);
+      });
+    }
     showToast('Property listing deleted', 'info');
   };
 
@@ -304,11 +373,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setInquiries(prev => [newInquiry, ...prev]);
     setProperties(prev => prev.map(p => p.id === inquiryData.propertyId ? { ...p, leadsCount: p.leadsCount + 1 } : p));
+
+    if (isSupabaseConfigured()) {
+      supabase.from('inquiries').insert([newInquiry]).then(({ error }) => {
+        if (error) console.warn('Supabase insert inquiry warning:', error.message);
+      });
+    }
+
     showToast('Your inquiry & visit request has been sent to the property owner!', 'success');
   };
 
   const updateInquiryStatus = (inquiryId: string, status: Inquiry['status']) => {
     setInquiries(prev => prev.map(i => i.id === inquiryId ? { ...i, status } : i));
+    if (isSupabaseConfigured()) {
+      supabase.from('inquiries').update({ status }).eq('id', inquiryId).then(({ error }) => {
+        if (error) console.warn('Supabase update inquiry warning:', error.message);
+      });
+    }
     showToast(`Lead status updated to "${status}"`, 'info');
   };
 
@@ -324,19 +405,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return DEFAULT_SITE_SETTINGS;
   });
 
-  // Load global branding settings from Firestore
+  // Load global branding settings from Supabase
   useEffect(() => {
     const fetchSettings = async () => {
+      if (!isSupabaseConfigured()) return;
       try {
-        const docRef = doc(db, 'settings', 'branding');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data() as SiteSettings;
-          setSiteSettings(prev => ({ ...prev, ...data }));
-          localStorage.setItem('mb_site_settings', JSON.stringify({ ...DEFAULT_SITE_SETTINGS, ...data }));
+        const { data, error } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('id', 'branding')
+          .single();
+        if (data && data.value) {
+          const parsed = data.value as SiteSettings;
+          setSiteSettings(prev => ({ ...prev, ...parsed }));
+          localStorage.setItem('mb_site_settings', JSON.stringify({ ...DEFAULT_SITE_SETTINGS, ...parsed }));
         }
       } catch (err) {
-        console.warn('Firestore branding settings load notice:', err);
+        console.warn('Supabase branding settings load notice:', err);
       }
     };
     fetchSettings().catch(err => console.warn('fetchSettings catch:', err));
@@ -345,12 +430,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Update HTML document head tags (SEO & Favicon) dynamically when siteSettings changes
   useEffect(() => {
     if (siteSettings) {
-      // Document Title
       if (siteSettings.seoTitle || siteSettings.portalName) {
         document.title = siteSettings.seoTitle || `${siteSettings.portalName} | Real Estate Portal`;
       }
       
-      // Meta description
       let metaDesc = document.querySelector('meta[name="description"]');
       if (!metaDesc) {
         metaDesc = document.createElement('meta');
@@ -361,7 +444,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         metaDesc.setAttribute('content', siteSettings.seoDescription || siteSettings.tagline);
       }
 
-      // Meta keywords
       let metaKeywords = document.querySelector('meta[name="keywords"]');
       if (!metaKeywords) {
         metaKeywords = document.createElement('meta');
@@ -372,7 +454,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         metaKeywords.setAttribute('content', siteSettings.seoKeywords);
       }
 
-      // Canonical URL
       if (siteSettings.seoCanonicalUrl) {
         let canonicalLink = document.querySelector('link[rel="canonical"]');
         if (!canonicalLink) {
@@ -383,7 +464,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         canonicalLink.setAttribute('href', siteSettings.seoCanonicalUrl);
       }
 
-      // Favicon URL
       if (siteSettings.faviconUrl || siteSettings.logoUrl) {
         let faviconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
         if (!faviconLink) {
@@ -408,17 +488,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('mb_site_settings', JSON.stringify(updated));
     } catch (e) {}
 
-    try {
-      const docRef = doc(db, 'settings', 'branding');
-      await setDoc(docRef, updated, { merge: true });
-      showToast('Global branding settings successfully persisted to Firestore!', 'success');
-    } catch (error) {
-      console.error('Error persisting site settings to Firestore:', error);
+    if (isSupabaseConfigured()) {
       try {
-        handleFirestoreError(error, OperationType.WRITE, 'settings/branding');
-      } catch (e) {
-        showToast('Branding updated locally. Note: Firestore save failed or offline.', 'warning');
+        const { error } = await supabase
+          .from('settings')
+          .upsert({ id: 'branding', value: updated });
+        if (error) {
+          console.warn('Supabase settings upsert warning:', error.message);
+          showToast('Settings saved locally. Note: Supabase error: ' + error.message, 'warning');
+        } else {
+          showToast('Global branding settings successfully persisted to Supabase!', 'success');
+        }
+      } catch (error) {
+        console.error('Error persisting site settings to Supabase:', error);
+        showToast('Branding updated locally.', 'info');
       }
+    } else {
+      showToast('Global branding settings updated locally!', 'success');
     }
   };
 

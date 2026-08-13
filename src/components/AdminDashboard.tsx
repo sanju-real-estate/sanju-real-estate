@@ -304,7 +304,7 @@ export const AdminDashboard: React.FC = () => {
 
           <div className="mt-8 pt-4 border-t border-slate-800 text-center">
             <p className="text-[11px] text-gray-500 font-mono">
-              Protected by Firestore Rules & Authorized Key Session
+              Protected by Supabase Rules & Authorized Key Session
             </p>
           </div>
 
