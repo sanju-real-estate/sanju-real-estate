@@ -96,21 +96,23 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             <button 
               onClick={() => handleNavClick('home')}
-              className="flex items-center gap-1.5 sm:gap-2 group text-left cursor-pointer shrink-0"
+              className="flex items-center gap-2 sm:gap-2.5 group text-left cursor-pointer shrink-0"
             >
-              <img 
-                src={siteSettings.logoUrl || APP_LOGO} 
-                alt={`${siteSettings.portalName} Logo`} 
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  if (!target.dataset.tried) {
-                    target.dataset.tried = '1';
-                    target.src = APP_LOGO;
-                  }
-                }}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shadow-xs group-hover:scale-105 transition-transform border border-gray-200 shrink-0 bg-white"
-              />
+              <div className="relative shrink-0">
+                <img 
+                  src={siteSettings.logoUrl || APP_LOGO} 
+                  alt={`${siteSettings.portalName} Logo`} 
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.dataset.tried) {
+                      target.dataset.tried = '1';
+                      target.src = APP_LOGO;
+                    }
+                  }}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover shadow-xs group-hover:scale-105 transition-transform border border-red-500/30 shrink-0 bg-white"
+                />
+              </div>
               <div className="flex flex-col min-w-0">
                 <span className="font-extrabold text-xs sm:text-sm md:text-base tracking-tight text-gray-900 group-hover:text-red-600 transition-colors leading-tight truncate max-w-[130px] sm:max-w-[180px] md:max-w-[240px]">
                   {siteSettings.portalName}
@@ -232,6 +234,19 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
+            {/* Post Property FREE Button */}
+            <button
+              onClick={() => handleNavClick('post-property')}
+              className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Post Property Free - Sell or Rent"
+            >
+              <PlusCircle className="w-4 h-4 text-white shrink-0" />
+              <span className="inline font-extrabold">Post Property</span>
+              <span className="bg-emerald-800 text-emerald-100 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline">
+                FREE
+              </span>
+            </button>
+
             {/* User Dashboard (lg+) */}
             <button
               onClick={() => handleNavClick('dashboard')}
@@ -321,6 +336,18 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1">
+            <button
+              onClick={() => handleNavClick('post-property')}
+              className="text-left py-3 px-3.5 text-sm font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl min-h-[44px] flex items-center justify-between shadow-sm cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <PlusCircle className="w-5 h-5 text-white shrink-0" />
+                <span>Post Property FREE</span>
+              </div>
+              <span className="text-[10px] bg-emerald-800 text-white font-extrabold px-2 py-0.5 rounded-full uppercase">
+                Zero Fee
+              </span>
+            </button>
             <button
               onClick={() => handleNavClick('admin')}
               className="text-left py-3 px-3.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl min-h-[44px] flex items-center justify-between shadow-sm cursor-pointer"
