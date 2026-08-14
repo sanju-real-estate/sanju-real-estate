@@ -35,6 +35,11 @@ export const Navbar: React.FC = () => {
   };
 
   const handleNavClick = (view: 'home' | 'listings' | 'post-property' | 'dashboard' | 'valuation' | 'admin', listingType?: string) => {
+    if (view === 'post-property' && !currentUser) {
+      openAuthModal('signup');
+      showToast('Please login or sign up first to post your property free!', 'info');
+      return;
+    }
     if (listingType) {
       setFilters(prev => ({ ...prev, listingType: listingType as any }));
     }
@@ -71,6 +76,14 @@ export const Navbar: React.FC = () => {
               <Calculator className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Price Estimator</span>
             </button>
+            <span className="text-gray-600">|</span>
+            <button
+              onClick={() => handleNavClick('admin')}
+              className="hover:text-white flex items-center gap-1 text-amber-400 font-bold transition-colors cursor-pointer py-0.5 text-[11px] sm:text-xs"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+              <span>Admin Login</span>
+            </button>
           </div>
         </div>
       </div>
@@ -89,7 +102,6 @@ export const Navbar: React.FC = () => {
                 <img 
                   src={siteSettings.logoUrl || APP_LOGO} 
                   alt={`${siteSettings.portalName} Logo`} 
-                  loading="lazy"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     const target = e.currentTarget;
@@ -248,24 +260,18 @@ export const Navbar: React.FC = () => {
               <span>Dashboard</span>
             </button>
 
-            {/* Admin Panel (lg+) */}
+            {/* Admin Panel Button (Always Prominent) */}
             <button
               onClick={() => handleNavClick('admin')}
-              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 shadow-xs ${
-                activeView === 'admin'
-                  ? 'bg-red-700 text-white border border-red-600'
-                  : 'bg-red-600 hover:bg-red-700 text-white'
-              }`}
-              title="Open Admin Panel"
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Admin Panel & Site Settings"
             >
               <ShieldCheck className="w-4 h-4 text-white" />
               <span>Admin Panel</span>
             </button>
 
-
-
-            {/* Auth Profile if logged in */}
-            {currentUser && (
+            {/* Auth Button or User Profile */}
+            {currentUser ? (
               <div className="hidden sm:flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs shrink-0">
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="max-w-[80px] truncate">{currentUser.name}</span>
@@ -277,6 +283,13 @@ export const Navbar: React.FC = () => {
                   Logout
                 </button>
               </div>
+            ) : (
+              <button
+                onClick={() => openAuthModal('login')}
+                className="hidden sm:flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+              >
+                <span>Login</span>
+              </button>
             )}
 
             {/* Mobile / Tablet Menu Toggle */}
@@ -335,7 +348,18 @@ export const Navbar: React.FC = () => {
                 Zero Fee
               </span>
             </button>
-
+            <button
+              onClick={() => handleNavClick('admin')}
+              className="text-left py-3 px-3.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl min-h-[44px] flex items-center justify-between shadow-sm cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-white shrink-0" />
+                <span>Admin Panel Login</span>
+              </div>
+              <span className="text-[10px] bg-white/20 text-white font-extrabold px-2 py-0.5 rounded-full">
+                Admin
+              </span>
+            </button>
             <button
               onClick={() => handleNavClick('home')}
               className="text-left py-3 px-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-xl min-h-[44px] flex items-center"
@@ -376,13 +400,6 @@ export const Navbar: React.FC = () => {
                 {wishlistIds.length} Saved
               </span>
             </button>
-            <button
-              onClick={() => handleNavClick('admin')}
-              className="text-left py-3 px-3.5 text-sm font-extrabold text-white bg-red-600 hover:bg-red-700 rounded-xl min-h-[44px] flex items-center gap-2 shadow-xs cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4 text-white shrink-0" />
-              <span>Admin Panel</span>
-            </button>
           </div>
 
           {/* Mobile Auth Section */}
@@ -404,16 +421,26 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  openAuthModal();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-              >
-                <UserCheck className="w-4 h-4 text-white" />
-                <span>Login / Register</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    openAuthModal('login');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="bg-slate-900 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center cursor-pointer"
+                >
+                  Sign In (Login)
+                </button>
+                <button
+                  onClick={() => {
+                    handleNavClick('admin');
+                  }}
+                  className="bg-red-600 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                  <span>Admin Panel</span>
+                </button>
+              </div>
             )}
           </div>
         </div>

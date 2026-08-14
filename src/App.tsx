@@ -6,8 +6,8 @@ import { FeaturedCollections } from './components/FeaturedCollections';
 import { PropertyListingPage } from './components/PropertyListingPage';
 import { PropertyDetailPage } from './components/PropertyDetailPage';
 import { PostPropertyPortal } from './components/PostPropertyPortal';
-import { AdminDashboard } from './components/AdminDashboard';
 import { UserDashboard } from './components/UserDashboard';
+import { AdminDashboard } from './components/AdminDashboard';
 import { LeadModal } from './components/LeadModal';
 import { AiAssistantDrawer } from './components/AiAssistantDrawer';
 import { AuthModal } from './components/AuthModal';
@@ -57,12 +57,12 @@ const MainContent: React.FC = () => {
           <PostPropertyPortal />
         )}
 
-        {activeView === 'admin' && (
-          <AdminDashboard />
-        )}
-
         {(activeView === 'dashboard' || activeView === 'valuation') && (
           <UserDashboard />
+        )}
+
+        {activeView === 'admin' && (
+          <AdminDashboard />
         )}
       </main>
 
@@ -93,7 +93,6 @@ const MainContent: React.FC = () => {
                 <img 
                   src={siteSettings.logoUrl || APP_LOGO} 
                   alt={`${siteSettings.portalName} Logo`} 
-                  loading="lazy"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     e.currentTarget.src = APP_LOGO;
@@ -134,11 +133,11 @@ const MainContent: React.FC = () => {
 
               <div className="flex items-center gap-3 pt-2">
                 <button
-                  onClick={() => setActiveView('post-property')}
+                  onClick={() => setActiveView('admin')}
                   className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition-colors flex items-center gap-2 cursor-pointer"
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Post Property Free</span>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Admin Panel Login</span>
                 </button>
               </div>
             </div>

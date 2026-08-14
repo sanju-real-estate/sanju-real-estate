@@ -44,11 +44,11 @@ interface AppContextType {
   setActiveView: (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin') => void;
   setSelectedProperty: (property: Property | null) => void;
   toggleWishlist: (propertyId: string) => void;
-  addProperty: (property: Omit<Property, 'id' | 'viewsCount' | 'leadsCount' | 'postedDate'>) => Promise<Property>;
-  updateProperty: (propertyId: string, updates: Partial<Property>) => Promise<void>;
-  deleteProperty: (propertyId: string) => Promise<void>;
-  addInquiry: (inquiry: Omit<Inquiry, 'id' | 'createdAt' | 'status'>) => Promise<void>;
-  updateInquiryStatus: (inquiryId: string, status: Inquiry['status']) => Promise<void>;
+  addProperty: (property: Omit<Property, 'id' | 'viewsCount' | 'leadsCount' | 'postedDate'>) => Property;
+  updateProperty: (propertyId: string, updates: Partial<Property>) => void;
+  deleteProperty: (propertyId: string) => void;
+  addInquiry: (inquiry: Omit<Inquiry, 'id' | 'createdAt' | 'status'>) => void;
+  updateInquiryStatus: (inquiryId: string, status: Inquiry['status']) => void;
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
   resetFilters: () => void;
   showToast: (message: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
@@ -57,12 +57,10 @@ interface AppContextType {
   viewPropertyDetail: (property: Property) => void;
   openAuthModal: (mode?: 'login' | 'signup') => void;
   closeAuthModal: () => void;
-  loginWithOtp: (email: string, fullName?: string, phone?: string, userType?: UserProfile['userType']) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   signup: (fullName: string, email: string, phone: string, password: string, confirmPassword: string, userType: UserProfile['userType'], city?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateSiteSettings: (newSettings: Partial<SiteSettings>) => Promise<void>;
-  refetchData: () => Promise<void>;
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -125,25 +123,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState<boolean>(false);
 
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('mb_user');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {}
-    return null;
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>({
+    id: 'guest-user-001',
+    name: 'Jaipur Property Owner',
+    fullName: 'Jaipur Property Owner',
+    email: 'owner@jaipurproperties.hub',
+    phone: '+91 9876543210',
+    city: 'Jaipur',
+    userType: 'Owner',
+    role: 'admin',
+    isVerified: true
   });
-
-  useEffect(() => {
-    try {
-      if (currentUser) {
-        localStorage.setItem('mb_user', JSON.stringify(currentUser));
-      } else {
-        localStorage.removeItem('mb_user');
-      }
-    } catch (e) {}
-  }, [currentUser]);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
@@ -155,25 +145,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
-  };
-
-  const loginWithOtp = async (email: string, fullName?: string, phone?: string, userType: UserProfile['userType'] = 'Owner') => {
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanName = fullName?.trim() || cleanEmail.split('@')[0];
-    const newUser: UserProfile = {
-      id: 'usr-' + Date.now().toString(),
-      name: cleanName,
-      fullName: cleanName,
-      email: cleanEmail,
-      phone: phone || '+91 97721 17575',
-      city: 'Jaipur',
-      userType: userType || 'Owner',
-      role: cleanEmail === 'sanjumeena@gmail.com' ? 'admin' : 'user',
-      isVerified: true
-    };
-    setCurrentUser(newUser);
-    setIsAuthModalOpen(false);
-    showToast(`Welcome ${cleanName}! Verified & Logged in successfully.`, 'success');
   };
 
   const login = async (email: string, password: string) => {
@@ -288,10 +259,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn('Supabase logout notice:', e);
       }
     }
-    setCurrentUser(null);
-    try {
-      localStorage.removeItem('mb_user');
-    } catch (e) {}
     showToast('Logged out successfully', 'info');
   };
 
@@ -348,19 +315,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const refetchData = async () => {
-    try {
-      await Promise.all([
-        fetchSettings(),
-        fetchProperties(),
-        fetchInquiries()
-      ]);
-    } catch (err) {
-      console.warn('Error during refetchData:', err);
-    }
-  };
-
-  const addProperty = async (newPropData: Omit<Property, 'id' | 'viewsCount' | 'leadsCount' | 'postedDate'>): Promise<Property> => {
+  const addProperty = (newPropData: Omit<Property, 'id' | 'viewsCount' | 'leadsCount' | 'postedDate'>): Property => {
     const newId = 'prop-' + (Date.now()).toString();
     const formattedPrice = newPropData.price >= 10000000 
       ? `₹${(newPropData.price / 10000000).toFixed(2)} Cr`
@@ -391,131 +346,93 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProperties(prev => [newProperty, ...prev]);
 
     // Live Server Sync
-    try {
-      const res = await fetch('/api/properties', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store',
-        body: JSON.stringify({ property: newProperty })
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && Array.isArray(json.properties)) {
-          setProperties(json.properties);
-          try {
-            localStorage.setItem('mb_properties', JSON.stringify(json.properties));
-            localStorage.setItem('mb_properties_sync', Date.now().toString());
-          } catch (e) {}
-        }
+    (async () => {
+      try {
+        await fetch('/api/properties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ property: newProperty })
+        });
+      } catch (e) {
+        console.warn('Server properties sync notice:', e);
       }
-    } catch (e) {
-      console.warn('Server properties sync notice:', e);
-    }
+    })();
 
     if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase.from('properties').insert([newProperty]);
-        if (error) console.warn('Supabase insert property warning:', error.message);
-      } catch (err) {
-        console.warn('Supabase insert error:', err);
-      }
+      (async () => {
+        try {
+          const { error } = await supabase.from('properties').insert([newProperty]);
+          if (error) console.warn('Supabase insert property warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase insert error:', err);
+        }
+      })();
       showToast('🎉 Property published live on server & database!', 'success');
     } else {
       showToast('🎉 Property published successfully!', 'success');
     }
 
-    await refetchData();
     return newProperty;
   };
 
-  const updateProperty = async (propertyId: string, updates: Partial<Property>): Promise<void> => {
+  const updateProperty = (propertyId: string, updates: Partial<Property>) => {
     setProperties(prev => prev.map(p => p.id === propertyId ? { ...p, ...updates } : p));
 
     // Live Server Sync
-    try {
-      const res = await fetch(`/api/properties/${propertyId}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store',
-        body: JSON.stringify({ updates })
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && Array.isArray(json.properties)) {
-          setProperties(json.properties);
-          try {
-            localStorage.setItem('mb_properties', JSON.stringify(json.properties));
-            localStorage.setItem('mb_properties_sync', Date.now().toString());
-          } catch (e) {}
-        }
+    (async () => {
+      try {
+        await fetch(`/api/properties/${propertyId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates })
+        });
+      } catch (e) {
+        console.warn('Server property update notice:', e);
       }
-    } catch (e) {
-      console.warn('Server property update notice:', e);
-    }
+    })();
 
     if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase.from('properties').update(updates).eq('id', propertyId);
-        if (error) console.warn('Supabase update property warning:', error.message);
-      } catch (err) {
-        console.warn('Supabase update error:', err);
-      }
+      (async () => {
+        try {
+          const { error } = await supabase.from('properties').update(updates).eq('id', propertyId);
+          if (error) console.warn('Supabase update property warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase update error:', err);
+        }
+      })();
     }
-
-    await refetchData();
     showToast('Property details updated successfully', 'success');
   };
 
-  const deleteProperty = async (propertyId: string): Promise<void> => {
+  const deleteProperty = (propertyId: string) => {
     setProperties(prev => prev.filter(p => p.id !== propertyId));
     setWishlistIds(prev => prev.filter(id => id !== propertyId));
 
     // Live Server Sync
-    try {
-      const res = await fetch(`/api/properties/${propertyId}`, {
-        method: 'DELETE',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store'
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && Array.isArray(json.properties)) {
-          setProperties(json.properties);
-          try {
-            localStorage.setItem('mb_properties', JSON.stringify(json.properties));
-            localStorage.setItem('mb_properties_sync', Date.now().toString());
-          } catch (e) {}
-        }
+    (async () => {
+      try {
+        await fetch(`/api/properties/${propertyId}`, {
+          method: 'DELETE'
+        });
+      } catch (e) {
+        console.warn('Server property delete notice:', e);
       }
-    } catch (e) {
-      console.warn('Server property delete notice:', e);
-    }
+    })();
 
     if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase.from('properties').delete().eq('id', propertyId);
-        if (error) console.warn('Supabase delete property warning:', error.message);
-      } catch (err) {
-        console.warn('Supabase delete error:', err);
-      }
+      (async () => {
+        try {
+          const { error } = await supabase.from('properties').delete().eq('id', propertyId);
+          if (error) console.warn('Supabase delete property warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase delete error:', err);
+        }
+      })();
     }
-
-    await refetchData();
     showToast('Property listing deleted', 'info');
   };
 
-  const addInquiry = async (inquiryData: Omit<Inquiry, 'id' | 'createdAt' | 'status'>): Promise<void> => {
+  const addInquiry = (inquiryData: Omit<Inquiry, 'id' | 'createdAt' | 'status'>) => {
     const newInquiry: Inquiry = {
       ...inquiryData,
       id: 'inq-' + Date.now().toString(),
@@ -527,53 +444,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProperties(prev => prev.map(p => p.id === inquiryData.propertyId ? { ...p, leadsCount: p.leadsCount + 1 } : p));
 
     // Live Server Sync
-    try {
-      await fetch('/api/inquiries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inquiry: newInquiry })
-      });
-    } catch (e) {
-      console.warn('Server inquiry sync notice:', e);
-    }
+    (async () => {
+      try {
+        await fetch('/api/inquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inquiry: newInquiry })
+        });
+      } catch (e) {
+        console.warn('Server inquiry sync notice:', e);
+      }
+    })();
 
     if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase.from('inquiries').insert([newInquiry]);
-        if (error) console.warn('Supabase insert inquiry warning:', error.message);
-      } catch (err) {
-        console.warn('Supabase inquiry error:', err);
-      }
+      (async () => {
+        try {
+          const { error } = await supabase.from('inquiries').insert([newInquiry]);
+          if (error) console.warn('Supabase insert inquiry warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase inquiry error:', err);
+        }
+      })();
     }
 
-    await refetchData();
     showToast('Your inquiry & visit request has been sent to the property owner!', 'success');
   };
 
-  const updateInquiryStatus = async (inquiryId: string, status: Inquiry['status']): Promise<void> => {
+  const updateInquiryStatus = (inquiryId: string, status: Inquiry['status']) => {
     setInquiries(prev => prev.map(i => i.id === inquiryId ? { ...i, status } : i));
 
     // Live Server Sync
-    try {
-      await fetch(`/api/inquiries/${inquiryId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-    } catch (e) {
-      console.warn('Server inquiry status update notice:', e);
-    }
+    (async () => {
+      try {
+        await fetch(`/api/inquiries/${inquiryId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+      } catch (e) {
+        console.warn('Server inquiry status update notice:', e);
+      }
+    })();
 
     if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase.from('inquiries').update({ status }).eq('id', inquiryId);
-        if (error) console.warn('Supabase update inquiry warning:', error.message);
-      } catch (err) {
-        console.warn('Supabase update inquiry error:', err);
-      }
+      (async () => {
+        try {
+          const { error } = await supabase.from('inquiries').update({ status }).eq('id', inquiryId);
+          if (error) console.warn('Supabase update inquiry warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase update inquiry error:', err);
+        }
+      })();
     }
-
-    await refetchData();
     showToast(`Lead status updated to "${status}"`, 'info');
   };
 
@@ -608,60 +530,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ? data.data 
       : data;
 
-    const res: Partial<SiteSettings> = {};
-
-    const logo = source.logoUrl || source.logo_url || source.logo;
-    if (logo) res.logoUrl = logo;
-
-    const favicon = source.faviconUrl || source.favicon_url || source.favicon || logo;
-    if (favicon) res.faviconUrl = favicon;
-
-    const portal = source.portalName || source.portal_name || source.name;
-    if (portal) res.portalName = portal;
-
-    const tag = source.tagline || source.tag_line;
-    if (tag) res.tagline = tag;
-
-    const phone = source.helplinePhone || source.helpline_phone || source.phone;
-    if (phone) res.helplinePhone = phone;
-
-    const wa = source.helplineWhatsapp || source.helpline_whatsapp || source.whatsapp;
-    if (wa) res.helplineWhatsapp = wa;
-
-    const email = source.helplineEmail || source.helpline_email || source.email;
-    if (email) res.helplineEmail = email;
-
-    const addr = source.officeAddress || source.office_address || source.address;
-    if (addr) res.officeAddress = addr;
-
-    const hero = source.heroHeadline || source.hero_headline;
-    if (hero) res.heroHeadline = hero;
-
-    const barText = source.announcementBarText || source.announcement_bar_text;
-    if (barText) res.announcementBarText = barText;
-
-    if (source.announcementBarActive !== undefined && source.announcementBarActive !== null) {
-      res.announcementBarActive = Boolean(source.announcementBarActive);
-    }
-
-    const st = source.seoTitle || source.seo_title;
-    if (st) res.seoTitle = st;
-
-    const sd = source.seoDescription || source.seo_description;
-    if (sd) res.seoDescription = sd;
-
-    const sk = source.seoKeywords || source.seo_keywords;
-    if (sk) res.seoKeywords = sk;
-
-    const sc = source.seoCanonicalUrl || source.seo_canonical_url;
-    if (sc) res.seoCanonicalUrl = sc;
-
-    return res;
+    return {
+      logoUrl: source.logoUrl || source.logo_url || source.logo || undefined,
+      faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || undefined,
+      portalName: source.portalName || source.portal_name || source.name || undefined,
+      tagline: source.tagline || source.tag_line || undefined,
+      helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || undefined,
+      helplineWhatsapp: source.helplineWhatsapp || source.helpline_whatsapp || source.whatsapp || undefined,
+      helplineEmail: source.helplineEmail || source.helpline_email || source.email || undefined,
+      officeAddress: source.officeAddress || source.office_address || source.address || undefined,
+      heroHeadline: source.heroHeadline || source.hero_headline || undefined,
+      announcementBarText: source.announcementBarText || source.announcement_bar_text || undefined,
+      announcementBarActive: source.announcementBarActive !== undefined ? Boolean(source.announcementBarActive) : undefined,
+      seoTitle: source.seoTitle || source.seo_title || undefined,
+      seoDescription: source.seoDescription || source.seo_description || undefined,
+      seoKeywords: source.seoKeywords || source.seo_keywords || undefined,
+      seoCanonicalUrl: source.seoCanonicalUrl || source.seo_canonical_url || undefined,
+    };
   };
 
   const applySettingsUpdate = (norm: Partial<SiteSettings>) => {
     setSiteSettings(prev => {
-      const merged = { ...prev, ...norm };
+      const merged = { ...prev };
+      Object.entries(norm).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          (merged as any)[k] = v;
+        }
+      });
       try {
         localStorage.setItem('jph_site_settings', JSON.stringify(merged));
       } catch (e) {}
@@ -674,13 +569,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 1. Fetch from Express API route (which queries Supabase settings table)
     try {
-      const res = await fetch(`/api/settings?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
+      const res = await fetch('/api/settings');
       if (res.ok) {
         const json = await res.json();
         if (json && json.settings) {
@@ -719,13 +608,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const fetchProperties = async () => {
     try {
-      const res = await fetch(`/api/properties?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
+      const res = await fetch('/api/properties');
       if (res.ok) {
         const json = await res.json();
         if (json && Array.isArray(json.properties)) {
@@ -742,13 +625,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const fetchInquiries = async () => {
     try {
-      const res = await fetch(`/api/inquiries?t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
+      const res = await fetch('/api/inquiries');
       if (res.ok) {
         const json = await res.json();
         if (json && Array.isArray(json.inquiries)) {
@@ -773,65 +650,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     syncAllData();
 
-    // Supabase Realtime Subscription via 'realtime:settings' channel for instant cross-device updates
-    let settingsChannel: any = null;
-    let propsChannel: any = null;
-
+    // Supabase Realtime Subscription for automatic updates on all devices
+    let channel: any = null;
     if (isSupabaseConfigured()) {
       try {
-        settingsChannel = supabase
-          .channel('realtime:settings')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, (payload: any) => {
-            if (payload?.new) {
-              const norm = normalizeSettings(payload.new);
-              if (norm && Object.keys(norm).length > 0) {
-                applySettingsUpdate(norm);
-              } else {
-                fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
-              }
-            } else {
-              fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
-            }
+        channel = supabase
+          .channel('public_settings_and_props_changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
+            fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
           })
-          .on('broadcast', { event: 'settings_updated' }, (payload: any) => {
-            if (payload?.payload?.settings) {
-              applySettingsUpdate(payload.payload.settings);
-            } else {
-              fetchSettings().catch(err => console.warn('Realtime broadcast fetchSettings error:', err));
-            }
-          })
-          .subscribe((status: string, err?: Error) => {
-            if (err) {
-              console.warn('Supabase realtime:settings status:', status, err.message);
-            }
-          });
-
-        propsChannel = supabase
-          .channel('realtime:properties')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
             fetchProperties().catch(err => console.warn('Realtime fetchProperties error:', err));
           })
-          .on('broadcast', { event: 'properties_updated' }, () => {
-            fetchProperties().catch(err => console.warn('Realtime fetchProperties error:', err));
-          })
-          .subscribe();
+          .subscribe((status: string, err?: Error) => {
+            if (err) {
+              console.warn('Supabase realtime status:', status, err.message);
+            }
+          });
       } catch (e) {
         console.warn('Realtime subscription notice:', e);
       }
     }
 
-    // Poll every 3 seconds as a bulletproof fallback for all devices & browsers
+    // Poll every 5 seconds as a bulletproof fallback for all devices & browsers
     const pollInterval = setInterval(() => {
       syncAllData();
-    }, 3000);
+    }, 5000);
 
     const handleFocus = () => {
       syncAllData();
     };
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'jph_site_settings_sync' || e.key === 'mb_properties_sync' || e.key === 'mb_inquiries_sync') {
-        syncAllData();
+      if (e.key === 'jph_site_settings_sync' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed.settings) {
+            setSiteSettings(prev => ({ ...prev, ...parsed.settings }));
+          }
+        } catch (err) {}
       }
     };
 
@@ -842,10 +699,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('storage', handleStorage);
-      if (isSupabaseConfigured()) {
+      if (channel && isSupabaseConfigured()) {
         try {
-          if (settingsChannel) supabase.removeChannel(settingsChannel);
-          if (propsChannel) supabase.removeChannel(propsChannel);
+          const res = supabase.removeChannel(channel);
+          if (res && typeof (res as any).then === 'function') {
+            Promise.resolve(res).catch(e => console.warn('removeChannel error:', e));
+          }
         } catch (e) {}
       }
     };
@@ -920,12 +779,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings: updated })
       });
       if (res.ok) {
@@ -963,26 +817,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    // Realtime broadcast via Supabase channel 'realtime:settings' for instant multi-device update
-    if (isSupabaseConfigured()) {
-      try {
-        const settingsChan = supabase.channel('realtime:settings');
-        settingsChan.send({
-          type: 'broadcast',
-          event: 'settings_updated',
-          payload: { settings: updated }
-        }).catch(err => console.warn('Broadcast send error:', err));
-      } catch (e) {
-        console.warn('Realtime settings broadcast notice:', e);
-      }
-    }
-
     // Local storage trigger for cross-tab instant sync
     try {
       localStorage.setItem('jph_site_settings_sync', JSON.stringify({ timestamp: Date.now(), settings: updated }));
     } catch (e) {}
-
-    await refetchData();
 
     if (saveSuccess) {
       showToast('Logo & site settings saved live to server!', 'success');
@@ -1023,12 +861,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       viewPropertyDetail,
       openAuthModal,
       closeAuthModal,
-      loginWithOtp,
       login,
       signup,
       logout,
-      updateSiteSettings,
-      refetchData
+      updateSiteSettings
     }}>
       {children}
     </AppContext.Provider>

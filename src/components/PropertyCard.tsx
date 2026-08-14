@@ -44,7 +44,6 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
         <img
           src={property.images[activeImageIdx] || property.images[0]}
           alt={property.title}
-          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 

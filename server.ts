@@ -14,240 +14,219 @@ const PORT = 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Global Anti-Caching Middleware for all API endpoints
-app.use("/api", (req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
-  res.setHeader("Surrogate-Control", "no-store");
-  next();
-});
-
 // Initialize Supabase Client
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "https://fucisvuntdonaipcodqz.supabase.co";
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable_NaZZz6vzuF3BxoLa_fcoSA_Y6Gbk3VK";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Persistent Local Database Setup
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_FILE = path.join(DATA_DIR, "db.json");
+// File-system persistence fallback for live server
+const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
+const PROPERTIES_FILE_PATH = path.join(process.cwd(), "properties.json");
+const INQUIRIES_FILE_PATH = path.join(process.cwd(), "inquiries.json");
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+let globalSiteSettings: any = null;
+let globalProperties: any[] = [];
+let globalInquiries: any[] = [];
+
+try {
+  if (fs.existsSync(SETTINGS_FILE_PATH)) {
+    const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
+    globalSiteSettings = JSON.parse(raw);
+  }
+} catch (e) {
+  console.warn("Could not load initial site_settings.json:", e);
 }
 
-function readDb() {
-  try {
-    if (fs.existsSync(DB_FILE)) {
-      const raw = fs.readFileSync(DB_FILE, "utf-8");
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") {
-        return {
-          settings: parsed.settings || {},
-          properties: Array.isArray(parsed.properties) ? parsed.properties : [],
-          inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : []
-        };
-      }
+try {
+  if (fs.existsSync(PROPERTIES_FILE_PATH)) {
+    const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
+    globalProperties = JSON.parse(raw);
+  }
+} catch (e) {
+  console.warn("Could not load initial properties.json:", e);
+}
+
+// Fallback seed if properties.json is empty or missing
+if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
+  globalProperties = [
+    {
+      id: 'jpr-1',
+      title: '3 BHK Luxury Apartment in Vaishali Nagar',
+      description: 'Ultra-modern 3 BHK apartment with premium wooden flooring, modular kitchen, power backup, and 24/7 gated security in the heart of Vaishali Nagar.',
+      price: 7500000,
+      priceDisplay: '₹75 Lac',
+      pricePerSqFt: 5172,
+      areaSqFt: 1450,
+      bedrooms: 3,
+      bathrooms: 3,
+      balconies: 2,
+      propertyType: 'Apartment',
+      listingType: 'Buy',
+      city: 'Jaipur',
+      locality: 'Vaishali Nagar',
+      address: 'Amrapali Circle, Block B, Vaishali Nagar, Jaipur',
+      constructionStatus: 'Ready to Move',
+      possessionDate: 'Ready',
+      ageOfBuilding: '1-3 Years',
+      floor: '4th',
+      totalFloors: '10',
+      facing: 'East',
+      furnishing: 'Semi-Furnished',
+      parking: '1 Covered Slot',
+      postedBy: 'Owner',
+      postedByName: 'Rajesh Sharma',
+      postedByPhone: '+91 97721 17575',
+      postedByEmail: 'rajesh.jaipur@example.com',
+      isVerified: true,
+      isExclusive: true,
+      isFeatured: true,
+      slug: '3bhk-luxury-apartment-vaishali-nagar',
+      seoTitle: 'Buy 3 BHK Luxury Apartment in Vaishali Nagar Jaipur',
+      seoKeywords: '3bhk apartment, vaishali nagar, buy flat jaipur',
+      seoDescription: 'Ultra-modern 3 BHK apartment in Vaishali Nagar Jaipur.',
+      images: [
+        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
+      ],
+      amenities: ['Gymnasium', 'Clubhouse', '24/7 Security', 'Power Backup', 'Stilt Parking', 'EV Charging', 'Gated Community'],
+      postedDate: '2026-08-08',
+      viewsCount: 1890,
+      leadsCount: 24
+    },
+    {
+      id: 'jpr-2',
+      title: '4 BHK Royal Independent Villa with Private Garden',
+      description: 'Spacious 4 BHK architect-designed villa near World Trade Park. Features private landscaped lawn, modular kitchen, rooftop gazebo, staff quarters, and JDA approved clear title.',
+      price: 24000000,
+      priceDisplay: '₹2.40 Cr',
+      pricePerSqFt: 8000,
+      areaSqFt: 3000,
+      bedrooms: 4,
+      bathrooms: 5,
+      balconies: 3,
+      propertyType: 'Villa',
+      listingType: 'Buy',
+      city: 'Jaipur',
+      locality: 'Malviya Nagar',
+      address: 'Near World Trade Park, D-Block, Malviya Nagar, Jaipur',
+      constructionStatus: 'Ready to Move',
+      possessionDate: 'Ready',
+      ageOfBuilding: '0-1 Years',
+      floor: 'Ground + 2',
+      totalFloors: '3',
+      facing: 'North-East',
+      furnishing: 'Furnished',
+      parking: '2 Covered Slots',
+      postedBy: 'Owner',
+      postedByName: 'Vikram Singh Rathore',
+      postedByPhone: '+91 97721 17575',
+      postedByEmail: 'vikram.rathore@jaipurproperties.com',
+      isVerified: true,
+      isExclusive: true,
+      isFeatured: true,
+      slug: '4bhk-royal-independent-villa-malviya-nagar',
+      seoTitle: '4 BHK Royal Independent Villa in Malviya Nagar Jaipur',
+      seoKeywords: '4bhk villa, malviya nagar, independent villa jaipur',
+      seoDescription: 'Spacious 4 BHK architect-designed villa near World Trade Park.',
+      images: [
+        'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80'
+      ],
+      amenities: ['Private Garden', 'Rooftop Terrace', 'Servant Quarter', 'Solar Water Heater', 'CCTV Camera', 'Intercom'],
+      postedDate: '2026-08-07',
+      viewsCount: 2450,
+      leadsCount: 38
     }
-  } catch (err) {
-    console.warn("Failed to read db.json, initializing fresh store:", err);
-  }
-  return null;
-}
-
-function saveDb(data: { settings: any; properties: any[]; inquiries: any[] }) {
+  ];
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Failed to save db.json:", err);
-  }
+    fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+  } catch (e) {}
 }
 
-// Default Seed Data
-const DEFAULT_SITE_SETTINGS = {
-  logoUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
-  faviconUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
-  portalName: "Jaipur Properties Hub",
-  tagline: "Jaipur’s #1 Verified Real Estate & Property Portal",
-  helplinePhone: "+91 97721 17575",
-  helplineWhatsapp: "+91 97721 17575",
-  helplineEmail: "support@jaipurproperties.hub",
-  officeAddress: "Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017",
-  heroHeadline: "Find Your Dream Property in Pink City, Jaipur",
-  announcementBarText: "✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!",
-  announcementBarActive: true
-};
-
-const INITIAL_PROPERTIES = [
-  {
-    id: 'jpr-1',
-    title: '3 BHK Luxury Apartment in Vaishali Nagar',
-    description: 'Ultra-modern 3 BHK apartment with premium wooden flooring, modular kitchen, power backup, and 24/7 gated security in the heart of Vaishali Nagar. Excellent connectivity to Amrapali Circle and Ajmer Road.',
-    price: 7500000,
-    priceDisplay: '₹75 Lac',
-    pricePerSqFt: 5172,
-    areaSqFt: 1450,
-    bedrooms: 3,
-    bathrooms: 3,
-    balconies: 2,
-    propertyType: 'Apartment',
-    listingType: 'Buy',
-    city: 'Jaipur',
-    locality: 'Vaishali Nagar',
-    address: 'Amrapali Circle, Block B, Vaishali Nagar, Jaipur',
-    constructionStatus: 'Ready to Move',
-    possessionDate: 'Ready',
-    ageOfBuilding: '1-3 Years',
-    floor: '4th',
-    totalFloors: '10',
-    facing: 'East',
-    furnishing: 'Semi-Furnished',
-    parking: '1 Covered Slot',
-    postedBy: 'Owner',
-    postedByName: 'Rajesh Sharma',
-    postedByPhone: '+91 97721 17575',
-    postedByEmail: 'rajesh.jaipur@example.com',
-    isVerified: true,
-    isExclusive: true,
-    isFeatured: true,
-    images: [
-      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
-    ],
-    amenities: ['Gymnasium', 'Clubhouse', '24/7 Security', 'Power Backup', 'Stilt Parking', 'EV Charging', 'Gated Community'],
-    postedDate: '2026-08-08',
-    viewsCount: 1890,
-    leadsCount: 24
-  },
-  {
-    id: 'jpr-2',
-    title: '4 BHK Royal Independent Villa with Private Garden',
-    description: 'Spacious 4 BHK architect-designed villa near World Trade Park. Features private landscaped lawn, modular kitchen, rooftop gazebo, staff quarters, and JDA approved clear title.',
-    price: 24000000,
-    priceDisplay: '₹2.40 Cr',
-    pricePerSqFt: 8000,
-    areaSqFt: 3000,
-    bedrooms: 4,
-    bathrooms: 5,
-    balconies: 3,
-    propertyType: 'Villa',
-    listingType: 'Buy',
-    city: 'Jaipur',
-    locality: 'Malviya Nagar',
-    address: 'Near World Trade Park, D-Block, Malviya Nagar, Jaipur',
-    constructionStatus: 'Ready to Move',
-    possessionDate: 'Ready',
-    ageOfBuilding: '0-1 Years',
-    floor: 'Ground + 2',
-    totalFloors: '3',
-    facing: 'North-East',
-    furnishing: 'Furnished',
-    parking: '2 Covered Slots',
-    postedBy: 'Owner',
-    postedByName: 'Vikram Singh Rathore',
-    postedByPhone: '+91 97721 17575',
-    postedByEmail: 'vikram.rathore@jaipurproperties.com',
-    isVerified: true,
-    isExclusive: true,
-    isFeatured: true,
-    images: [
-      'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80'
-    ],
-    amenities: ['Private Garden', 'Rooftop Terrace', 'Servant Quarter', 'Solar Water Heater', 'CCTV Camera', 'Intercom'],
-    postedDate: '2026-08-07',
-    viewsCount: 2450,
-    leadsCount: 38
-  },
-  {
-    id: 'jpr-3',
-    title: '2 BHK Smart Apartment near Jagatpura Airport Road',
-    description: 'Affordable and well-ventilated 2 BHK flat near Bombay Hospital & SKIT College. Proximity to Jaipur International Airport, Expressways, and top hospitals.',
-    price: 4200000,
-    priceDisplay: '₹42 Lac',
-    pricePerSqFt: 3818,
-    areaSqFt: 1100,
-    bedrooms: 2,
-    bathrooms: 2,
-    balconies: 2,
-    propertyType: 'Apartment',
-    listingType: 'Buy',
-    city: 'Jaipur',
-    locality: 'Jagatpura',
-    address: 'Near SKIT College Road, Jagatpura, Jaipur',
-    constructionStatus: 'Ready to Move',
-    possessionDate: 'Ready',
-    ageOfBuilding: '1-2 Years',
-    floor: '2nd',
-    totalFloors: '7',
-    facing: 'East',
-    furnishing: 'Semi-Furnished',
-    parking: '1 Covered Slot',
-    postedBy: 'Builder',
-    postedByName: 'Trimurty Builders Jaipur',
-    postedByPhone: '+91 97721 17575',
-    postedByEmail: 'sales@trimurtybuilders.com',
-    isVerified: true,
-    isExclusive: false,
-    isFeatured: false,
-    images: [
-      'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80'
-    ],
-    amenities: ['24/7 Water Supply', 'Elevator', 'Security Guard', 'Covered Parking', 'Community Hall'],
-    postedDate: '2026-08-06',
-    viewsCount: 1280,
-    leadsCount: 19
+try {
+  if (fs.existsSync(INQUIRIES_FILE_PATH)) {
+    const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
+    globalInquiries = JSON.parse(raw);
   }
-];
+} catch (e) {
+  console.warn("Could not load initial inquiries.json:", e);
+}
 
-const INITIAL_INQUIRIES = [
-  {
-    id: 'inq-1',
-    propertyId: 'jpr-1',
-    propertyTitle: '3 BHK Luxury Apartment in Vaishali Nagar',
-    userName: 'Karan Malhotra',
-    userEmail: 'karan.m@gmail.com',
-    userPhone: '+91 98112 33445',
-    userType: 'Buyer',
-    message: 'Interested in taking a site visit this coming Sunday afternoon. Is price negotiable?',
-    scheduleVisitDate: '2026-08-16',
-    status: 'New',
-    createdAt: '2026-08-08 14:30'
-  },
-  {
-    id: 'inq-2',
-    propertyId: 'jpr-2',
-    propertyTitle: '4 BHK Royal Independent Villa with Private Garden',
-    userName: 'Ananya Roy',
-    userEmail: 'ananya.roy@yahoo.com',
-    userPhone: '+91 98301 99887',
-    userType: 'Buyer',
-    message: 'Is home loan approval available from HDFC / ICICI for this property?',
-    status: 'Contacted',
-    createdAt: '2026-08-07 10:15'
-  }
-];
+// Helper function to extract normalized SiteSettings from any database row format
+function normalizeSettingsRow(row: any) {
+  if (!row) return null;
+  const source = (row.value && typeof row.value === 'object') 
+    ? row.value 
+    : (row.data && typeof row.data === 'object') 
+    ? row.data 
+    : row;
 
-// Initialize Master Database
-let db = readDb();
-if (!db || !db.properties || db.properties.length === 0) {
-  db = {
-    settings: DEFAULT_SITE_SETTINGS,
-    properties: INITIAL_PROPERTIES,
-    inquiries: INITIAL_INQUIRIES
+  return {
+    logoUrl: source.logoUrl || source.logo_url || source.logo || '',
+    faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || source.logo || '',
+    portalName: source.portalName || source.portal_name || source.name || 'Jaipur Properties Hub',
+    tagline: source.tagline || source.tag_line || 'Jaipur’s #1 Verified Real Estate & Property Portal',
+    helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || '+91 97721 17575',
+    helplineWhatsapp: source.helplineWhatsapp || source.helpline_whatsapp || source.whatsapp || '+91 97721 17575',
+    helplineEmail: source.helplineEmail || source.helpline_email || source.email || 'support@jaipurproperties.hub',
+    officeAddress: source.officeAddress || source.office_address || source.address || 'Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017',
+    heroHeadline: source.heroHeadline || source.hero_headline || 'Find Your Dream Property in Pink City, Jaipur',
+    announcementBarText: source.announcementBarText || source.announcement_bar_text || '✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!',
+    announcementBarActive: source.announcementBarActive !== undefined ? Boolean(source.announcementBarActive) : true,
+    seoTitle: source.seoTitle || source.seo_title || '',
+    seoDescription: source.seoDescription || source.seo_description || '',
+    seoKeywords: source.seoKeywords || source.seo_keywords || '',
+    seoCanonicalUrl: source.seoCanonicalUrl || source.seo_canonical_url || '',
+    updatedAt: source.updatedAt || source.updated_at || new Date().toISOString()
   };
-  saveDb(db);
 }
 
-// -------------------------------------------------------------
-// Site Settings API
-// -------------------------------------------------------------
+// Global Site Settings API powered by Server Memory + File Persistence + Supabase Sync
 app.get("/api/settings", async (req, res) => {
-  return res.json({ settings: db.settings });
+  if (!globalSiteSettings) {
+    try {
+      if (fs.existsSync(SETTINGS_FILE_PATH)) {
+        const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
+        globalSiteSettings = JSON.parse(raw);
+      }
+    } catch (e) {}
+  }
+
+  if (!globalSiteSettings) {
+    try {
+      const { data } = await supabase.from("settings").select("*").limit(1);
+      if (data && data.length > 0) {
+        const normalized = normalizeSettingsRow(data[0]);
+        if (normalized) {
+          globalSiteSettings = normalized;
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (!globalSiteSettings) {
+    globalSiteSettings = {
+      logoUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
+      faviconUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
+      portalName: "Jaipur Properties Hub",
+      tagline: "Jaipur’s #1 Verified Real Estate & Property Portal",
+      helplinePhone: "+91 97721 17575",
+      helplineWhatsapp: "+91 97721 17575",
+      helplineEmail: "support@jaipurproperties.hub",
+      officeAddress: "Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017",
+      heroHeadline: "Find Your Dream Property in Pink City, Jaipur",
+      announcementBarText: "✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!",
+      announcementBarActive: true
+    };
+    try {
+      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
+    } catch (e) {}
+  }
+
+  return res.json({ settings: globalSiteSettings });
 });
 
 app.post("/api/settings", async (req, res) => {
@@ -257,37 +236,53 @@ app.post("/api/settings", async (req, res) => {
       return res.status(400).json({ error: "Missing settings payload" });
     }
 
-    db.settings = { ...db.settings, ...newSettings };
-    saveDb(db);
+    // 1. Immediately update global in-memory settings
+    globalSiteSettings = { ...globalSiteSettings, ...newSettings };
 
-    // Background sync to Supabase settings table if exists
+    // 2. Persist to site_settings.json file
     try {
-      const payload = {
-        value: db.settings,
-        updated_at: new Date().toISOString()
-      };
-      const { data: existing } = await supabase.from("settings").select("*").limit(1);
-      if (existing && existing.length > 0) {
-        await supabase.from("settings").update(payload).eq("id", existing[0].id);
-      } else {
-        await supabase.from("settings").insert([payload]);
-      }
+      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
     } catch (e) {
-      console.warn("Supabase settings sync notice:", e);
+      console.warn("Could not write site_settings.json:", e);
     }
 
-    return res.json({ status: "ok", settings: db.settings });
+    // 3. Sync to Supabase in background (fire and forget safely)
+    (async () => {
+      try {
+        const { data } = await supabase.from("settings").select("*").limit(1);
+        if (data && data.length > 0) {
+          const firstRow = data[0];
+          const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
+          const primaryKeyValue = firstRow[primaryKeyCol];
+          await supabase.from("settings").update({ value: globalSiteSettings }).eq(primaryKeyCol, primaryKeyValue);
+        } else {
+          await supabase.from("settings").insert([{ id: 'branding', value: globalSiteSettings }]);
+        }
+      } catch (dbErr: any) {
+        console.warn("Supabase background sync notice:", dbErr?.message);
+      }
+    })();
+
+    return res.json({ status: "ok", settings: globalSiteSettings });
   } catch (error: any) {
     console.error("POST /api/settings error:", error);
-    return res.status(500).json({ error: error.message || "Server error saving settings" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 // -------------------------------------------------------------
-// Properties API
+// Properties API (Live Server Memory + Disk + Supabase Sync)
 // -------------------------------------------------------------
 app.get("/api/properties", async (req, res) => {
-  return res.json({ properties: db.properties });
+  if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
+    try {
+      if (fs.existsSync(PROPERTIES_FILE_PATH)) {
+        const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
+        globalProperties = JSON.parse(raw);
+      }
+    } catch (e) {}
+  }
+  return res.json({ properties: globalProperties || [] });
 });
 
 app.post("/api/properties", async (req, res) => {
@@ -297,18 +292,32 @@ app.post("/api/properties", async (req, res) => {
       return res.status(400).json({ error: "Property object with id is required" });
     }
 
-    const existingIdx = db.properties.findIndex(p => p.id === property.id);
-    if (existingIdx >= 0) {
-      db.properties[existingIdx] = { ...db.properties[existingIdx], ...property };
+    // Upsert into memory
+    const existingIndex = globalProperties.findIndex((p: any) => p.id === property.id);
+    if (existingIndex >= 0) {
+      globalProperties[existingIndex] = { ...globalProperties[existingIndex], ...property };
     } else {
-      db.properties = [property, ...db.properties];
+      globalProperties.unshift(property);
     }
-    saveDb(db);
 
-    return res.json({ status: "ok", property, properties: db.properties });
+    // Save to properties.json file
+    try {
+      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+    } catch (e) {
+      console.warn("Could not write properties.json:", e);
+    }
+
+    // Sync to Supabase in background
+    try {
+      await supabase.from("properties").upsert([property]);
+    } catch (dbErr: any) {
+      console.warn("Supabase properties background upsert error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", property, properties: globalProperties });
   } catch (error: any) {
     console.error("POST /api/properties error:", error);
-    return res.status(500).json({ error: error.message || "Server error saving property" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -317,35 +326,65 @@ app.put("/api/properties/:id", async (req, res) => {
     const { id } = req.params;
     const updates = req.body.updates || req.body;
 
-    db.properties = db.properties.map(p => p.id === id ? { ...p, ...updates } : p);
-    saveDb(db);
+    const existingIndex = globalProperties.findIndex((p: any) => p.id === id);
+    if (existingIndex >= 0) {
+      globalProperties[existingIndex] = { ...globalProperties[existingIndex], ...updates };
+    } else {
+      globalProperties.unshift({ id, ...updates });
+    }
 
-    return res.json({ status: "ok", properties: db.properties });
+    try {
+      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+    } catch (e) {}
+
+    try {
+      await supabase.from("properties").update(updates).eq("id", id);
+    } catch (dbErr: any) {
+      console.warn("Supabase properties background update error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", properties: globalProperties });
   } catch (error: any) {
     console.error("PUT /api/properties error:", error);
-    return res.status(500).json({ error: error.message || "Server error updating property" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 app.delete("/api/properties/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    globalProperties = globalProperties.filter((p: any) => p.id !== id);
 
-    db.properties = db.properties.filter(p => p.id !== id);
-    saveDb(db);
+    try {
+      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+    } catch (e) {}
 
-    return res.json({ status: "ok", properties: db.properties });
+    try {
+      await supabase.from("properties").delete().eq("id", id);
+    } catch (dbErr: any) {
+      console.warn("Supabase properties background delete error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", properties: globalProperties });
   } catch (error: any) {
     console.error("DELETE /api/properties error:", error);
-    return res.status(500).json({ error: error.message || "Server error deleting property" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
 // -------------------------------------------------------------
-// Inquiries API
+// Inquiries API (Live Server Memory + Disk + Supabase Sync)
 // -------------------------------------------------------------
 app.get("/api/inquiries", async (req, res) => {
-  return res.json({ inquiries: db.inquiries });
+  if (!globalInquiries || !Array.isArray(globalInquiries)) {
+    try {
+      if (fs.existsSync(INQUIRIES_FILE_PATH)) {
+        const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
+        globalInquiries = JSON.parse(raw);
+      }
+    } catch (e) {}
+  }
+  return res.json({ inquiries: globalInquiries || [] });
 });
 
 app.post("/api/inquiries", async (req, res) => {
@@ -355,13 +394,22 @@ app.post("/api/inquiries", async (req, res) => {
       return res.status(400).json({ error: "Inquiry object with id is required" });
     }
 
-    db.inquiries = [inquiry, ...db.inquiries];
-    saveDb(db);
+    globalInquiries.unshift(inquiry);
 
-    return res.json({ status: "ok", inquiry, inquiries: db.inquiries });
+    try {
+      fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+    } catch (e) {}
+
+    try {
+      await supabase.from("inquiries").insert([inquiry]);
+    } catch (dbErr: any) {
+      console.warn("Supabase inquiry insert error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", inquiry });
   } catch (error: any) {
     console.error("POST /api/inquiries error:", error);
-    return res.status(500).json({ error: error.message || "Server error creating inquiry" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -370,13 +418,22 @@ app.put("/api/inquiries/:id", async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    db.inquiries = db.inquiries.map(inq => inq.id === id ? { ...inq, status } : inq);
-    saveDb(db);
+    globalInquiries = globalInquiries.map((i: any) => i.id === id ? { ...i, status } : i);
 
-    return res.json({ status: "ok", inquiries: db.inquiries });
+    try {
+      fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+    } catch (e) {}
+
+    try {
+      await supabase.from("inquiries").update({ status }).eq("id", id);
+    } catch (dbErr: any) {
+      console.warn("Supabase inquiry status update error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", inquiries: globalInquiries });
   } catch (error: any) {
     console.error("PUT /api/inquiries error:", error);
-    return res.status(500).json({ error: error.message || "Server error updating inquiry" });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -396,7 +453,7 @@ const getAi = () => {
 
 // Health Check API
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", service: "Jaipur Properties Hub with Express Server Store" });
+  res.json({ status: "ok", service: "Jaipur Properties Hub with Firebase" });
 });
 
 // Gemini AI Locality Insights
