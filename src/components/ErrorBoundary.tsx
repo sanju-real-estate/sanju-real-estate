@@ -21,7 +21,11 @@ export const ErrorBoundary: React.FC<Props> = ({ children }) => {
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error("Unhandled promise rejection caught:", event.reason);
+      // Prevent default browser error reporting and log gracefully
+      if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      console.warn("Unhandled promise rejection handled:", event.reason);
     };
 
     window.addEventListener('error', handleError);

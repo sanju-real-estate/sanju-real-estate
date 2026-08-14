@@ -569,15 +569,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         channel = supabase
           .channel('public_site_all_changes')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
-            fetchAllLiveServerData();
+            fetchAllLiveServerData().catch(() => {});
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
-            fetchAllLiveServerData();
+            fetchAllLiveServerData().catch(() => {});
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, () => {
-            fetchAllLiveServerData();
+            fetchAllLiveServerData().catch(() => {});
           })
-          .subscribe();
+          .subscribe((status: string, err?: Error) => {
+            if (err) {
+              console.warn('Realtime channel status warning:', status, err.message);
+            }
+          });
       } catch (e) {
         console.warn('Realtime subscription notice:', e);
       }
