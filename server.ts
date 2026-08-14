@@ -21,16 +21,343 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPA
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // File-system persistence fallback for live server
-const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
-let globalSiteSettings: any = null;
+const DATA_DIR = path.join(process.cwd(), "data");
+if (!fs.existsSync(DATA_DIR)) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (e) {
+    console.warn("Could not create data directory:", e);
+  }
+}
 
+const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
+const DATA_SETTINGS_FILE_PATH = path.join(DATA_DIR, "site_settings.json");
+const PROPERTIES_FILE_PATH = path.join(DATA_DIR, "properties.json");
+const INQUIRIES_FILE_PATH = path.join(DATA_DIR, "inquiries.json");
+
+let globalSyncVersion = Date.now();
+let globalSiteSettings: any = null;
+let globalProperties: any[] = [];
+let globalInquiries: any[] = [];
+
+// Default Seed Properties
+const SEED_PROPERTIES = [
+  {
+    id: 'jpr-1',
+    title: '3 BHK Luxury Apartment in Vaishali Nagar',
+    description: 'Ultra-modern 3 BHK apartment with premium wooden flooring, modular kitchen, power backup, and 24/7 gated security in the heart of Vaishali Nagar. Excellent connectivity to Amrapali Circle and Ajmer Road.',
+    price: 7500000,
+    priceDisplay: '₹75 Lac',
+    pricePerSqFt: 5172,
+    areaSqFt: 1450,
+    bedrooms: 3,
+    bathrooms: 3,
+    balconies: 2,
+    propertyType: 'Apartment',
+    listingType: 'Buy',
+    city: 'Jaipur',
+    locality: 'Vaishali Nagar',
+    address: 'Amrapali Circle, Block B, Vaishali Nagar, Jaipur',
+    constructionStatus: 'Ready to Move',
+    possessionDate: 'Ready',
+    ageOfBuilding: '1-3 Years',
+    floor: '4th',
+    totalFloors: '10',
+    facing: 'East',
+    furnishing: 'Semi-Furnished',
+    parking: '1 Covered Slot',
+    postedBy: 'Owner',
+    postedByName: 'Rajesh Sharma',
+    postedByPhone: '+91 97721 17575',
+    postedByEmail: 'rajesh.jaipur@example.com',
+    isVerified: true,
+    isExclusive: true,
+    isFeatured: true,
+    images: [
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
+    ],
+    amenities: ['Gymnasium', 'Clubhouse', '24/7 Security', 'Power Backup', 'Stilt Parking', 'EV Charging', 'Gated Community'],
+    postedDate: '2026-08-08',
+    viewsCount: 1890,
+    leadsCount: 24
+  },
+  {
+    id: 'jpr-2',
+    title: '4 BHK Royal Independent Villa with Private Garden',
+    description: 'Spacious 4 BHK architect-designed villa near World Trade Park. Features private landscaped lawn, modular kitchen, rooftop gazebo, staff quarters, and JDA approved clear title.',
+    price: 24000000,
+    priceDisplay: '₹2.40 Cr',
+    pricePerSqFt: 8000,
+    areaSqFt: 3000,
+    bedrooms: 4,
+    bathrooms: 5,
+    balconies: 3,
+    propertyType: 'Villa',
+    listingType: 'Buy',
+    city: 'Jaipur',
+    locality: 'Malviya Nagar',
+    address: 'Near World Trade Park, D-Block, Malviya Nagar, Jaipur',
+    constructionStatus: 'Ready to Move',
+    possessionDate: 'Ready',
+    ageOfBuilding: '0-1 Years',
+    floor: 'Ground + 2',
+    totalFloors: '3',
+    facing: 'North-East',
+    furnishing: 'Furnished',
+    parking: '2 Covered Slots',
+    postedBy: 'Owner',
+    postedByName: 'Vikram Singh Rathore',
+    postedByPhone: '+91 97721 17575',
+    postedByEmail: 'vikram.rathore@jaipurproperties.com',
+    isVerified: true,
+    isExclusive: true,
+    isFeatured: true,
+    images: [
+      'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80'
+    ],
+    amenities: ['Private Garden', 'Rooftop Terrace', 'Servant Quarter', 'Solar Water Heater', 'CCTV Camera', 'Intercom'],
+    postedDate: '2026-08-07',
+    viewsCount: 2450,
+    leadsCount: 38
+  },
+  {
+    id: 'jpr-3',
+    title: '2 BHK Smart Apartment near Jagatpura Airport Road',
+    description: 'Affordable and well-ventilated 2 BHK flat near Bombay Hospital & SKIT College. Proximity to Jaipur International Airport, Expressways, and top hospitals.',
+    price: 4200000,
+    priceDisplay: '₹42 Lac',
+    pricePerSqFt: 3818,
+    areaSqFt: 1100,
+    bedrooms: 2,
+    bathrooms: 2,
+    balconies: 2,
+    propertyType: 'Apartment',
+    listingType: 'Buy',
+    city: 'Jaipur',
+    locality: 'Jagatpura',
+    address: 'Near Bombay Hospital, Mahal Road, Jagatpura, Jaipur',
+    constructionStatus: 'Ready to Move',
+    possessionDate: 'Ready',
+    ageOfBuilding: '1-3 Years',
+    floor: '3rd',
+    totalFloors: '8',
+    facing: 'East',
+    furnishing: 'Semi-Furnished',
+    parking: '1 Covered Slot',
+    postedBy: 'Agent',
+    postedByName: 'Pink City Prime Housing',
+    postedByPhone: '+91 97721 17575',
+    postedByEmail: 'info@pinkcityhousing.com',
+    isVerified: true,
+    isExclusive: false,
+    isFeatured: true,
+    images: [
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80'
+    ],
+    amenities: ['Elevator', 'Swimming Pool', 'Kids Play Area', 'Visitor Parking', 'Water Storage', 'Security'],
+    postedDate: '2026-08-06',
+    viewsCount: 1620,
+    leadsCount: 19
+  },
+  {
+    id: 'jpr-4',
+    title: '3 BHK Ultra-Luxury Residence in C-Scheme',
+    description: 'Exclusive heritage-style high-end luxury flat in C-Scheme with Italian marble flooring, VRV central AC, private lift lobby, and high capital growth value.',
+    price: 18500000,
+    priceDisplay: '₹1.85 Cr',
+    pricePerSqFt: 9736,
+    areaSqFt: 1900,
+    bedrooms: 3,
+    bathrooms: 3,
+    balconies: 2,
+    propertyType: 'Apartment',
+    listingType: 'Buy',
+    city: 'Jaipur',
+    locality: 'C-Scheme',
+    address: 'Ashok Nagar, Near Rajmandir Cinema, C-Scheme, Jaipur',
+    constructionStatus: 'Ready to Move',
+    possessionDate: 'Ready',
+    ageOfBuilding: '1-2 Years',
+    floor: '5th',
+    totalFloors: '7',
+    facing: 'North',
+    furnishing: 'Furnished',
+    parking: '2 Reserved Covered Slots',
+    postedBy: 'Owner',
+    postedByName: 'Sunil Mathur',
+    postedByPhone: '+91 97721 17575',
+    postedByEmail: 'sunil.m@example.com',
+    isVerified: true,
+    isExclusive: true,
+    isFeatured: true,
+    images: [
+      'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80'
+    ],
+    amenities: ['Central Air Conditioning', 'Private Lift Access', '100% Power Backup', 'Gymnasium', 'Concierge Desk'],
+    postedDate: '2026-08-05',
+    viewsCount: 3100,
+    leadsCount: 42
+  },
+  {
+    id: 'jpr-5',
+    title: 'Furnished Commercial Office in Mansarovar Metro Corridor',
+    description: 'Ready-to-occupy office space with 20 workstations, 2 director cabins, conference room, and pantry near Mansarovar Metro Station.',
+    price: 65000,
+    priceDisplay: '₹65,000/mo',
+    pricePerSqFt: 54,
+    areaSqFt: 1200,
+    bedrooms: 0,
+    bathrooms: 2,
+    balconies: 0,
+    propertyType: 'Commercial Office',
+    listingType: 'Commercial',
+    city: 'Jaipur',
+    locality: 'Mansarovar',
+    address: 'Shipra Path, Main Market Corridor, Mansarovar, Jaipur',
+    constructionStatus: 'Ready to Move',
+    possessionDate: 'Immediate',
+    ageOfBuilding: '2 Years',
+    floor: '2nd',
+    totalFloors: '5',
+    facing: 'East',
+    furnishing: 'Furnished',
+    parking: 'Reserved Parking',
+    postedBy: 'Agent',
+    postedByName: 'Jaipur Commercial Real Estate',
+    postedByPhone: '+91 97721 17575',
+    postedByEmail: 'office@jaipurcommercial.com',
+    isVerified: true,
+    isExclusive: false,
+    isFeatured: true,
+    images: [
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80'
+    ],
+    amenities: ['100% Power Backup', 'Wi-Fi Ready', 'Pantry Area', 'Central AC', '24/7 Security'],
+    postedDate: '2026-08-04',
+    viewsCount: 1450,
+    leadsCount: 17
+  }
+];
+
+const SEED_INQUIRIES = [
+  {
+    id: 'inq-1',
+    propertyId: 'jpr-1',
+    propertyTitle: '3 BHK Luxury Apartment in Vaishali Nagar',
+    userName: 'Karan Malhotra',
+    userEmail: 'karan.m@gmail.com',
+    userPhone: '+91 98112 33445',
+    userType: 'Buyer',
+    message: 'Interested in taking a site visit this coming Sunday afternoon. Is price negotiable?',
+    scheduleVisitDate: '2026-08-16',
+    status: 'New',
+    createdAt: '2026-08-08 14:30'
+  },
+  {
+    id: 'inq-2',
+    propertyId: 'jpr-1',
+    propertyTitle: '3 BHK Luxury Apartment in Vaishali Nagar',
+    userName: 'Ananya Roy',
+    userEmail: 'ananya.roy@yahoo.com',
+    userPhone: '+91 98301 99887',
+    userType: 'Buyer',
+    message: 'Is home loan approval available from HDFC / ICICI for this society?',
+    status: 'Contacted',
+    createdAt: '2026-08-07 10:15'
+  },
+  {
+    id: 'inq-3',
+    propertyId: 'jpr-2',
+    propertyTitle: '4 BHK Royal Independent Villa with Private Garden',
+    userName: 'Sanjay Reddy',
+    userEmail: 'sanjay.reddy@techcorp.com',
+    userPhone: '+91 98490 12121',
+    userType: 'Investor',
+    message: 'Looking for villa investment in Malviya Nagar. Please share floor layout PDF.',
+    status: 'Site Visit Scheduled',
+    createdAt: '2026-08-06 18:45'
+  }
+];
+
+// Initialize Settings
 try {
-  if (fs.existsSync(SETTINGS_FILE_PATH)) {
+  if (fs.existsSync(DATA_SETTINGS_FILE_PATH)) {
+    const raw = fs.readFileSync(DATA_SETTINGS_FILE_PATH, "utf-8");
+    globalSiteSettings = JSON.parse(raw);
+  } else if (fs.existsSync(SETTINGS_FILE_PATH)) {
     const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
     globalSiteSettings = JSON.parse(raw);
   }
 } catch (e) {
   console.warn("Could not load initial site_settings.json:", e);
+}
+
+// Initialize Properties
+try {
+  if (fs.existsSync(PROPERTIES_FILE_PATH)) {
+    const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      globalProperties = parsed;
+    }
+  }
+  if (!globalProperties || globalProperties.length === 0) {
+    globalProperties = SEED_PROPERTIES;
+    fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+  }
+} catch (e) {
+  console.warn("Could not load properties.json, using seed:", e);
+  globalProperties = SEED_PROPERTIES;
+}
+
+// Initialize Inquiries
+try {
+  if (fs.existsSync(INQUIRIES_FILE_PATH)) {
+    const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      globalInquiries = parsed;
+    }
+  }
+  if (!globalInquiries || globalInquiries.length === 0) {
+    globalInquiries = SEED_INQUIRIES;
+    fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+  }
+} catch (e) {
+  console.warn("Could not load inquiries.json, using seed:", e);
+  globalInquiries = SEED_INQUIRIES;
+}
+
+function savePropertiesToDisk() {
+  try {
+    fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+  } catch (e) {
+    console.warn("Failed to write properties.json:", e);
+  }
+}
+
+function saveInquiriesToDisk() {
+  try {
+    fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+  } catch (e) {
+    console.warn("Failed to write inquiries.json:", e);
+  }
+}
+
+function saveSettingsToDisk(settings: any) {
+  try {
+    fs.writeFileSync(DATA_SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), "utf-8");
+    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), "utf-8");
+  } catch (e) {
+    console.warn("Failed to write site_settings.json:", e);
+  }
 }
 
 // Helper function to extract normalized SiteSettings from any database row format
@@ -62,6 +389,195 @@ function normalizeSettingsRow(row: any) {
   };
 }
 
+// Global Sync-All API for seamless real-time client sync across devices
+app.get("/api/sync-all", (req, res) => {
+  res.json({
+    version: globalSyncVersion,
+    settings: globalSiteSettings,
+    properties: globalProperties,
+    inquiries: globalInquiries,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Properties REST APIs
+app.get("/api/properties", (req, res) => {
+  res.json({ properties: globalProperties, version: globalSyncVersion });
+});
+
+app.post("/api/properties", async (req, res) => {
+  try {
+    const newProperty = req.body.property || req.body;
+    if (!newProperty || !newProperty.title) {
+      return res.status(400).json({ error: "Missing property details" });
+    }
+
+    const createdProperty = {
+      ...newProperty,
+      id: newProperty.id || ('prop-' + Date.now().toString()),
+      viewsCount: Number(newProperty.viewsCount) || 1,
+      leadsCount: Number(newProperty.leadsCount) || 0,
+      postedDate: newProperty.postedDate || new Date().toISOString().split('T')[0]
+    };
+
+    // Prepend to list
+    globalProperties = [createdProperty, ...globalProperties.filter(p => p.id !== createdProperty.id)];
+    globalSyncVersion = Date.now();
+    savePropertiesToDisk();
+
+    // Background Supabase Sync
+    try {
+      await supabase.from("properties").upsert([createdProperty]);
+    } catch (e: any) {
+      console.warn("Supabase properties upsert notice:", e?.message);
+    }
+
+    return res.json({ status: "ok", property: createdProperty, version: globalSyncVersion });
+  } catch (error: any) {
+    console.error("POST /api/properties error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/api/properties/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body.updates || req.body;
+
+    let found = false;
+    globalProperties = globalProperties.map(p => {
+      if (p.id === id) {
+        found = true;
+        return { ...p, ...updates };
+      }
+      return p;
+    });
+
+    if (!found) {
+      return res.status(404).json({ error: "Property not found" });
+    }
+
+    globalSyncVersion = Date.now();
+    savePropertiesToDisk();
+
+    // Background Supabase Sync
+    try {
+      await supabase.from("properties").update(updates).eq("id", id);
+    } catch (e: any) {
+      console.warn("Supabase properties update notice:", e?.message);
+    }
+
+    return res.json({ status: "ok", version: globalSyncVersion });
+  } catch (error: any) {
+    console.error("PUT /api/properties/:id error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/properties/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    globalProperties = globalProperties.filter(p => p.id !== id);
+    globalSyncVersion = Date.now();
+    savePropertiesToDisk();
+
+    // Background Supabase Sync
+    try {
+      await supabase.from("properties").delete().eq("id", id);
+    } catch (e: any) {
+      console.warn("Supabase properties delete notice:", e?.message);
+    }
+
+    return res.json({ status: "ok", version: globalSyncVersion });
+  } catch (error: any) {
+    console.error("DELETE /api/properties/:id error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Inquiries REST APIs
+app.get("/api/inquiries", (req, res) => {
+  res.json({ inquiries: globalInquiries, version: globalSyncVersion });
+});
+
+app.post("/api/inquiries", async (req, res) => {
+  try {
+    const newInquiry = req.body.inquiry || req.body;
+    const createdInquiry = {
+      ...newInquiry,
+      id: newInquiry.id || ('inq-' + Date.now().toString()),
+      status: newInquiry.status || 'New',
+      createdAt: newInquiry.createdAt || new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+    };
+
+    globalInquiries = [createdInquiry, ...globalInquiries];
+    
+    // Update leads count on associated property
+    if (createdInquiry.propertyId) {
+      globalProperties = globalProperties.map(p => 
+        p.id === createdInquiry.propertyId ? { ...p, leadsCount: (p.leadsCount || 0) + 1 } : p
+      );
+      savePropertiesToDisk();
+    }
+
+    globalSyncVersion = Date.now();
+    saveInquiriesToDisk();
+
+    try {
+      await supabase.from("inquiries").insert([createdInquiry]);
+    } catch (e: any) {
+      console.warn("Supabase inquiries insert notice:", e?.message);
+    }
+
+    return res.json({ status: "ok", inquiry: createdInquiry, version: globalSyncVersion });
+  } catch (error: any) {
+    console.error("POST /api/inquiries error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/api/inquiries/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    globalInquiries = globalInquiries.map(i => i.id === id ? { ...i, ...updates } : i);
+    globalSyncVersion = Date.now();
+    saveInquiriesToDisk();
+
+    try {
+      await supabase.from("inquiries").update(updates).eq("id", id);
+    } catch (e: any) {
+      console.warn("Supabase inquiries update notice:", e?.message);
+    }
+
+    return res.json({ status: "ok", version: globalSyncVersion });
+  } catch (error: any) {
+    console.error("PUT /api/inquiries/:id error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/inquiries/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    globalInquiries = globalInquiries.filter(i => i.id !== id);
+    globalSyncVersion = Date.now();
+    saveInquiriesToDisk();
+
+    try {
+      await supabase.from("inquiries").delete().eq("id", id);
+    } catch (e: any) {
+      console.warn("Supabase inquiries delete notice:", e?.message);
+    }
+
+    return res.json({ status: "ok", version: globalSyncVersion });
+  } catch (error: any) {
+    console.error("DELETE /api/inquiries/:id error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // Global Site Settings API powered by Supabase settings table + local fallback
 app.get("/api/settings", async (req, res) => {
   try {
@@ -78,7 +594,7 @@ app.get("/api/settings", async (req, res) => {
     console.warn("Supabase fetch notice in GET /api/settings:", error?.message);
   }
 
-  return res.json({ settings: globalSiteSettings });
+  return res.json({ settings: globalSiteSettings, version: globalSyncVersion });
 });
 
 app.post("/api/settings", async (req, res) => {
@@ -88,15 +604,12 @@ app.post("/api/settings", async (req, res) => {
       return res.status(400).json({ error: "Missing settings payload" });
     }
 
-    // 1. Immediately update global in-memory settings
+    // 1. Immediately update global in-memory settings & bump sync version
     globalSiteSettings = newSettings;
+    globalSyncVersion = Date.now();
 
-    // 2. Persist to site_settings.json file
-    try {
-      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(newSettings, null, 2), "utf-8");
-    } catch (e) {
-      console.warn("Could not write site_settings.json:", e);
-    }
+    // 2. Persist to disk files
+    saveSettingsToDisk(newSettings);
 
     // 3. Sync to Supabase in background
     try {
@@ -187,7 +700,7 @@ app.post("/api/settings", async (req, res) => {
       console.warn("Supabase background sync exception:", dbErr?.message);
     }
 
-    return res.json({ status: "ok", settings: globalSiteSettings });
+    return res.json({ status: "ok", settings: globalSiteSettings, version: globalSyncVersion });
   } catch (error: any) {
     console.error("POST /api/settings error:", error);
     return res.status(500).json({ error: error.message });

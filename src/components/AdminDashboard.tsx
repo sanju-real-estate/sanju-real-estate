@@ -26,14 +26,15 @@ import {
   FileText,
   KeyRound,
   LogOut,
-  Layers
+  Layers,
+  MessageSquare
 } from 'lucide-react';
 import { APP_LOGO } from '../assets/logo';
 import { INDIAN_CITIES } from '../data/cities';
 import { DEFAULT_SITE_SETTINGS } from '../context/AppContext';
 
 export const AdminDashboard: React.FC = () => {
-  const { siteSettings, updateSiteSettings, properties, addProperty, deleteProperty, inquiries, showToast } = useApp();
+  const { siteSettings, updateSiteSettings, properties, addProperty, deleteProperty, inquiries, updateInquiryStatus, showToast } = useApp();
 
   // Admin Authentication State (Check Session Storage)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -407,6 +408,16 @@ export const AdminDashboard: React.FC = () => {
           >
             <Building2 className="w-4 h-4" />
             <span>Manage Properties ({properties.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('inquiries')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+              activeTab === 'inquiries' ? 'bg-red-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Buyer Inquiries ({inquiries.length})</span>
           </button>
 
           <button
@@ -868,6 +879,87 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* TAB: INQUIRIES & LEADS */}
+            {activeTab === 'inquiries' && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                  <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-red-600" />
+                    Buyer Inquiries & Leads ({inquiries.length})
+                  </h2>
+                  <span className="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1 rounded-full border border-emerald-200">
+                    Live Real-Time
+                  </span>
+                </div>
+
+                {inquiries.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm font-semibold">No buyer inquiries received yet.</p>
+                    <p className="text-xs text-gray-400 mt-1">Inquiries from buyers will appear here in real time.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {inquiries.map((inq) => (
+                      <div key={inq.id} className="p-4 bg-gray-50 hover:bg-red-50/20 border border-gray-200 rounded-2xl transition-all space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/60 pb-2.5">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-sm text-gray-900">{inq.userName}</span>
+                              <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                                {inq.userType || 'Buyer'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 font-medium mt-0.5">
+                              Property: <span className="font-bold text-gray-900">{inq.propertyTitle}</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-400">{inq.createdAt}</span>
+                            <select
+                              value={inq.status}
+                              onChange={(e) => updateInquiryStatus(inq.id, e.target.value as any)}
+                              className="text-xs font-bold px-2.5 py-1 bg-white border border-gray-300 rounded-lg shadow-xs cursor-pointer focus:ring-1 focus:ring-red-500"
+                            >
+                              <option value="New">🟢 New</option>
+                              <option value="Contacted">🟡 Contacted</option>
+                              <option value="Site Visit Scheduled">🔵 Site Visit Scheduled</option>
+                              <option value="Closed">⚪ Closed</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {inq.message && (
+                          <p className="text-xs text-gray-700 bg-white p-3 rounded-xl border border-gray-100 leading-relaxed">
+                            "{inq.message}"
+                          </p>
+                        )}
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                          <div className="flex items-center gap-4 text-gray-600">
+                            {inq.userPhone && (
+                              <a href={`tel:${inq.userPhone}`} className="flex items-center gap-1 text-red-600 hover:underline font-bold">
+                                <Phone className="w-3.5 h-3.5" />
+                                {inq.userPhone}
+                              </a>
+                            )}
+                            {inq.userEmail && (
+                              <span className="text-gray-500">{inq.userEmail}</span>
+                            )}
+                          </div>
+                          {inq.scheduleVisitDate && (
+                            <span className="text-[11px] bg-amber-50 text-amber-800 font-semibold px-2.5 py-1 rounded-md border border-amber-200">
+                              Visit Date: {inq.scheduleVisitDate}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

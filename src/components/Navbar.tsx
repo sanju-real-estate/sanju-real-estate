@@ -35,11 +35,6 @@ export const Navbar: React.FC = () => {
   };
 
   const handleNavClick = (view: 'home' | 'listings' | 'post-property' | 'dashboard' | 'valuation' | 'admin', listingType?: string) => {
-    if (view === 'post-property' && !currentUser) {
-      openAuthModal('signup');
-      showToast('Please login or sign up first to post your property free!', 'info');
-      return;
-    }
     if (listingType) {
       setFilters(prev => ({ ...prev, listingType: listingType as any }));
     }

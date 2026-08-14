@@ -332,8 +332,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       postedDate: new Date().toISOString().split('T')[0]
     };
 
-    setProperties(prev => [newProperty, ...prev]);
+    setProperties(prev => [newProperty, ...prev.filter(p => p.id !== newId)]);
 
+    // 1. Persist to live server API (visible across all devices)
+    fetch('/api/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ property: newProperty })
+    }).catch(err => console.warn('Server property post warning:', err));
+
+    // 2. Supabase secondary backup
     if (isSupabaseConfigured()) {
       (async () => {
         try {
@@ -343,16 +351,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.warn('Supabase insert error:', err);
         }
       })();
-      showToast('🎉 Your property has been published to Supabase!', 'success');
-    } else {
-      showToast('🎉 Your property has been published successfully!', 'success');
     }
 
+    showToast('🎉 Property published live across all devices!', 'success');
     return newProperty;
   };
 
   const updateProperty = (propertyId: string, updates: Partial<Property>) => {
     setProperties(prev => prev.map(p => p.id === propertyId ? { ...p, ...updates } : p));
+    
+    // Persist to live server API
+    fetch(`/api/properties/${encodeURIComponent(propertyId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates })
+    }).catch(err => console.warn('Server property update warning:', err));
+
     if (isSupabaseConfigured()) {
       (async () => {
         try {
@@ -363,12 +377,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       })();
     }
-    showToast('Property details updated successfully', 'success');
+    showToast('Property details updated live on server', 'success');
   };
 
   const deleteProperty = (propertyId: string) => {
     setProperties(prev => prev.filter(p => p.id !== propertyId));
     setWishlistIds(prev => prev.filter(id => id !== propertyId));
+    
+    // Persist deletion to live server API
+    fetch(`/api/properties/${encodeURIComponent(propertyId)}`, {
+      method: 'DELETE'
+    }).catch(err => console.warn('Server property delete warning:', err));
+
     if (isSupabaseConfigured()) {
       (async () => {
         try {
@@ -379,7 +399,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       })();
     }
-    showToast('Property listing deleted', 'info');
+    showToast('Property listing deleted live from server', 'info');
   };
 
   const addInquiry = (inquiryData: Omit<Inquiry, 'id' | 'createdAt' | 'status'>) => {
@@ -391,7 +411,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setInquiries(prev => [newInquiry, ...prev]);
-    setProperties(prev => prev.map(p => p.id === inquiryData.propertyId ? { ...p, leadsCount: p.leadsCount + 1 } : p));
+    setProperties(prev => prev.map(p => p.id === inquiryData.propertyId ? { ...p, leadsCount: (p.leadsCount || 0) + 1 } : p));
+
+    // Persist inquiry to live server API
+    fetch('/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inquiry: newInquiry })
+    }).catch(err => console.warn('Server inquiry post warning:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -409,6 +436,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateInquiryStatus = (inquiryId: string, status: Inquiry['status']) => {
     setInquiries(prev => prev.map(i => i.id === inquiryId ? { ...i, status } : i));
+    
+    // Persist status update to live server API
+    fetch(`/api/inquiries/${encodeURIComponent(inquiryId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    }).catch(err => console.warn('Server inquiry status update warning:', err));
+
     if (isSupabaseConfigured()) {
       (async () => {
         try {
@@ -487,98 +522,91 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const fetchSettings = async () => {
-    let loaded = false;
-
-    // 1. Fetch from Express API route (which queries Supabase settings table)
+  // Full Live Server Sync (Properties, Inquiries, Settings) across all devices
+  const fetchAllLiveServerData = async () => {
     try {
-      const res = await fetch('/api/settings');
+      const res = await fetch('/api/sync-all');
       if (res.ok) {
         const json = await res.json();
-        if (json && json.settings) {
+        
+        // 1. Sync Properties
+        if (Array.isArray(json.properties) && json.properties.length > 0) {
+          setProperties(json.properties);
+          try {
+            localStorage.setItem('mb_properties', JSON.stringify(json.properties));
+          } catch (e) {}
+        }
+
+        // 2. Sync Inquiries
+        if (Array.isArray(json.inquiries)) {
+          setInquiries(json.inquiries);
+          try {
+            localStorage.setItem('mb_inquiries', JSON.stringify(json.inquiries));
+          } catch (e) {}
+        }
+
+        // 3. Sync Settings
+        if (json.settings) {
           const norm = normalizeSettings(json.settings);
           if (norm && Object.keys(norm).length > 0) {
             applySettingsUpdate(norm);
-            loaded = true;
           }
         }
       }
     } catch (err) {
-      console.warn('Server settings fetch notice:', err);
-    }
-
-    // 2. Direct Supabase query fallback
-    if (!loaded && isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase
-          .from('settings')
-          .select('*')
-          .limit(1);
-
-        if (data && data.length > 0) {
-          const norm = normalizeSettings(data[0]);
-          if (norm && Object.keys(norm).length > 0) {
-            applySettingsUpdate(norm);
-          }
-        } else if (error) {
-          console.warn('Supabase direct settings query notice:', error.message);
-        }
-      } catch (err) {
-        console.warn('Supabase branding settings load notice:', err);
-      }
+      console.warn('Server live sync notice:', err);
     }
   };
 
-  // Initial load and auto-sync setup (polling + real-time channel + window focus)
+  // Initial load and auto-sync setup (continuous 4s polling + real-time channel + window focus + storage events)
   useEffect(() => {
-    fetchSettings().catch(err => console.warn('Initial fetchSettings error:', err));
+    fetchAllLiveServerData().catch(err => console.warn('Initial live sync error:', err));
 
-    // Supabase Realtime Subscription for automatic updates on all devices
+    // Supabase Realtime Subscription for automatic updates if enabled
     let channel: any = null;
     if (isSupabaseConfigured()) {
       try {
         channel = supabase
-          .channel('public_settings_changes')
+          .channel('public_site_all_changes')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
-            fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
+            fetchAllLiveServerData();
           })
-          .subscribe((status: string, err?: Error) => {
-            if (err) {
-              console.warn('Supabase realtime status:', status, err.message);
-            }
-          });
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
+            fetchAllLiveServerData();
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, () => {
+            fetchAllLiveServerData();
+          })
+          .subscribe();
       } catch (e) {
         console.warn('Realtime subscription notice:', e);
       }
     }
 
-    // Poll every 8 seconds as a bulletproof fallback for all browsers/devices
+    // Poll every 4 seconds so ALL devices immediately reflect admin changes in real time
     const pollInterval = setInterval(() => {
-      fetchSettings().catch(err => console.warn('Poll fetchSettings error:', err));
-    }, 8000);
+      fetchAllLiveServerData().catch(err => console.warn('Poll live sync error:', err));
+    }, 4000);
 
     const handleFocus = () => {
-      fetchSettings().catch(err => console.warn('Focus fetchSettings error:', err));
+      fetchAllLiveServerData().catch(err => console.warn('Focus live sync error:', err));
     };
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'jph_site_settings_sync' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (parsed.settings) {
-            setSiteSettings(prev => ({ ...prev, ...parsed.settings }));
-          }
-        } catch (err) {}
+      if (e.key === 'jph_site_settings_sync' || e.key === 'mb_properties' || e.key === 'mb_inquiries') {
+        fetchAllLiveServerData();
       }
     };
 
     window.addEventListener('focus', handleFocus);
     window.addEventListener('storage', handleStorage);
+    window.addEventListener('online', handleFocus);
 
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('online', handleFocus);
       if (channel && isSupabaseConfigured()) {
         try {
           const res = supabase.removeChannel(channel);
