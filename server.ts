@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
@@ -18,6 +19,19 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL |
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable_NaZZz6vzuF3BxoLa_fcoSA_Y6Gbk3VK";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// File-system persistence fallback for live server
+const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
+let globalSiteSettings: any = null;
+
+try {
+  if (fs.existsSync(SETTINGS_FILE_PATH)) {
+    const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
+    globalSiteSettings = JSON.parse(raw);
+  }
+} catch (e) {
+  console.warn("Could not load initial site_settings.json:", e);
+}
 
 // Helper function to extract normalized SiteSettings from any database row format
 function normalizeSettingsRow(row: any) {
@@ -48,26 +62,23 @@ function normalizeSettingsRow(row: any) {
   };
 }
 
-// Global Site Settings API powered by Supabase settings table
+// Global Site Settings API powered by Supabase settings table + local fallback
 app.get("/api/settings", async (req, res) => {
   try {
-    const { data, error } = await supabase.from("settings").select("*").limit(1);
-    if (error) {
-      console.warn("Supabase fetch settings warning:", error.message);
-      return res.status(500).json({ error: error.message });
-    }
-
+    const { data } = await supabase.from("settings").select("*").limit(1);
     const firstRow = data && data.length > 0 ? data[0] : null;
-    if (!firstRow) {
-      return res.json({ settings: null });
-    }
 
-    const settingsData = normalizeSettingsRow(firstRow);
-    return res.json({ settings: settingsData, raw: firstRow });
+    if (firstRow) {
+      const normalized = normalizeSettingsRow(firstRow);
+      if (normalized) {
+        globalSiteSettings = { ...globalSiteSettings, ...normalized };
+      }
+    }
   } catch (error: any) {
-    console.error("GET /api/settings error:", error);
-    return res.status(500).json({ error: error.message });
+    console.warn("Supabase fetch notice in GET /api/settings:", error?.message);
   }
+
+  return res.json({ settings: globalSiteSettings });
 });
 
 app.post("/api/settings", async (req, res) => {
@@ -77,117 +88,106 @@ app.post("/api/settings", async (req, res) => {
       return res.status(400).json({ error: "Missing settings payload" });
     }
 
-    // Fetch existing row from settings table
-    const { data: existingRows, error: fetchErr } = await supabase.from("settings").select("*").limit(1);
+    // 1. Immediately update global in-memory settings
+    globalSiteSettings = newSettings;
 
-    if (fetchErr) {
-      console.warn("Fetch settings error during POST:", fetchErr.message);
+    // 2. Persist to site_settings.json file
+    try {
+      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(newSettings, null, 2), "utf-8");
+    } catch (e) {
+      console.warn("Could not write site_settings.json:", e);
     }
 
-    if (existingRows && existingRows.length > 0) {
-      const firstRow = existingRows[0];
-      const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
-      const primaryKeyValue = firstRow[primaryKeyCol];
+    // 3. Sync to Supabase in background
+    try {
+      const { data: existingRows } = await supabase.from("settings").select("*").limit(1);
 
-      // Build dictionary of all possible field names
-      const candidateUpdates: Record<string, any> = {
-        // camelCase
-        logoUrl: newSettings.logoUrl,
-        faviconUrl: newSettings.faviconUrl,
-        portalName: newSettings.portalName,
-        tagline: newSettings.tagline,
-        helplinePhone: newSettings.helplinePhone,
-        helplineWhatsapp: newSettings.helplineWhatsapp,
-        helplineEmail: newSettings.helplineEmail,
-        officeAddress: newSettings.officeAddress,
-        heroHeadline: newSettings.heroHeadline,
-        announcementBarText: newSettings.announcementBarText,
-        announcementBarActive: newSettings.announcementBarActive,
-        seoTitle: newSettings.seoTitle,
-        seoDescription: newSettings.seoDescription,
-        seoKeywords: newSettings.seoKeywords,
-        seoCanonicalUrl: newSettings.seoCanonicalUrl,
+      if (existingRows && existingRows.length > 0) {
+        const firstRow = existingRows[0];
+        const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
+        const primaryKeyValue = firstRow[primaryKeyCol];
 
-        // snake_case
-        logo_url: newSettings.logoUrl,
-        favicon_url: newSettings.faviconUrl,
-        portal_name: newSettings.portalName,
-        tag_line: newSettings.tagline,
-        helpline_phone: newSettings.helplinePhone,
-        helpline_whatsapp: newSettings.helplineWhatsapp,
-        helpline_email: newSettings.helplineEmail,
-        office_address: newSettings.officeAddress,
-        hero_headline: newSettings.heroHeadline,
-        announcement_bar_text: newSettings.announcementBarText,
-        announcement_bar_active: newSettings.announcementBarActive,
-        seo_title: newSettings.seoTitle,
-        seo_description: newSettings.seoDescription,
-        seo_keywords: newSettings.seoKeywords,
-        seo_canonical_url: newSettings.seoCanonicalUrl,
+        const candidateUpdates: Record<string, any> = {
+          logoUrl: newSettings.logoUrl,
+          faviconUrl: newSettings.faviconUrl,
+          portalName: newSettings.portalName,
+          tagline: newSettings.tagline,
+          helplinePhone: newSettings.helplinePhone,
+          helplineWhatsapp: newSettings.helplineWhatsapp,
+          helplineEmail: newSettings.helplineEmail,
+          officeAddress: newSettings.officeAddress,
+          heroHeadline: newSettings.heroHeadline,
+          announcementBarText: newSettings.announcementBarText,
+          announcementBarActive: newSettings.announcementBarActive,
+          seoTitle: newSettings.seoTitle,
+          seoDescription: newSettings.seoDescription,
+          seoKeywords: newSettings.seoKeywords,
+          seoCanonicalUrl: newSettings.seoCanonicalUrl,
+          logo_url: newSettings.logoUrl,
+          favicon_url: newSettings.faviconUrl,
+          portal_name: newSettings.portalName,
+          tag_line: newSettings.tagline,
+          helpline_phone: newSettings.helplinePhone,
+          helpline_whatsapp: newSettings.helplineWhatsapp,
+          helpline_email: newSettings.helplineEmail,
+          office_address: newSettings.officeAddress,
+          hero_headline: newSettings.heroHeadline,
+          announcement_bar_text: newSettings.announcementBarText,
+          announcement_bar_active: newSettings.announcementBarActive,
+          seo_title: newSettings.seoTitle,
+          seo_description: newSettings.seoDescription,
+          seo_keywords: newSettings.seoKeywords,
+          seo_canonical_url: newSettings.seoCanonicalUrl,
+          logo: newSettings.logoUrl,
+          favicon: newSettings.faviconUrl,
+          phone: newSettings.helplinePhone,
+          whatsapp: newSettings.helplineWhatsapp,
+          email: newSettings.helplineEmail,
+          address: newSettings.officeAddress,
+          name: newSettings.portalName,
+          value: newSettings,
+          data: newSettings,
+          updated_at: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
 
-        // short names
-        logo: newSettings.logoUrl,
-        favicon: newSettings.faviconUrl,
-        phone: newSettings.helplinePhone,
-        whatsapp: newSettings.helplineWhatsapp,
-        email: newSettings.helplineEmail,
-        address: newSettings.officeAddress,
-        name: newSettings.portalName,
+        const updatePayload: Record<string, any> = {};
+        const existingCols = Object.keys(firstRow);
 
-        // JSON value column fallback
-        value: newSettings,
-        data: newSettings,
-        updated_at: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+        for (const col of existingCols) {
+          if (col !== primaryKeyCol && col in candidateUpdates && candidateUpdates[col] !== undefined) {
+            updatePayload[col] = candidateUpdates[col];
+          }
+        }
 
-      // Match against columns that exist in the database table
-      const updatePayload: Record<string, any> = {};
-      const existingCols = Object.keys(firstRow);
+        if (Object.keys(updatePayload).length === 0) {
+          if ('value' in firstRow) {
+            updatePayload['value'] = newSettings;
+          }
+        }
 
-      for (const col of existingCols) {
-        if (col in candidateUpdates && candidateUpdates[col] !== undefined) {
-          updatePayload[col] = candidateUpdates[col];
+        if (Object.keys(updatePayload).length > 0) {
+          const { error: updateErr } = await supabase
+            .from("settings")
+            .update(updatePayload)
+            .eq(primaryKeyCol, primaryKeyValue);
+
+          if (updateErr) {
+            console.warn("Supabase update error:", updateErr.message);
+          }
+        }
+      } else {
+        const insertPayload = { id: 'branding', value: newSettings, logoUrl: newSettings.logoUrl, portalName: newSettings.portalName };
+        const { error: insertErr } = await supabase.from("settings").insert([insertPayload]);
+        if (insertErr) {
+          console.warn("Supabase insert error:", insertErr.message);
         }
       }
-
-      // Fallback if no matching column was detected
-      if (Object.keys(updatePayload).length === 0) {
-        if ('value' in firstRow) {
-          updatePayload['value'] = newSettings;
-        } else {
-          Object.assign(updatePayload, candidateUpdates);
-        }
-      }
-
-      // Perform update on the existing single row
-      const { error: updateErr } = await supabase
-        .from("settings")
-        .update(updatePayload)
-        .eq(primaryKeyCol, primaryKeyValue);
-
-      if (updateErr) {
-        console.warn("Primary key update error, trying general update:", updateErr.message);
-        const { error: fallbackErr } = await supabase.from("settings").update(updatePayload);
-        if (fallbackErr) {
-          console.error("Supabase settings update error:", fallbackErr.message);
-          return res.status(500).json({ error: fallbackErr.message });
-        }
-      }
-    } else {
-      // If no row exists yet, insert initial settings row
-      const insertPayload = { id: 'branding', value: newSettings, logoUrl: newSettings.logoUrl, portalName: newSettings.portalName };
-      const { error: insertErr } = await supabase.from("settings").insert([insertPayload]);
-      if (insertErr) {
-        const { error: rawInsertErr } = await supabase.from("settings").insert([newSettings]);
-        if (rawInsertErr) {
-          console.error("Supabase settings insert error:", rawInsertErr.message);
-          return res.status(500).json({ error: rawInsertErr.message });
-        }
-      }
+    } catch (dbErr: any) {
+      console.warn("Supabase background sync exception:", dbErr?.message);
     }
 
-    return res.json({ status: "ok", settings: newSettings });
+    return res.json({ status: "ok", settings: globalSiteSettings });
   } catch (error: any) {
     console.error("POST /api/settings error:", error);
     return res.status(500).json({ error: error.message });

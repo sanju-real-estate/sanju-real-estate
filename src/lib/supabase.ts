@@ -2,24 +2,21 @@ import { createClient } from '@supabase/supabase-js';
 
 const env = (import.meta as any).env || {};
 
+const SUPABASE_URL = env.VITE_SUPABASE_URL || 'https://fucisvuntdonaipcodqz.supabase.co';
+const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_NaZZz6vzuF3BxoLa_fcoSA_Y6Gbk3VK';
+
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(
-    env.VITE_SUPABASE_URL && 
-    env.VITE_SUPABASE_ANON_KEY && 
-    env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co'
-  );
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL !== 'https://placeholder.supabase.co');
 };
 
-const supabaseUrl = isSupabaseConfigured() ? env.VITE_SUPABASE_URL : 'https://placeholder.supabase.co';
-const supabaseAnonKey = isSupabaseConfigured() ? env.VITE_SUPABASE_ANON_KEY : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NTAwMDAwMDAsImV4cCI6MTk2NTA0MDAwMH0.placeholder';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    autoRefreshToken: isSupabaseConfigured(),
-    persistSession: isSupabaseConfigured(),
-    detectSessionInUrl: isSupabaseConfigured(),
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
   }
 });
 
 export default supabase;
+
 

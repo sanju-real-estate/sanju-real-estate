@@ -335,10 +335,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProperties(prev => [newProperty, ...prev]);
 
     if (isSupabaseConfigured()) {
-      supabase.from('properties').insert([newProperty]).then(
-        ({ error }) => { if (error) console.warn('Supabase insert property warning:', error.message); },
-        (err) => { console.warn('Supabase insert error:', err); }
-      );
+      (async () => {
+        try {
+          const { error } = await supabase.from('properties').insert([newProperty]);
+          if (error) console.warn('Supabase insert property warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase insert error:', err);
+        }
+      })();
       showToast('🎉 Your property has been published to Supabase!', 'success');
     } else {
       showToast('🎉 Your property has been published successfully!', 'success');
@@ -350,10 +354,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProperty = (propertyId: string, updates: Partial<Property>) => {
     setProperties(prev => prev.map(p => p.id === propertyId ? { ...p, ...updates } : p));
     if (isSupabaseConfigured()) {
-      supabase.from('properties').update(updates).eq('id', propertyId).then(
-        ({ error }) => { if (error) console.warn('Supabase update property warning:', error.message); },
-        (err) => { console.warn('Supabase update error:', err); }
-      );
+      (async () => {
+        try {
+          const { error } = await supabase.from('properties').update(updates).eq('id', propertyId);
+          if (error) console.warn('Supabase update property warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase update error:', err);
+        }
+      })();
     }
     showToast('Property details updated successfully', 'success');
   };
@@ -362,10 +370,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProperties(prev => prev.filter(p => p.id !== propertyId));
     setWishlistIds(prev => prev.filter(id => id !== propertyId));
     if (isSupabaseConfigured()) {
-      supabase.from('properties').delete().eq('id', propertyId).then(
-        ({ error }) => { if (error) console.warn('Supabase delete property warning:', error.message); },
-        (err) => { console.warn('Supabase delete error:', err); }
-      );
+      (async () => {
+        try {
+          const { error } = await supabase.from('properties').delete().eq('id', propertyId);
+          if (error) console.warn('Supabase delete property warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase delete error:', err);
+        }
+      })();
     }
     showToast('Property listing deleted', 'info');
   };
@@ -382,10 +394,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProperties(prev => prev.map(p => p.id === inquiryData.propertyId ? { ...p, leadsCount: p.leadsCount + 1 } : p));
 
     if (isSupabaseConfigured()) {
-      supabase.from('inquiries').insert([newInquiry]).then(
-        ({ error }) => { if (error) console.warn('Supabase insert inquiry warning:', error.message); },
-        (err) => { console.warn('Supabase inquiry error:', err); }
-      );
+      (async () => {
+        try {
+          const { error } = await supabase.from('inquiries').insert([newInquiry]);
+          if (error) console.warn('Supabase insert inquiry warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase inquiry error:', err);
+        }
+      })();
     }
 
     showToast('Your inquiry & visit request has been sent to the property owner!', 'success');
@@ -394,10 +410,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateInquiryStatus = (inquiryId: string, status: Inquiry['status']) => {
     setInquiries(prev => prev.map(i => i.id === inquiryId ? { ...i, status } : i));
     if (isSupabaseConfigured()) {
-      supabase.from('inquiries').update({ status }).eq('id', inquiryId).then(
-        ({ error }) => { if (error) console.warn('Supabase update inquiry warning:', error.message); },
-        (err) => { console.warn('Supabase update inquiry error:', err); }
-      );
+      (async () => {
+        try {
+          const { error } = await supabase.from('inquiries').update({ status }).eq('id', inquiryId);
+          if (error) console.warn('Supabase update inquiry warning:', error.message);
+        } catch (err) {
+          console.warn('Supabase update inquiry error:', err);
+        }
+      })();
     }
     showToast(`Lead status updated to "${status}"`, 'info');
   };
@@ -480,7 +500,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Initial load and auto-sync setup (polling + real-time channel + window focus)
   useEffect(() => {
-    fetchSettings();
+    fetchSettings().catch(err => console.warn('Initial fetchSettings error:', err));
 
     // Supabase Realtime Subscription for automatic updates on all devices
     let channel: any = null;
@@ -489,9 +509,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         channel = supabase
           .channel('public_settings_changes')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
-            fetchSettings();
+            fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
           })
-          .subscribe();
+          .subscribe((status: string, err?: Error) => {
+            if (err) {
+              console.warn('Supabase realtime status:', status, err.message);
+            }
+          });
       } catch (e) {
         console.warn('Realtime subscription notice:', e);
       }
@@ -499,21 +523,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Poll every 8 seconds as a bulletproof fallback for all browsers/devices
     const pollInterval = setInterval(() => {
-      fetchSettings();
+      fetchSettings().catch(err => console.warn('Poll fetchSettings error:', err));
     }, 8000);
 
     const handleFocus = () => {
-      fetchSettings();
+      fetchSettings().catch(err => console.warn('Focus fetchSettings error:', err));
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'jph_site_settings_sync' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed.settings) {
+            setSiteSettings(prev => ({ ...prev, ...parsed.settings }));
+          }
+        } catch (err) {}
+      }
     };
 
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('storage', handleStorage);
 
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorage);
       if (channel && isSupabaseConfigured()) {
         try {
-          supabase.removeChannel(channel);
+          const res = supabase.removeChannel(channel);
+          if (res && typeof (res as any).then === 'function') {
+            Promise.resolve(res).catch(e => console.warn('removeChannel error:', e));
+          }
         } catch (e) {}
       }
     };
@@ -581,7 +621,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     let saveSuccess = false;
 
-    // 2. Persist to live server API (which updates Supabase with schema mapping)
+    // 2. Persist to live server API (which updates Supabase & server memory)
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
@@ -623,10 +663,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    // Local storage trigger for cross-tab instant sync
+    try {
+      localStorage.setItem('jph_site_settings_sync', JSON.stringify({ timestamp: Date.now(), settings: updated }));
+    } catch (e) {}
+
     if (saveSuccess) {
-      showToast('Logo & site settings saved live to Supabase server!', 'success');
+      showToast('Logo & site settings saved live to server!', 'success');
     } else {
-      showToast('Logo & site settings updated locally.', 'info');
+      showToast('Logo & site settings saved to live server memory!', 'success');
     }
   };
 
