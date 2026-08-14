@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
@@ -28,7 +29,42 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPA
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Default Site Settings
+// Persistent Local Database Setup
+const DATA_DIR = path.join(process.cwd(), "data");
+const DB_FILE = path.join(DATA_DIR, "db.json");
+
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+function readDb() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        return {
+          settings: parsed.settings || {},
+          properties: Array.isArray(parsed.properties) ? parsed.properties : [],
+          inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : []
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to read db.json, initializing fresh store:", err);
+  }
+  return null;
+}
+
+function saveDb(data: { settings: any; properties: any[]; inquiries: any[] }) {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save db.json:", err);
+  }
+}
+
+// Default Seed Data
 const DEFAULT_SITE_SETTINGS = {
   logoUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
   faviconUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
@@ -43,7 +79,6 @@ const DEFAULT_SITE_SETTINGS = {
   announcementBarActive: true
 };
 
-// Initial Seed Properties
 const INITIAL_PROPERTIES = [
   {
     id: 'jpr-1',
@@ -169,7 +204,6 @@ const INITIAL_PROPERTIES = [
   }
 ];
 
-// Initial Inquiries
 const INITIAL_INQUIRIES = [
   {
     id: 'inq-1',
@@ -198,57 +232,22 @@ const INITIAL_INQUIRIES = [
   }
 ];
 
-// In-Memory Live Master Stores (guarantees fast, reliable fallback)
-let globalSiteSettings: any = { ...DEFAULT_SITE_SETTINGS };
-let globalProperties: any[] = [...INITIAL_PROPERTIES];
-let globalInquiries: any[] = [...INITIAL_INQUIRIES];
-
-// Helper function to extract normalized SiteSettings from any database row format
-function normalizeSettingsRow(row: any) {
-  if (!row) return null;
-  const source = (row.value && typeof row.value === 'object') 
-    ? row.value 
-    : (row.data && typeof row.data === 'object') 
-    ? row.data 
-    : row;
-
-  return {
-    logoUrl: source.logoUrl || source.logo_url || source.logo || DEFAULT_SITE_SETTINGS.logoUrl,
-    faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || DEFAULT_SITE_SETTINGS.faviconUrl,
-    portalName: source.portalName || source.portal_name || source.name || DEFAULT_SITE_SETTINGS.portalName,
-    tagline: source.tagline || source.tag_line || DEFAULT_SITE_SETTINGS.tagline,
-    helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || DEFAULT_SITE_SETTINGS.helplinePhone,
-    helplineWhatsapp: source.helplineWhatsapp || source.helpline_whatsapp || source.whatsapp || DEFAULT_SITE_SETTINGS.helplineWhatsapp,
-    helplineEmail: source.helplineEmail || source.helpline_email || source.email || DEFAULT_SITE_SETTINGS.helplineEmail,
-    officeAddress: source.officeAddress || source.office_address || source.address || DEFAULT_SITE_SETTINGS.officeAddress,
-    heroHeadline: source.heroHeadline || source.hero_headline || DEFAULT_SITE_SETTINGS.heroHeadline,
-    announcementBarText: source.announcementBarText || source.announcement_bar_text || DEFAULT_SITE_SETTINGS.announcementBarText,
-    announcementBarActive: source.announcementBarActive !== undefined ? Boolean(source.announcementBarActive) : true,
-    seoTitle: source.seoTitle || source.seo_title || '',
-    seoDescription: source.seoDescription || source.seo_description || '',
-    seoKeywords: source.seoKeywords || source.seo_keywords || '',
-    seoCanonicalUrl: source.seoCanonicalUrl || source.seo_canonical_url || '',
-    updatedAt: source.updatedAt || source.updated_at || new Date().toISOString()
+// Initialize Master Database
+let db = readDb();
+if (!db || !db.properties || db.properties.length === 0) {
+  db = {
+    settings: DEFAULT_SITE_SETTINGS,
+    properties: INITIAL_PROPERTIES,
+    inquiries: INITIAL_INQUIRIES
   };
+  saveDb(db);
 }
 
 // -------------------------------------------------------------
 // Site Settings API
 // -------------------------------------------------------------
 app.get("/api/settings", async (req, res) => {
-  try {
-    const { data, error } = await supabase.from("settings").select("*").limit(1);
-    if (!error && data && data.length > 0) {
-      const normalized = normalizeSettingsRow(data[0]);
-      if (normalized) {
-        globalSiteSettings = normalized;
-      }
-    }
-  } catch (err: any) {
-    // Fail quietly and use memory store
-  }
-
-  return res.json({ settings: globalSiteSettings });
+  return res.json({ settings: db.settings });
 });
 
 app.post("/api/settings", async (req, res) => {
@@ -258,37 +257,18 @@ app.post("/api/settings", async (req, res) => {
       return res.status(400).json({ error: "Missing settings payload" });
     }
 
-    globalSiteSettings = { ...globalSiteSettings, ...newSettings };
+    db.settings = { ...db.settings, ...newSettings };
+    saveDb(db);
 
-    const payload = {
-      id: 'branding',
-      value: newSettings,
-      data: newSettings,
-      logoUrl: newSettings.logoUrl,
-      logo_url: newSettings.logoUrl,
-      portalName: newSettings.portalName,
-      portal_name: newSettings.portalName,
-      tagline: newSettings.tagline,
-      helplinePhone: newSettings.helplinePhone,
-      helpline_phone: newSettings.helplinePhone,
-      helplineWhatsapp: newSettings.helplineWhatsapp,
-      helpline_whatsapp: newSettings.helplineWhatsapp,
-      helplineEmail: newSettings.helplineEmail,
-      officeAddress: newSettings.officeAddress,
-      heroHeadline: newSettings.heroHeadline,
-      hero_headline: newSettings.heroHeadline,
-      announcementBarText: newSettings.announcementBarText,
-      announcementBarActive: newSettings.announcementBarActive,
-      updatedAt: new Date().toISOString()
-    };
-
+    // Background sync to Supabase settings table if exists
     try {
-      const { data: existingRows } = await supabase.from("settings").select("*").limit(1);
-      if (existingRows && existingRows.length > 0) {
-        const firstRow = existingRows[0];
-        const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
-        const primaryKeyValue = firstRow[primaryKeyCol];
-        await supabase.from("settings").update(payload).eq(primaryKeyCol, primaryKeyValue);
+      const payload = {
+        value: db.settings,
+        updated_at: new Date().toISOString()
+      };
+      const { data: existing } = await supabase.from("settings").select("*").limit(1);
+      if (existing && existing.length > 0) {
+        await supabase.from("settings").update(payload).eq("id", existing[0].id);
       } else {
         await supabase.from("settings").insert([payload]);
       }
@@ -296,7 +276,7 @@ app.post("/api/settings", async (req, res) => {
       console.warn("Supabase settings sync notice:", e);
     }
 
-    return res.json({ status: "ok", settings: globalSiteSettings });
+    return res.json({ status: "ok", settings: db.settings });
   } catch (error: any) {
     console.error("POST /api/settings error:", error);
     return res.status(500).json({ error: error.message || "Server error saving settings" });
@@ -307,16 +287,7 @@ app.post("/api/settings", async (req, res) => {
 // Properties API
 // -------------------------------------------------------------
 app.get("/api/properties", async (req, res) => {
-  try {
-    const { data, error } = await supabase.from("properties").select("*");
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      globalProperties = data;
-    }
-  } catch (err: any) {
-    // Fail quietly and serve live in-memory properties
-  }
-
-  return res.json({ properties: globalProperties });
+  return res.json({ properties: db.properties });
 });
 
 app.post("/api/properties", async (req, res) => {
@@ -326,22 +297,15 @@ app.post("/api/properties", async (req, res) => {
       return res.status(400).json({ error: "Property object with id is required" });
     }
 
-    // Instantly update server memory
-    const existingIdx = globalProperties.findIndex(p => p.id === property.id);
+    const existingIdx = db.properties.findIndex(p => p.id === property.id);
     if (existingIdx >= 0) {
-      globalProperties[existingIdx] = { ...globalProperties[existingIdx], ...property };
+      db.properties[existingIdx] = { ...db.properties[existingIdx], ...property };
     } else {
-      globalProperties = [property, ...globalProperties];
+      db.properties = [property, ...db.properties];
     }
+    saveDb(db);
 
-    // Background sync to Supabase
-    try {
-      await supabase.from("properties").upsert([property]);
-    } catch (e) {
-      console.warn("Supabase property upsert notice:", e);
-    }
-
-    return res.json({ status: "ok", property, properties: globalProperties });
+    return res.json({ status: "ok", property, properties: db.properties });
   } catch (error: any) {
     console.error("POST /api/properties error:", error);
     return res.status(500).json({ error: error.message || "Server error saving property" });
@@ -353,15 +317,10 @@ app.put("/api/properties/:id", async (req, res) => {
     const { id } = req.params;
     const updates = req.body.updates || req.body;
 
-    globalProperties = globalProperties.map(p => p.id === id ? { ...p, ...updates } : p);
+    db.properties = db.properties.map(p => p.id === id ? { ...p, ...updates } : p);
+    saveDb(db);
 
-    try {
-      await supabase.from("properties").update(updates).eq("id", id);
-    } catch (e) {
-      console.warn("Supabase property update notice:", e);
-    }
-
-    return res.json({ status: "ok", properties: globalProperties });
+    return res.json({ status: "ok", properties: db.properties });
   } catch (error: any) {
     console.error("PUT /api/properties error:", error);
     return res.status(500).json({ error: error.message || "Server error updating property" });
@@ -372,15 +331,10 @@ app.delete("/api/properties/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    globalProperties = globalProperties.filter(p => p.id !== id);
+    db.properties = db.properties.filter(p => p.id !== id);
+    saveDb(db);
 
-    try {
-      await supabase.from("properties").delete().eq("id", id);
-    } catch (e) {
-      console.warn("Supabase property delete notice:", e);
-    }
-
-    return res.json({ status: "ok", properties: globalProperties });
+    return res.json({ status: "ok", properties: db.properties });
   } catch (error: any) {
     console.error("DELETE /api/properties error:", error);
     return res.status(500).json({ error: error.message || "Server error deleting property" });
@@ -391,16 +345,7 @@ app.delete("/api/properties/:id", async (req, res) => {
 // Inquiries API
 // -------------------------------------------------------------
 app.get("/api/inquiries", async (req, res) => {
-  try {
-    const { data, error } = await supabase.from("inquiries").select("*");
-    if (!error && data && Array.isArray(data)) {
-      globalInquiries = data;
-    }
-  } catch (err: any) {
-    // Fail quietly and serve live in-memory inquiries
-  }
-
-  return res.json({ inquiries: globalInquiries });
+  return res.json({ inquiries: db.inquiries });
 });
 
 app.post("/api/inquiries", async (req, res) => {
@@ -410,15 +355,10 @@ app.post("/api/inquiries", async (req, res) => {
       return res.status(400).json({ error: "Inquiry object with id is required" });
     }
 
-    globalInquiries = [inquiry, ...globalInquiries];
+    db.inquiries = [inquiry, ...db.inquiries];
+    saveDb(db);
 
-    try {
-      await supabase.from("inquiries").insert([inquiry]);
-    } catch (e) {
-      console.warn("Supabase inquiry insert notice:", e);
-    }
-
-    return res.json({ status: "ok", inquiry, inquiries: globalInquiries });
+    return res.json({ status: "ok", inquiry, inquiries: db.inquiries });
   } catch (error: any) {
     console.error("POST /api/inquiries error:", error);
     return res.status(500).json({ error: error.message || "Server error creating inquiry" });
@@ -430,15 +370,10 @@ app.put("/api/inquiries/:id", async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    globalInquiries = globalInquiries.map(inq => inq.id === id ? { ...inq, status } : inq);
+    db.inquiries = db.inquiries.map(inq => inq.id === id ? { ...inq, status } : inq);
+    saveDb(db);
 
-    try {
-      await supabase.from("inquiries").update({ status }).eq("id", id);
-    } catch (e) {
-      console.warn("Supabase inquiry update notice:", e);
-    }
-
-    return res.json({ status: "ok", inquiries: globalInquiries });
+    return res.json({ status: "ok", inquiries: db.inquiries });
   } catch (error: any) {
     console.error("PUT /api/inquiries error:", error);
     return res.status(500).json({ error: error.message || "Server error updating inquiry" });
@@ -461,7 +396,7 @@ const getAi = () => {
 
 // Health Check API
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", service: "Jaipur Properties Hub with Express & Supabase" });
+  res.json({ status: "ok", service: "Jaipur Properties Hub with Express Server Store" });
 });
 
 // Gemini AI Locality Insights
