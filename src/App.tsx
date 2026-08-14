@@ -93,6 +93,7 @@ const MainContent: React.FC = () => {
                 <img 
                   src={siteSettings.logoUrl || APP_LOGO} 
                   alt={`${siteSettings.portalName} Logo`} 
+                  loading="lazy"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     e.currentTarget.src = APP_LOGO;

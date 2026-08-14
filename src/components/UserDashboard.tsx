@@ -19,14 +19,44 @@ export const UserDashboard: React.FC = () => {
     viewPropertyDetail,
     selectedCity,
     showToast,
-    siteSettings
+    siteSettings,
+    currentUser
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'wishlist' | 'posted' | 'leads' | 'valuation'>('wishlist');
 
-  // Filter properties
+  // Filter properties saved by user
   const savedProperties = properties.filter(p => wishlistIds.includes(p.id));
-  const userPostedProperties = properties.filter(p => p.postedBy === 'Owner' || p.id.startsWith('prop-'));
+
+  // User's own posted properties
+  const userPostedProperties = properties.filter(p => {
+    if (!currentUser?.email) return false;
+    const isOwnerByEmail = p.postedByEmail?.toLowerCase() === currentUser.email.toLowerCase();
+    const isAdminUser = currentUser.email.toLowerCase() === 'sanjumeena@gmail.com' || currentUser.role === 'admin';
+    return isOwnerByEmail || isAdminUser;
+  });
+
+  // User's received leads (for properties posted by this user or submitted by user)
+  const userPropertyIds = userPostedProperties.map(p => p.id);
+  const userReceivedLeads = inquiries.filter(inq => {
+    if (!currentUser?.email) return false;
+    const isForMyProperty = userPropertyIds.includes(inq.propertyId);
+    const isMySubmittedInquiry = inq.userEmail?.toLowerCase() === currentUser.email.toLowerCase();
+    const isAdminUser = currentUser.email.toLowerCase() === 'sanjumeena@gmail.com' || currentUser.role === 'admin';
+    return isForMyProperty || isMySubmittedInquiry || isAdminUser;
+  });
+
+  const handleDeleteMyProperty = (prop: Property) => {
+    const isOwnerByEmail = prop.postedByEmail?.toLowerCase() === currentUser?.email?.toLowerCase();
+    const isAdminUser = currentUser?.email?.toLowerCase() === 'sanjumeena@gmail.com' || currentUser?.role === 'admin';
+
+    if (!isOwnerByEmail && !isAdminUser) {
+      showToast('You can only delete properties that you posted yourself!', 'error');
+      return;
+    }
+
+    deleteProperty(prop.id);
+  };
 
   // AI Valuation State
   const [valCity, setValCity] = useState(selectedCity || 'Mumbai');
@@ -131,7 +161,7 @@ export const UserDashboard: React.FC = () => {
             }`}
           >
             <PhoneCall className="w-4 h-4" />
-            <span>Received Leads ({inquiries.length})</span>
+            <span>Received Leads ({userReceivedLeads.length})</span>
           </button>
 
           <button
@@ -184,6 +214,7 @@ export const UserDashboard: React.FC = () => {
                         <img
                           src={prop.images[0]}
                           alt={prop.title}
+                          loading="lazy"
                           className="w-20 h-20 rounded-xl object-cover shrink-0 bg-gray-100"
                         />
                         <div>
@@ -193,6 +224,7 @@ export const UserDashboard: React.FC = () => {
                           <h3 className="text-sm font-bold text-gray-900 mt-1 line-clamp-1">{prop.title}</h3>
                           <p className="text-xs font-semibold text-red-600">{prop.priceDisplay}</p>
                           <p className="text-[11px] text-gray-400">{prop.locality}, {prop.city}</p>
+                          <p className="text-[10px] text-gray-500 font-medium">Posted by: {prop.postedByName} ({prop.postedByEmail || 'Verified Owner'})</p>
                         </div>
                       </div>
 
@@ -212,7 +244,7 @@ export const UserDashboard: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => viewPropertyDetail(prop)}
-                            className="p-2 text-gray-600 hover:text-slate-900 hover:bg-gray-100 rounded-lg"
+                            className="p-2 text-gray-600 hover:text-slate-900 hover:bg-gray-100 rounded-lg cursor-pointer"
                             title="View Property"
                           >
                             <Eye className="w-4 h-4" />
@@ -220,9 +252,9 @@ export const UserDashboard: React.FC = () => {
 
                           <button
                             type="button"
-                            onClick={() => deleteProperty(prop.id)}
-                            className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
-                            title="Delete Listing"
+                            onClick={() => handleDeleteMyProperty(prop)}
+                            className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer"
+                            title="Delete My Listing"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -242,26 +274,33 @@ export const UserDashboard: React.FC = () => {
             <div className="p-5 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-gray-900">Buyer & Tenant Direct Leads</h3>
-                <p className="text-xs text-gray-500">Inquiries received from interested buyers for your listings.</p>
+                <p className="text-xs text-gray-500">Inquiries received from interested buyers for your listings ({currentUser?.email}).</p>
               </div>
               <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full">
-                {inquiries.length} Inquiries
+                {userReceivedLeads.length} Inquiries
               </span>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
-                  <tr>
-                    <th className="p-4">Buyer Details</th>
-                    <th className="p-4">Property</th>
-                    <th className="p-4">Message / Request</th>
-                    <th className="p-4">Date</th>
-                    <th className="p-4">Lead Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {inquiries.map(inq => (
+              {userReceivedLeads.length === 0 ? (
+                <div className="p-10 text-center text-gray-500 text-xs space-y-2">
+                  <PhoneCall className="w-8 h-8 text-gray-300 mx-auto" />
+                  <p className="font-bold text-gray-700">No leads received yet for your properties</p>
+                  <p className="text-gray-400">When buyers or tenants submit inquiries on your property, they will appear here!</p>
+                </div>
+              ) : (
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
+                    <tr>
+                      <th className="p-4">Buyer Details</th>
+                      <th className="p-4">Property</th>
+                      <th className="p-4">Message / Request</th>
+                      <th className="p-4">Date</th>
+                      <th className="p-4">Lead Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {userReceivedLeads.map(inq => (
                     <tr key={inq.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="p-4">
                         <div className="font-bold text-gray-900">{inq.userName}</div>
@@ -307,6 +346,7 @@ export const UserDashboard: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            )}
             </div>
           </div>
         )}

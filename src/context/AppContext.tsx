@@ -57,6 +57,7 @@ interface AppContextType {
   viewPropertyDetail: (property: Property) => void;
   openAuthModal: (mode?: 'login' | 'signup') => void;
   closeAuthModal: () => void;
+  loginWithOtp: (email: string, fullName?: string, phone?: string, userType?: UserProfile['userType']) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   signup: (fullName: string, email: string, phone: string, password: string, confirmPassword: string, userType: UserProfile['userType'], city?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -123,17 +124,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState<boolean>(false);
 
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>({
-    id: 'guest-user-001',
-    name: 'Jaipur Property Owner',
-    fullName: 'Jaipur Property Owner',
-    email: 'owner@jaipurproperties.hub',
-    phone: '+91 9876543210',
-    city: 'Jaipur',
-    userType: 'Owner',
-    role: 'admin',
-    isVerified: true
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('mb_user');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {}
+    return {
+      id: 'user-default-01',
+      name: 'Sanju Owner',
+      fullName: 'Sanju Owner',
+      email: 'sanjumeena@gmail.com',
+      phone: '+91 97721 17575',
+      city: 'Jaipur',
+      userType: 'Owner',
+      role: 'admin',
+      isVerified: true
+    };
   });
+
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem('mb_user', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('mb_user');
+      }
+    } catch (e) {}
+  }, [currentUser]);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
@@ -145,6 +164,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
+  };
+
+  const loginWithOtp = async (email: string, fullName?: string, phone?: string, userType: UserProfile['userType'] = 'Owner') => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = fullName?.trim() || cleanEmail.split('@')[0];
+    const newUser: UserProfile = {
+      id: 'usr-' + Date.now().toString(),
+      name: cleanName,
+      fullName: cleanName,
+      email: cleanEmail,
+      phone: phone || '+91 97721 17575',
+      city: 'Jaipur',
+      userType: userType || 'Owner',
+      role: cleanEmail === 'sanjumeena@gmail.com' ? 'admin' : 'user',
+      isVerified: true
+    };
+    setCurrentUser(newUser);
+    setIsAuthModalOpen(false);
+    showToast(`Welcome ${cleanName}! Verified & Logged in successfully.`, 'success');
   };
 
   const login = async (email: string, password: string) => {
@@ -259,6 +297,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn('Supabase logout notice:', e);
       }
     }
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('mb_user');
+    } catch (e) {}
     showToast('Logged out successfully', 'info');
   };
 
@@ -861,6 +903,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       viewPropertyDetail,
       openAuthModal,
       closeAuthModal,
+      loginWithOtp,
       login,
       signup,
       logout,
