@@ -184,6 +184,15 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const generateSlug = (text: string) => {
+    return (text || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   // Post New Property Handler (Admin Only)
   const handlePostProperty = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,10 +200,19 @@ export const AdminDashboard: React.FC = () => {
       showToast('Please enter Property Title and Locality', 'error');
       return;
     }
+    const slug = newProp.slug?.trim() || generateSlug(newProp.title);
+    const propToPost = {
+      ...newProp,
+      slug,
+      seoTitle: newProp.seoTitle?.trim() || `${newProp.title} | ${newProp.locality}, ${newProp.city || 'Jaipur'}`,
+      seoKeywords: newProp.seoKeywords?.trim() || `${newProp.title}, ${newProp.locality}, ${newProp.city || 'Jaipur'} real estate`,
+      seoDescription: newProp.seoDescription?.trim() || newProp.description
+    };
+
     setIsPostingProp(true);
     try {
-      await addProperty(newProp);
-      showToast('Property Posted Successfully by Admin!', 'success');
+      await addProperty(propToPost as any);
+      showToast('Property Posted & Live on Server!', 'success');
       setActiveTab('manage-properties');
     } catch (err) {
       console.error('Failed to post property:', err);
@@ -310,9 +328,15 @@ export const AdminDashboard: React.FC = () => {
     if (val >= 10000000) disp = `₹${(val / 10000000).toFixed(2)} Cr`;
     else if (val >= 100000) disp = `₹${(val / 100000).toFixed(2)} Lac`;
 
+    const slug = editForm.slug?.trim() || generateSlug(editForm.title || '');
+
     const updatedData: Partial<Property> = {
       ...editForm,
-      priceDisplay: editForm.priceDisplay || disp
+      slug,
+      priceDisplay: editForm.priceDisplay || disp,
+      seoTitle: editForm.seoTitle?.trim() || `${editForm.title} | ${editForm.locality}, ${editForm.city || 'Jaipur'}`,
+      seoKeywords: editForm.seoKeywords?.trim() || `${editForm.title}, ${editForm.locality}, real estate jaipur`,
+      seoDescription: editForm.seoDescription?.trim() || editForm.description
     };
 
     updateProperty(editingProperty.id, updatedData);
@@ -948,10 +972,79 @@ export const AdminDashboard: React.FC = () => {
                   <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>
                   <textarea
                     rows={3}
-                    value={newProp.description}
+                    value={newProp.description || ''}
                     onChange={(e) => setNewProp(prev => ({ ...prev, description: e.target.value }))}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium"
                   />
+                </div>
+
+                {/* SEO & Custom Slug URL Settings */}
+                <div className="p-4 bg-slate-900/5 border border-slate-200 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs uppercase tracking-wider">
+                      <Globe className="w-4 h-4 text-red-600" />
+                      <span>SEO & Custom URL Slug Settings</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNewProp(prev => ({ ...prev, slug: generateSlug(prev.title || '') }))}
+                      className="text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg cursor-pointer transition-colors"
+                    >
+                      ⚡ Auto-generate Slug
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Custom URL Slug (SEO Permalink)
+                      </label>
+                      <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono text-gray-700">
+                        <span className="text-gray-400 select-none">#property/</span>
+                        <input
+                          type="text"
+                          value={newProp.slug || ''}
+                          onChange={(e) => setNewProp(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
+                          placeholder="e.g. 3bhk-luxury-apartment-mansarovar-jaipur"
+                          className="flex-1 bg-transparent border-none outline-none font-mono font-bold text-gray-900"
+                        />
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Unique URL for search engines and direct sharing</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title (Google Title Tag)</label>
+                      <input
+                        type="text"
+                        value={newProp.seoTitle || ''}
+                        onChange={(e) => setNewProp(prev => ({ ...prev, seoTitle: e.target.value }))}
+                        placeholder="e.g. Buy 3 BHK Luxury Apartment in Mansarovar Jaipur | Direct Owner"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">SEO Keywords (Comma Separated)</label>
+                      <input
+                        type="text"
+                        value={newProp.seoKeywords || ''}
+                        onChange={(e) => setNewProp(prev => ({ ...prev, seoKeywords: e.target.value }))}
+                        placeholder="e.g. 3bhk flat mansarovar, buy property jaipur, luxury apartment"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">SEO Meta Description</label>
+                      <textarea
+                        rows={2}
+                        value={newProp.seoDescription || ''}
+                        onChange={(e) => setNewProp(prev => ({ ...prev, seoDescription: e.target.value }))}
+                        placeholder="e.g. Explore this verified 3 BHK luxury apartment in Mansarovar, Jaipur with zero brokerage..."
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 flex justify-end">
@@ -1516,6 +1609,75 @@ export const AdminDashboard: React.FC = () => {
                   onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium"
                 />
+              </div>
+
+              {/* SEO & Custom Slug URL Settings */}
+              <div className="p-4 bg-slate-900/5 border border-slate-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs uppercase tracking-wider">
+                    <Globe className="w-4 h-4 text-red-600" />
+                    <span>SEO & Custom URL Slug Settings</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditForm(prev => ({ ...prev, slug: generateSlug(prev.title || '') }))}
+                    className="text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg cursor-pointer transition-colors"
+                  >
+                    ⚡ Auto-generate Slug
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Custom URL Slug (SEO Permalink)
+                    </label>
+                    <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono text-gray-700">
+                      <span className="text-gray-400 select-none">#property/</span>
+                      <input
+                        type="text"
+                        value={editForm.slug || ''}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
+                        placeholder="e.g. 3bhk-luxury-apartment-mansarovar-jaipur"
+                        className="flex-1 bg-transparent border-none outline-none font-mono font-bold text-gray-900"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Unique URL for search engines and direct sharing</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">SEO Title (Google Title Tag)</label>
+                    <input
+                      type="text"
+                      value={editForm.seoTitle || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, seoTitle: e.target.value }))}
+                      placeholder="e.g. Buy 3 BHK Luxury Apartment in Mansarovar Jaipur"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">SEO Keywords (Comma Separated)</label>
+                    <input
+                      type="text"
+                      value={editForm.seoKeywords || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, seoKeywords: e.target.value }))}
+                      placeholder="e.g. 3bhk flat mansarovar, buy property jaipur, luxury apartment"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 mb-1">SEO Meta Description</label>
+                    <textarea
+                      rows={2}
+                      value={editForm.seoDescription || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, seoDescription: e.target.value }))}
+                      placeholder="e.g. Explore this verified 3 BHK luxury apartment in Mansarovar, Jaipur..."
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-900"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-6 pt-2">

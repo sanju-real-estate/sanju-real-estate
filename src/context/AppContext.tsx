@@ -323,9 +323,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ? `₹${(newPropData.price / 100000).toFixed(2)} Lac`
       : `₹${newPropData.price.toLocaleString()}`;
 
+    const generatedSlug = (newPropData.title || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
     const newProperty: Property = {
       ...newPropData,
       id: newId,
+      slug: newPropData.slug?.trim() || generatedSlug || newId,
+      seoTitle: newPropData.seoTitle?.trim() || `${newPropData.title} | ${newPropData.locality}, ${newPropData.city}`,
+      seoKeywords: newPropData.seoKeywords?.trim() || `${newPropData.title}, ${newPropData.locality}, ${newPropData.city} real estate, buy property jaipur`,
+      seoDescription: newPropData.seoDescription?.trim() || newPropData.description,
       priceDisplay: newPropData.priceDisplay || formattedPrice,
       viewsCount: 1,
       leadsCount: 0,
@@ -595,18 +606,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const fetchProperties = async () => {
+    try {
+      const res = await fetch('/api/properties');
+      if (res.ok) {
+        const json = await res.json();
+        if (json && Array.isArray(json.properties) && json.properties.length > 0) {
+          setProperties(json.properties);
+          try {
+            localStorage.setItem('mb_properties', JSON.stringify(json.properties));
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      console.warn('Server properties fetch notice:', err);
+    }
+  };
+
+  const fetchInquiries = async () => {
+    try {
+      const res = await fetch('/api/inquiries');
+      if (res.ok) {
+        const json = await res.json();
+        if (json && Array.isArray(json.inquiries)) {
+          setInquiries(json.inquiries);
+          try {
+            localStorage.setItem('mb_inquiries', JSON.stringify(json.inquiries));
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      console.warn('Server inquiries fetch notice:', err);
+    }
+  };
+
   // Initial load and auto-sync setup (polling + real-time channel + window focus)
   useEffect(() => {
-    fetchSettings().catch(err => console.warn('Initial fetchSettings error:', err));
+    const syncAllData = () => {
+      fetchSettings().catch(err => console.warn('fetchSettings error:', err));
+      fetchProperties().catch(err => console.warn('fetchProperties error:', err));
+      fetchInquiries().catch(err => console.warn('fetchInquiries error:', err));
+    };
+
+    syncAllData();
 
     // Supabase Realtime Subscription for automatic updates on all devices
     let channel: any = null;
     if (isSupabaseConfigured()) {
       try {
         channel = supabase
-          .channel('public_settings_changes')
+          .channel('public_settings_and_props_changes')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
             fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
+            fetchProperties().catch(err => console.warn('Realtime fetchProperties error:', err));
           })
           .subscribe((status: string, err?: Error) => {
             if (err) {
@@ -618,13 +672,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    // Poll every 8 seconds as a bulletproof fallback for all browsers/devices
+    // Poll every 5 seconds as a bulletproof fallback for all devices & browsers
     const pollInterval = setInterval(() => {
-      fetchSettings().catch(err => console.warn('Poll fetchSettings error:', err));
-    }, 8000);
+      syncAllData();
+    }, 5000);
 
     const handleFocus = () => {
-      fetchSettings().catch(err => console.warn('Focus fetchSettings error:', err));
+      syncAllData();
     };
 
     const handleStorage = (e: StorageEvent) => {

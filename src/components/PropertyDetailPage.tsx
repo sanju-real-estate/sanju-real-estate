@@ -23,6 +23,37 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
 
   const isSaved = wishlistIds.includes(property.id);
 
+  // Dynamic SEO meta tags and URL permalink update
+  useEffect(() => {
+    if (property) {
+      if (property.seoTitle || property.title) {
+        document.title = property.seoTitle || `${property.title} | ${property.locality}, ${property.city}`;
+      }
+
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute('content', property.seoDescription || property.description);
+
+      let metaKeywords = document.querySelector('meta[name="keywords"]');
+      if (!metaKeywords) {
+        metaKeywords = document.createElement('meta');
+        metaKeywords.setAttribute('name', 'keywords');
+        document.head.appendChild(metaKeywords);
+      }
+      metaKeywords.setAttribute('content', property.seoKeywords || `${property.title}, ${property.locality}, ${property.city} property, real estate jaipur`);
+
+      // Update URL hash with property custom slug or ID
+      const slug = property.slug || property.id;
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', `#property/${slug}`);
+      }
+    }
+  }, [property]);
+
   // Fetch AI Locality Insights from server endpoint
   useEffect(() => {
     let isMounted = true;

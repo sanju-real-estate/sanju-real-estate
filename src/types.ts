@@ -54,6 +54,11 @@ export interface Property {
   postedDate: string;
   viewsCount: number;
   leadsCount: number;
+  // Custom SEO & Slug URL
+  slug?: string;
+  seoTitle?: string;
+  seoKeywords?: string;
+  seoDescription?: string;
 }
 
 export interface Inquiry {
