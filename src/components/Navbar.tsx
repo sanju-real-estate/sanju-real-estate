@@ -71,14 +71,6 @@ export const Navbar: React.FC = () => {
               <Calculator className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Price Estimator</span>
             </button>
-            <span className="text-gray-600">|</span>
-            <button
-              onClick={() => handleNavClick('admin')}
-              className="hover:text-white flex items-center gap-1 text-amber-400 font-bold transition-colors cursor-pointer py-0.5 text-[11px] sm:text-xs"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-              <span>Admin Panel</span>
-            </button>
           </div>
         </div>
       </div>
@@ -256,15 +248,7 @@ export const Navbar: React.FC = () => {
               <span>Dashboard</span>
             </button>
 
-            {/* Admin Panel Button (Always Prominent) */}
-            <button
-              onClick={() => handleNavClick('admin')}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-              title="Admin Panel & Site Settings"
-            >
-              <ShieldCheck className="w-4 h-4 text-white" />
-              <span>Admin Panel</span>
-            </button>
+
 
             {/* Auth Profile if logged in */}
             {currentUser && (
@@ -337,18 +321,7 @@ export const Navbar: React.FC = () => {
                 Zero Fee
               </span>
             </button>
-            <button
-              onClick={() => handleNavClick('admin')}
-              className="text-left py-3 px-3.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl min-h-[44px] flex items-center justify-between shadow-sm cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-white shrink-0" />
-                <span>Admin Panel</span>
-              </div>
-              <span className="text-[10px] bg-white/20 text-white font-extrabold px-2 py-0.5 rounded-full">
-                Admin
-              </span>
-            </button>
+
             <button
               onClick={() => handleNavClick('home')}
               className="text-left py-3 px-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-xl min-h-[44px] flex items-center"
@@ -412,13 +385,13 @@ export const Navbar: React.FC = () => {
             ) : (
               <button
                 onClick={() => {
-                  handleNavClick('admin');
+                  openAuthModal();
                   setIsMobileMenuOpen(false);
                 }}
                 className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
-                <ShieldCheck className="w-4 h-4 text-white" />
-                <span>Open Admin Panel</span>
+                <UserCheck className="w-4 h-4 text-white" />
+                <span>Login / Register</span>
               </button>
             )}
           </div>

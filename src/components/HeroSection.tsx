@@ -301,11 +301,11 @@ export const HeroSection: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setActiveView('admin')}
+            onClick={() => setActiveView('post-property')}
             className="shrink-0 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer group"
           >
-            <ShieldCheck className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-            <span>Admin Panel</span>
+            <PlusCircle className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+            <span>Post Free Property</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
