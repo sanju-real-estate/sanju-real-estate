@@ -9,8 +9,7 @@ export const isSupabaseConfigured = (): boolean => {
   return Boolean(
     SUPABASE_URL && 
     SUPABASE_ANON_KEY && 
-    SUPABASE_URL !== 'https://placeholder.supabase.co' &&
-    !SUPABASE_ANON_KEY.startsWith('sb_publishable_')
+    SUPABASE_URL !== 'https://placeholder.supabase.co'
   );
 };
 

@@ -583,12 +583,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const applySettingsUpdate = (norm: Partial<SiteSettings>) => {
     setSiteSettings(prev => {
-      const merged = { ...prev };
-      Object.entries(norm).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== '') {
-          (merged as any)[k] = v;
-        }
-      });
+      const merged = { ...prev, ...norm };
       try {
         localStorage.setItem('jph_site_settings', JSON.stringify(merged));
       } catch (e) {}
@@ -682,23 +677,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     syncAllData();
 
-    // Supabase Realtime Subscription for automatic updates on all devices
-    let channel: any = null;
+    // Supabase Realtime Subscription via 'realtime:settings' channel for instant cross-device updates
+    let settingsChannel: any = null;
+    let propsChannel: any = null;
+
     if (isSupabaseConfigured()) {
       try {
-        channel = supabase
-          .channel('public_settings_and_props_changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
-            fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
+        settingsChannel = supabase
+          .channel('realtime:settings')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, (payload: any) => {
+            if (payload?.new) {
+              const norm = normalizeSettings(payload.new);
+              if (norm && Object.keys(norm).length > 0) {
+                applySettingsUpdate(norm);
+              } else {
+                fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
+              }
+            } else {
+              fetchSettings().catch(err => console.warn('Realtime fetchSettings error:', err));
+            }
           })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
-            fetchProperties().catch(err => console.warn('Realtime fetchProperties error:', err));
+          .on('broadcast', { event: 'settings_updated' }, (payload: any) => {
+            if (payload?.payload?.settings) {
+              applySettingsUpdate(payload.payload.settings);
+            } else {
+              fetchSettings().catch(err => console.warn('Realtime broadcast fetchSettings error:', err));
+            }
           })
           .subscribe((status: string, err?: Error) => {
             if (err) {
-              console.warn('Supabase realtime status:', status, err.message);
+              console.warn('Supabase realtime:settings status:', status, err.message);
             }
           });
+
+        propsChannel = supabase
+          .channel('realtime:properties')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
+            fetchProperties().catch(err => console.warn('Realtime fetchProperties error:', err));
+          })
+          .on('broadcast', { event: 'properties_updated' }, () => {
+            fetchProperties().catch(err => console.warn('Realtime fetchProperties error:', err));
+          })
+          .subscribe();
       } catch (e) {
         console.warn('Realtime subscription notice:', e);
       }
@@ -731,12 +751,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('storage', handleStorage);
-      if (channel && isSupabaseConfigured()) {
+      if (isSupabaseConfigured()) {
         try {
-          const res = supabase.removeChannel(channel);
-          if (res && typeof (res as any).then === 'function') {
-            Promise.resolve(res).catch(e => console.warn('removeChannel error:', e));
-          }
+          if (settingsChannel) supabase.removeChannel(settingsChannel);
+          if (propsChannel) supabase.removeChannel(propsChannel);
         } catch (e) {}
       }
     };
@@ -846,6 +864,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } catch (error) {
         console.error('Direct Supabase save fallback notice:', error);
+      }
+    }
+
+    // Realtime broadcast via Supabase channel 'realtime:settings' for instant multi-device update
+    if (isSupabaseConfigured()) {
+      try {
+        const settingsChan = supabase.channel('realtime:settings');
+        settingsChan.send({
+          type: 'broadcast',
+          event: 'settings_updated',
+          payload: { settings: updated }
+        }).catch(err => console.warn('Broadcast send error:', err));
+      } catch (e) {
+        console.warn('Realtime settings broadcast notice:', e);
       }
     }
 

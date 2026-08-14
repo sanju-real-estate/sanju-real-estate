@@ -116,12 +116,6 @@ export const PostPropertyPortal: React.FC = () => {
       return;
     }
 
-    if (!currentUser) {
-      openAuthModal('signup');
-      showToast('Please login with Email OTP first to publish property', 'info');
-      return;
-    }
-
     const pricePerSqFt = Math.round(price / (areaSqFt || 1));
     const priceDisplay = formatPriceInr(price);
 
@@ -151,10 +145,10 @@ export const PostPropertyPortal: React.FC = () => {
       furnishing,
       parking,
       postedBy,
-      postedByName: postedByName || currentUser.fullName || currentUser.name,
-      postedByPhone: postedByPhone || currentUser.phone || '+91 97721 17575',
-      postedByWhatsapp: sameAsPhone ? (postedByPhone || currentUser.phone || '+91 97721 17575') : (postedByWhatsapp || postedByPhone || '+91 97721 17575'),
-      postedByEmail: currentUser.email,
+      postedByName: postedByName || currentUser?.fullName || currentUser?.name || 'Property Owner',
+      postedByPhone: postedByPhone || currentUser?.phone || '+91 97721 17575',
+      postedByWhatsapp: sameAsPhone ? (postedByPhone || currentUser?.phone || '+91 97721 17575') : (postedByWhatsapp || postedByPhone || '+91 97721 17575'),
+      postedByEmail: currentUser?.email || 'owner@jaipurproperties.hub',
       isVerified: true,
       isExclusive: true,
       isFeatured: false,
@@ -166,61 +160,9 @@ export const PostPropertyPortal: React.FC = () => {
       seoDescription: seoDescription || description
     });
 
-    showToast('🎉 Property Published Successfully! It is now live.', 'success');
-    setActiveView('dashboard');
+    showToast('🎉 Property Published Successfully! It is now live on server.', 'success');
+    setActiveView('listings');
   };
-
-  // IF USER IS NOT LOGGED IN - SHOW High Converting OTP Auth Prompt Card
-  if (!currentUser) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center animate-fadeIn">
-        <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-2xl border border-gray-100 space-y-6">
-          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto shadow-inner border border-red-100">
-            <Building2 className="w-10 h-10" />
-          </div>
-
-          <div className="space-y-3">
-            <span className="bg-red-600 text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full tracking-wider inline-flex items-center gap-1.5 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5" />
-              Post Property FREE
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Post Your Property on Jaipur Properties Hub
-            </h1>
-            <p className="text-sm text-gray-600 max-w-lg mx-auto leading-relaxed">
-              Login or Sign Up with Email OTP to list your house, flat, plot, or commercial space for FREE. Get direct buyer leads directly in your owner portal.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-xl mx-auto pt-2">
-            <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
-              <span className="text-xs font-black text-red-600 uppercase block">1. Login / OTP</span>
-              <p className="text-xs text-gray-600">Quick 10-second verification with your email address.</p>
-            </div>
-            <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
-              <span className="text-xs font-black text-red-600 uppercase block">2. Post Details</span>
-              <p className="text-xs text-gray-600">Add price, locality photos & amenities.</p>
-            </div>
-            <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-1">
-              <span className="text-xs font-black text-red-600 uppercase block">3. Receive Leads</span>
-              <p className="text-xs text-gray-600">Buyers call you directly with zero brokerage fee!</p>
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <button
-              onClick={() => openAuthModal('signup')}
-              className="bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 px-8 rounded-2xl text-xs uppercase tracking-wider transition-all shadow-lg hover:shadow-red-600/30 flex items-center justify-center gap-2 mx-auto cursor-pointer"
-            >
-              <Mail className="w-4 h-4" />
-              <span>Login / Sign Up with Email OTP to Post</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-gray-50 min-h-screen py-10">

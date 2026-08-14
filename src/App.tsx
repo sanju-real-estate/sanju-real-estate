@@ -138,7 +138,7 @@ const MainContent: React.FC = () => {
                   className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition-colors flex items-center gap-2 cursor-pointer"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Admin Panel Login</span>
+                  <span>Admin Panel</span>
                 </button>
               </div>
             </div>

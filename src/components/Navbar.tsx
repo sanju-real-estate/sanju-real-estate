@@ -35,11 +35,6 @@ export const Navbar: React.FC = () => {
   };
 
   const handleNavClick = (view: 'home' | 'listings' | 'post-property' | 'dashboard' | 'valuation' | 'admin', listingType?: string) => {
-    if (view === 'post-property' && !currentUser) {
-      openAuthModal('signup');
-      showToast('Please login or sign up first to post your property free!', 'info');
-      return;
-    }
     if (listingType) {
       setFilters(prev => ({ ...prev, listingType: listingType as any }));
     }
@@ -82,7 +77,7 @@ export const Navbar: React.FC = () => {
               className="hover:text-white flex items-center gap-1 text-amber-400 font-bold transition-colors cursor-pointer py-0.5 text-[11px] sm:text-xs"
             >
               <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-              <span>Admin Login</span>
+              <span>Admin Panel</span>
             </button>
           </div>
         </div>
@@ -271,8 +266,8 @@ export const Navbar: React.FC = () => {
               <span>Admin Panel</span>
             </button>
 
-            {/* Auth Button or User Profile */}
-            {currentUser ? (
+            {/* Auth Profile if logged in */}
+            {currentUser && (
               <div className="hidden sm:flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs shrink-0">
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="max-w-[80px] truncate">{currentUser.name}</span>
@@ -284,13 +279,6 @@ export const Navbar: React.FC = () => {
                   Logout
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={() => openAuthModal('login')}
-                className="hidden sm:flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
-              >
-                <span>Login</span>
-              </button>
             )}
 
             {/* Mobile / Tablet Menu Toggle */}
@@ -355,7 +343,7 @@ export const Navbar: React.FC = () => {
             >
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-white shrink-0" />
-                <span>Admin Panel Login</span>
+                <span>Admin Panel</span>
               </div>
               <span className="text-[10px] bg-white/20 text-white font-extrabold px-2 py-0.5 rounded-full">
                 Admin
@@ -422,26 +410,16 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    openAuthModal('login');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="bg-slate-900 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center cursor-pointer"
-                >
-                  Sign In (Login)
-                </button>
-                <button
-                  onClick={() => {
-                    handleNavClick('admin');
-                  }}
-                  className="bg-red-600 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-white" />
-                  <span>Admin Panel</span>
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  handleNavClick('admin');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                <ShieldCheck className="w-4 h-4 text-white" />
+                <span>Open Admin Panel</span>
+              </button>
             )}
           </div>
         </div>

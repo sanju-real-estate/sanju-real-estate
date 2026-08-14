@@ -36,10 +36,8 @@ import { DEFAULT_SITE_SETTINGS } from '../context/AppContext';
 export const AdminDashboard: React.FC = () => {
   const { siteSettings, updateSiteSettings, properties, addProperty, updateProperty, deleteProperty, inquiries, updateInquiryStatus, showToast } = useApp();
 
-  // Admin Authentication State (Check Session Storage)
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('admin_authenticated') === 'true';
-  });
+  // Admin Panel Direct Access (Unlocked for Site Admin)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(true);
 
   // Login Form State
   const [adminEmail, setAdminEmail] = useState('');
