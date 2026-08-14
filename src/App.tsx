@@ -6,6 +6,7 @@ import { FeaturedCollections } from './components/FeaturedCollections';
 import { PropertyListingPage } from './components/PropertyListingPage';
 import { PropertyDetailPage } from './components/PropertyDetailPage';
 import { PostPropertyPortal } from './components/PostPropertyPortal';
+import { AdminDashboard } from './components/AdminDashboard';
 import { UserDashboard } from './components/UserDashboard';
 import { LeadModal } from './components/LeadModal';
 import { AiAssistantDrawer } from './components/AiAssistantDrawer';
@@ -54,6 +55,10 @@ const MainContent: React.FC = () => {
 
         {activeView === 'post-property' && (
           <PostPropertyPortal />
+        )}
+
+        {activeView === 'admin' && (
+          <AdminDashboard />
         )}
 
         {(activeView === 'dashboard' || activeView === 'valuation') && (

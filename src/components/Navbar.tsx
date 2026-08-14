@@ -248,6 +248,20 @@ export const Navbar: React.FC = () => {
               <span>Dashboard</span>
             </button>
 
+            {/* Admin Panel (lg+) */}
+            <button
+              onClick={() => handleNavClick('admin')}
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer shrink-0 shadow-xs ${
+                activeView === 'admin'
+                  ? 'bg-red-700 text-white border border-red-600'
+                  : 'bg-red-600 hover:bg-red-700 text-white'
+              }`}
+              title="Open Admin Panel"
+            >
+              <ShieldCheck className="w-4 h-4 text-white" />
+              <span>Admin Panel</span>
+            </button>
+
 
 
             {/* Auth Profile if logged in */}
@@ -361,6 +375,13 @@ export const Navbar: React.FC = () => {
               <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
                 {wishlistIds.length} Saved
               </span>
+            </button>
+            <button
+              onClick={() => handleNavClick('admin')}
+              className="text-left py-3 px-3.5 text-sm font-extrabold text-white bg-red-600 hover:bg-red-700 rounded-xl min-h-[44px] flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4 text-white shrink-0" />
+              <span>Admin Panel</span>
             </button>
           </div>
 

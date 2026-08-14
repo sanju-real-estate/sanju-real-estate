@@ -32,7 +32,8 @@ export const PostPropertyPortal: React.FC = () => {
   const [furnishing, setFurnishing] = useState<FurnishingStatus>('Semi-Furnished');
   const [parking, setParking] = useState('1 Covered, 1 Open');
   const [postedBy, setPostedBy] = useState<PostedBy>('Owner');
-  const [postedByName, setPostedByName] = useState(currentUser?.fullName || currentUser?.name || '');
+  const [postedByEmail, setPostedByEmail] = useState(currentUser?.email || 'owner@jaipurproperties.hub');
+  const [postedByName, setPostedByName] = useState(currentUser?.fullName || currentUser?.name || 'Property Owner');
   const [postedByPhone, setPostedByPhone] = useState(currentUser?.phone || '+91 97721 17575');
   const [postedByWhatsapp, setPostedByWhatsapp] = useState(currentUser?.phone || '+91 97721 17575');
   const [sameAsPhone, setSameAsPhone] = useState(true);
@@ -148,7 +149,7 @@ export const PostPropertyPortal: React.FC = () => {
       postedByName: postedByName || currentUser?.fullName || currentUser?.name || 'Property Owner',
       postedByPhone: postedByPhone || currentUser?.phone || '+91 97721 17575',
       postedByWhatsapp: sameAsPhone ? (postedByPhone || currentUser?.phone || '+91 97721 17575') : (postedByWhatsapp || postedByPhone || '+91 97721 17575'),
-      postedByEmail: currentUser?.email || 'owner@jaipurproperties.hub',
+      postedByEmail: postedByEmail || currentUser?.email || 'owner@jaipurproperties.hub',
       isVerified: true,
       isExclusive: true,
       isFeatured: false,
@@ -180,7 +181,11 @@ export const PostPropertyPortal: React.FC = () => {
             Post Property for Sale or Rent
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Logged in as <strong className="text-gray-900">{currentUser.email}</strong>. Reach thousands of verified buyers in Jaipur.
+            {currentUser ? (
+              <>Logged in as <strong className="text-gray-900">{currentUser.email}</strong>. Reach thousands of verified buyers in Jaipur.</>
+            ) : (
+              <>Direct Free Property Listing Portal for Owners & Agents. Reach thousands of verified buyers in Jaipur.</>
+            )}
           </p>
         </div>
 
@@ -688,11 +693,26 @@ export const PostPropertyPortal: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600 flex items-center justify-between">
-              <span>Verified Email: <strong>{currentUser.email}</strong></span>
-              <span className="text-emerald-600 font-bold flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> Authenticated via OTP
-              </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">
+                  📧 Contact Email Address <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={postedByEmail}
+                  onChange={(e) => setPostedByEmail(e.target.value)}
+                  placeholder="owner@example.com"
+                  required
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:border-red-600 outline-none"
+                />
+              </div>
+              <div className="flex items-end pb-1">
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 w-full">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-bold">Instant Buyer Inquiries & WhatsApp Alerts Enabled!</span>
+                </div>
+              </div>
             </div>
           </div>
 
