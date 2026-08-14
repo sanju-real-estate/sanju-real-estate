@@ -1,8 +1,8 @@
 import express from "express";
 import path from "path";
-import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -13,37 +13,92 @@ const PORT = 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
-let globalSiteSettings: any = null;
+// Initialize Supabase Client
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "https://fucisvuntdonaipcodqz.supabase.co";
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable_NaZZz6vzuF3BxoLa_fcoSA_Y6Gbk3VK";
 
-try {
-  if (fs.existsSync(SETTINGS_FILE_PATH)) {
-    const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
-    globalSiteSettings = JSON.parse(raw);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Global Site Settings API powered by Supabase settings table
+app.get("/api/settings", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("settings").select("*").limit(1);
+    if (error) {
+      console.warn("Supabase fetch settings warning:", error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    const firstRow = data && data.length > 0 ? data[0] : null;
+    let settingsData: any = null;
+
+    if (firstRow) {
+      if (firstRow.value && typeof firstRow.value === 'object') {
+        settingsData = firstRow.value;
+      } else {
+        settingsData = firstRow;
+      }
+    }
+
+    return res.json({ settings: settingsData });
+  } catch (error: any) {
+    console.error("GET /api/settings error:", error);
+    return res.status(500).json({ error: error.message });
   }
-} catch (e) {
-  console.warn("Could not load initial site_settings.json:", e);
-}
-
-// Global Site Settings API
-app.get("/api/settings", (req, res) => {
-  res.json({ settings: globalSiteSettings });
 });
 
-app.post("/api/settings", (req, res) => {
+app.post("/api/settings", async (req, res) => {
   try {
-    const { settings } = req.body;
-    if (settings) {
-      globalSiteSettings = settings;
-      try {
-        fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(settings, null, 2), "utf-8");
-      } catch (err) {
-        console.warn("Could not write site_settings.json:", err);
-      }
-      return res.json({ status: "ok", settings: globalSiteSettings });
+    const newSettings = req.body.settings || req.body;
+    if (!newSettings || typeof newSettings !== 'object') {
+      return res.status(400).json({ error: "Missing settings payload" });
     }
-    return res.status(400).json({ error: "Missing settings payload" });
+
+    // Fetch existing row from settings table
+    const { data: existingRows } = await supabase.from("settings").select("*").limit(1);
+
+    if (existingRows && existingRows.length > 0) {
+      const firstRow = existingRows[0];
+      const hasValueCol = 'value' in firstRow;
+      const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
+      const primaryKeyValue = firstRow[primaryKeyCol];
+
+      let updatePayload: any = {};
+      if (hasValueCol) {
+        updatePayload = { value: newSettings };
+      } else {
+        updatePayload = { ...newSettings };
+      }
+
+      // Perform update on the existing single row
+      const { error: updateErr } = await supabase
+        .from("settings")
+        .update(updatePayload)
+        .eq(primaryKeyCol, primaryKeyValue);
+
+      if (updateErr) {
+        // Fallback update without eq if primary key query fails
+        const { error: fallbackErr } = await supabase.from("settings").update(updatePayload);
+        if (fallbackErr) {
+          console.error("Supabase settings update error:", fallbackErr.message);
+          return res.status(500).json({ error: fallbackErr.message });
+        }
+      }
+    } else {
+      // If no row exists yet, insert initial settings
+      const insertPayload = { id: 'branding', value: newSettings };
+      const { error: insertErr } = await supabase.from("settings").insert([insertPayload]);
+      if (insertErr) {
+        const { error: rawInsertErr } = await supabase.from("settings").insert([newSettings]);
+        if (rawInsertErr) {
+          console.error("Supabase settings insert error:", rawInsertErr.message);
+          return res.status(500).json({ error: rawInsertErr.message });
+        }
+      }
+    }
+
+    return res.json({ status: "ok", settings: newSettings });
   } catch (error: any) {
+    console.error("POST /api/settings error:", error);
     return res.status(500).json({ error: error.message });
   }
 });

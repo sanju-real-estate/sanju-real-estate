@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { APP_LOGO } from '../assets/logo';
 import { INDIAN_CITIES } from '../data/cities';
+import { DEFAULT_SITE_SETTINGS } from '../context/AppContext';
 
 export const AdminDashboard: React.FC = () => {
   const { siteSettings, updateSiteSettings, properties, addProperty, deleteProperty, inquiries, showToast } = useApp();
@@ -44,8 +45,11 @@ export const AdminDashboard: React.FC = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // Local form state for site settings
-  const [formData, setFormData] = useState<SiteSettings>(siteSettings);
+  // Local form state for site settings with safe defaults
+  const [formData, setFormData] = useState<SiteSettings>(() => ({
+    ...DEFAULT_SITE_SETTINGS,
+    ...siteSettings
+  }));
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'branding' | 'seo' | 'post-property' | 'manage-properties' | 'inquiries' | 'contact' | 'hero'>('branding');
 
@@ -90,9 +94,12 @@ export const AdminDashboard: React.FC = () => {
   const [propImageInput, setPropImageInput] = useState('');
   const [isPostingProp, setIsPostingProp] = useState(false);
 
-  // Sync state when context updates from Firestore
+  // Sync state when context updates from Firestore / Supabase
   useEffect(() => {
-    setFormData(siteSettings);
+    setFormData(() => ({
+      ...DEFAULT_SITE_SETTINGS,
+      ...siteSettings
+    }));
   }, [siteSettings]);
 
   // Admin Login Handler
