@@ -34,7 +34,7 @@ import { INDIAN_CITIES } from '../data/cities';
 import { DEFAULT_SITE_SETTINGS } from '../context/AppContext';
 
 export const AdminDashboard: React.FC = () => {
-  const { siteSettings, updateSiteSettings, properties, addProperty, updateProperty, deleteProperty, inquiries, updateInquiryStatus, showToast } = useApp();
+  const { siteSettings, updateSiteSettings, properties, addProperty, updateProperty, deleteProperty, inquiries, updateInquiryStatus, showToast, refetchData } = useApp();
 
   // Admin Panel Direct Access (Unlocked for Site Admin)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(true);
@@ -176,6 +176,8 @@ export const AdminDashboard: React.FC = () => {
     setIsSaving(true);
     try {
       await updateSiteSettings(formData);
+      await refetchData();
+      showToast('Settings saved & synced across all devices & tabs!', 'success');
     } catch (error) {
       console.error('Error saving settings:', error);
       showToast('Failed to save settings. Please try again.', 'error');
@@ -212,7 +214,8 @@ export const AdminDashboard: React.FC = () => {
     setIsPostingProp(true);
     try {
       await addProperty(propToPost as any);
-      showToast('Property Posted & Live on Server!', 'success');
+      await refetchData();
+      showToast('Property Posted & Live on Server & Database!', 'success');
       setActiveTab('manage-properties');
     } catch (err) {
       console.error('Failed to post property:', err);
@@ -319,7 +322,7 @@ export const AdminDashboard: React.FC = () => {
     setEditImageInput('');
   };
 
-  const handleSaveEditedProperty = (e: React.FormEvent) => {
+  const handleSaveEditedProperty = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProperty || !editForm.title?.trim()) return;
 
@@ -339,9 +342,15 @@ export const AdminDashboard: React.FC = () => {
       seoDescription: editForm.seoDescription?.trim() || editForm.description
     };
 
-    updateProperty(editingProperty.id, updatedData);
-    setEditingProperty(null);
-    showToast('Property updated live on server and site!', 'success');
+    try {
+      await updateProperty(editingProperty.id, updatedData);
+      await refetchData();
+      setEditingProperty(null);
+      showToast('Property updated live on server and database!', 'success');
+    } catch (err) {
+      console.error('Failed to update property:', err);
+      showToast('Failed to save property updates', 'error');
+    }
   };
 
   // Preset Logos for quick testing
@@ -486,7 +495,21 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={async () => {
+                  showToast('Syncing all properties and site settings from database...', 'info');
+                  await refetchData();
+                  showToast('All UI components synced with latest Supabase & server data!', 'success');
+                }}
+                className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                title="Force immediate database re-fetch"
+              >
+                <RefreshCw className="w-4 h-4 text-emerald-400" />
+                <span>Sync & Re-fetch Data</span>
+              </button>
+
               <button
                 onClick={handleAdminLogout}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
@@ -1110,9 +1133,10 @@ export const AdminDashboard: React.FC = () => {
 
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm(`Delete property "${prop.title}" permanently from server?`)) {
-                              deleteProperty(prop.id);
+                              await deleteProperty(prop.id);
+                              await refetchData();
                             }
                           }}
                           className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl cursor-pointer transition-colors"
@@ -1184,7 +1208,10 @@ export const AdminDashboard: React.FC = () => {
                           
                           <select
                             value={inq.status}
-                            onChange={(e) => updateInquiryStatus(inq.id, e.target.value as any)}
+                            onChange={async (e) => {
+                              await updateInquiryStatus(inq.id, e.target.value as any);
+                              await refetchData();
+                            }}
                             className="text-xs font-extrabold px-3 py-1 bg-white border border-gray-300 rounded-lg text-gray-800 focus:outline-none"
                           >
                             <option value="New">🟢 New Lead</option>

@@ -8,7 +8,7 @@ import { PropertyType, ListingType, ConstructionStatus, FurnishingStatus, Facing
 import { INDIAN_CITIES } from '../data/cities';
 
 export const PostPropertyPortal: React.FC = () => {
-  const { currentUser, openAuthModal, addProperty, showToast, setActiveView } = useApp();
+  const { currentUser, openAuthModal, addProperty, refetchData, showToast, setActiveView } = useApp();
 
   // Form State
   const [title, setTitle] = useState('');
@@ -109,7 +109,7 @@ export const PostPropertyPortal: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !locality.trim()) {
       showToast('Please fill in Property Title and Locality', 'error');
@@ -121,7 +121,7 @@ export const PostPropertyPortal: React.FC = () => {
 
     const generatedSlug = slug.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
-    const newProperty = addProperty({
+    await addProperty({
       title,
       description: description || `Beautiful ${bedrooms} BHK ${propertyType} in ${locality}, ${city}.`,
       price,
@@ -159,6 +159,8 @@ export const PostPropertyPortal: React.FC = () => {
       seoKeywords: seoKeywords || `${propertyType}, ${locality}, ${city}`,
       seoDescription: seoDescription || description
     });
+
+    await refetchData();
 
     showToast('🎉 Property Published Successfully! It is now live on server.', 'success');
     setActiveView('listings');
