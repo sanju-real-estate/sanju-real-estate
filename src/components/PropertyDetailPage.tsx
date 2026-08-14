@@ -190,7 +190,6 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
             <img
               src={property.images[activeImageIdx] || property.images[0]}
               alt={property.title}
-              loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
               onClick={() => setIsLightboxOpen(true)}
             />
@@ -214,7 +213,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
                   activeImageIdx === idx + 1 ? 'border-red-600 ring-2 ring-red-600/30' : 'border-transparent hover:opacity-90'
                 }`}
               >
-                <img src={img} alt="Thumbnail" loading="lazy" className="w-full h-full object-cover" />
+                <img src={img} alt="Thumbnail" className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
