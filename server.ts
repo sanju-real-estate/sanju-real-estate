@@ -22,7 +22,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // File-system persistence fallback for live server
 const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
+const PROPERTIES_FILE_PATH = path.join(process.cwd(), "properties.json");
+const INQUIRIES_FILE_PATH = path.join(process.cwd(), "inquiries.json");
+
 let globalSiteSettings: any = null;
+let globalProperties: any[] = [];
+let globalInquiries: any[] = [];
 
 try {
   if (fs.existsSync(SETTINGS_FILE_PATH)) {
@@ -31,6 +36,24 @@ try {
   }
 } catch (e) {
   console.warn("Could not load initial site_settings.json:", e);
+}
+
+try {
+  if (fs.existsSync(PROPERTIES_FILE_PATH)) {
+    const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
+    globalProperties = JSON.parse(raw);
+  }
+} catch (e) {
+  console.warn("Could not load initial properties.json:", e);
+}
+
+try {
+  if (fs.existsSync(INQUIRIES_FILE_PATH)) {
+    const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
+    globalInquiries = JSON.parse(raw);
+  }
+} catch (e) {
+  console.warn("Could not load initial inquiries.json:", e);
 }
 
 // Helper function to extract normalized SiteSettings from any database row format
@@ -190,6 +213,179 @@ app.post("/api/settings", async (req, res) => {
     return res.json({ status: "ok", settings: globalSiteSettings });
   } catch (error: any) {
     console.error("POST /api/settings error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// -------------------------------------------------------------
+// Properties API (Live Server Memory + Disk + Supabase Sync)
+// -------------------------------------------------------------
+app.get("/api/properties", async (req, res) => {
+  try {
+    const { data } = await supabase.from("properties").select("*").order("postedDate", { ascending: false });
+    if (data && data.length > 0) {
+      globalProperties = data;
+      try {
+        fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+      } catch (e) {}
+    }
+  } catch (err: any) {
+    console.warn("Supabase fetch notice in GET /api/properties:", err?.message);
+  }
+  return res.json({ properties: globalProperties });
+});
+
+app.post("/api/properties", async (req, res) => {
+  try {
+    const property = req.body.property || req.body;
+    if (!property || !property.id) {
+      return res.status(400).json({ error: "Property object with id is required" });
+    }
+
+    // Upsert into memory
+    const existingIndex = globalProperties.findIndex((p: any) => p.id === property.id);
+    if (existingIndex >= 0) {
+      globalProperties[existingIndex] = { ...globalProperties[existingIndex], ...property };
+    } else {
+      globalProperties.unshift(property);
+    }
+
+    // Save to properties.json file
+    try {
+      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+    } catch (e) {
+      console.warn("Could not write properties.json:", e);
+    }
+
+    // Sync to Supabase in background
+    try {
+      await supabase.from("properties").upsert([property]);
+    } catch (dbErr: any) {
+      console.warn("Supabase properties background upsert error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", property, properties: globalProperties });
+  } catch (error: any) {
+    console.error("POST /api/properties error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/api/properties/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body.updates || req.body;
+
+    const existingIndex = globalProperties.findIndex((p: any) => p.id === id);
+    if (existingIndex >= 0) {
+      globalProperties[existingIndex] = { ...globalProperties[existingIndex], ...updates };
+    } else {
+      globalProperties.unshift({ id, ...updates });
+    }
+
+    try {
+      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+    } catch (e) {}
+
+    try {
+      await supabase.from("properties").update(updates).eq("id", id);
+    } catch (dbErr: any) {
+      console.warn("Supabase properties background update error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", properties: globalProperties });
+  } catch (error: any) {
+    console.error("PUT /api/properties error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/properties/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    globalProperties = globalProperties.filter((p: any) => p.id !== id);
+
+    try {
+      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+    } catch (e) {}
+
+    try {
+      await supabase.from("properties").delete().eq("id", id);
+    } catch (dbErr: any) {
+      console.warn("Supabase properties background delete error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", properties: globalProperties });
+  } catch (error: any) {
+    console.error("DELETE /api/properties error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// -------------------------------------------------------------
+// Inquiries API (Live Server Memory + Disk + Supabase Sync)
+// -------------------------------------------------------------
+app.get("/api/inquiries", async (req, res) => {
+  try {
+    const { data } = await supabase.from("inquiries").select("*").order("createdAt", { ascending: false });
+    if (data && data.length > 0) {
+      globalInquiries = data;
+      try {
+        fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+      } catch (e) {}
+    }
+  } catch (err: any) {
+    console.warn("Supabase fetch notice in GET /api/inquiries:", err?.message);
+  }
+  return res.json({ inquiries: globalInquiries });
+});
+
+app.post("/api/inquiries", async (req, res) => {
+  try {
+    const inquiry = req.body.inquiry || req.body;
+    if (!inquiry || !inquiry.id) {
+      return res.status(400).json({ error: "Inquiry object with id is required" });
+    }
+
+    globalInquiries.unshift(inquiry);
+
+    try {
+      fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+    } catch (e) {}
+
+    try {
+      await supabase.from("inquiries").insert([inquiry]);
+    } catch (dbErr: any) {
+      console.warn("Supabase inquiry insert error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", inquiry });
+  } catch (error: any) {
+    console.error("POST /api/inquiries error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/api/inquiries/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    globalInquiries = globalInquiries.map((i: any) => i.id === id ? { ...i, status } : i);
+
+    try {
+      fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+    } catch (e) {}
+
+    try {
+      await supabase.from("inquiries").update({ status }).eq("id", id);
+    } catch (dbErr: any) {
+      console.warn("Supabase inquiry status update error:", dbErr?.message);
+    }
+
+    return res.json({ status: "ok", inquiries: globalInquiries });
+  } catch (error: any) {
+    console.error("PUT /api/inquiries error:", error);
     return res.status(500).json({ error: error.message });
   }
 });

@@ -334,6 +334,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setProperties(prev => [newProperty, ...prev]);
 
+    // Live Server Sync
+    (async () => {
+      try {
+        await fetch('/api/properties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ property: newProperty })
+        });
+      } catch (e) {
+        console.warn('Server properties sync notice:', e);
+      }
+    })();
+
     if (isSupabaseConfigured()) {
       (async () => {
         try {
@@ -343,9 +356,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.warn('Supabase insert error:', err);
         }
       })();
-      showToast('🎉 Your property has been published to Supabase!', 'success');
+      showToast('🎉 Property published live on server & database!', 'success');
     } else {
-      showToast('🎉 Your property has been published successfully!', 'success');
+      showToast('🎉 Property published successfully!', 'success');
     }
 
     return newProperty;
@@ -353,6 +366,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateProperty = (propertyId: string, updates: Partial<Property>) => {
     setProperties(prev => prev.map(p => p.id === propertyId ? { ...p, ...updates } : p));
+
+    // Live Server Sync
+    (async () => {
+      try {
+        await fetch(`/api/properties/${propertyId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates })
+        });
+      } catch (e) {
+        console.warn('Server property update notice:', e);
+      }
+    })();
+
     if (isSupabaseConfigured()) {
       (async () => {
         try {
@@ -369,6 +396,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteProperty = (propertyId: string) => {
     setProperties(prev => prev.filter(p => p.id !== propertyId));
     setWishlistIds(prev => prev.filter(id => id !== propertyId));
+
+    // Live Server Sync
+    (async () => {
+      try {
+        await fetch(`/api/properties/${propertyId}`, {
+          method: 'DELETE'
+        });
+      } catch (e) {
+        console.warn('Server property delete notice:', e);
+      }
+    })();
+
     if (isSupabaseConfigured()) {
       (async () => {
         try {
@@ -393,6 +432,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setInquiries(prev => [newInquiry, ...prev]);
     setProperties(prev => prev.map(p => p.id === inquiryData.propertyId ? { ...p, leadsCount: p.leadsCount + 1 } : p));
 
+    // Live Server Sync
+    (async () => {
+      try {
+        await fetch('/api/inquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inquiry: newInquiry })
+        });
+      } catch (e) {
+        console.warn('Server inquiry sync notice:', e);
+      }
+    })();
+
     if (isSupabaseConfigured()) {
       (async () => {
         try {
@@ -409,6 +461,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateInquiryStatus = (inquiryId: string, status: Inquiry['status']) => {
     setInquiries(prev => prev.map(i => i.id === inquiryId ? { ...i, status } : i));
+
+    // Live Server Sync
+    (async () => {
+      try {
+        await fetch(`/api/inquiries/${inquiryId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+      } catch (e) {
+        console.warn('Server inquiry status update notice:', e);
+      }
+    })();
+
     if (isSupabaseConfigured()) {
       (async () => {
         try {
