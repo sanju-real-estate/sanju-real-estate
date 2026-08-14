@@ -102,6 +102,7 @@ export const Navbar: React.FC = () => {
                 <img 
                   src={siteSettings.logoUrl || APP_LOGO} 
                   alt={`${siteSettings.portalName} Logo`} 
+                  loading="lazy"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     const target = e.currentTarget;
