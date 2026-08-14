@@ -22,12 +22,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // File-system persistence fallback for live server
 const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
-const PROPERTIES_FILE_PATH = path.join(process.cwd(), "properties.json");
-const INQUIRIES_FILE_PATH = path.join(process.cwd(), "inquiries.json");
-
 let globalSiteSettings: any = null;
-let globalProperties: any[] = [];
-let globalInquiries: any[] = [];
 
 try {
   if (fs.existsSync(SETTINGS_FILE_PATH)) {
@@ -36,123 +31,6 @@ try {
   }
 } catch (e) {
   console.warn("Could not load initial site_settings.json:", e);
-}
-
-try {
-  if (fs.existsSync(PROPERTIES_FILE_PATH)) {
-    const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
-    globalProperties = JSON.parse(raw);
-  }
-} catch (e) {
-  console.warn("Could not load initial properties.json:", e);
-}
-
-// Fallback seed if properties.json is empty or missing
-if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
-  globalProperties = [
-    {
-      id: 'jpr-1',
-      title: '3 BHK Luxury Apartment in Vaishali Nagar',
-      description: 'Ultra-modern 3 BHK apartment with premium wooden flooring, modular kitchen, power backup, and 24/7 gated security in the heart of Vaishali Nagar.',
-      price: 7500000,
-      priceDisplay: '₹75 Lac',
-      pricePerSqFt: 5172,
-      areaSqFt: 1450,
-      bedrooms: 3,
-      bathrooms: 3,
-      balconies: 2,
-      propertyType: 'Apartment',
-      listingType: 'Buy',
-      city: 'Jaipur',
-      locality: 'Vaishali Nagar',
-      address: 'Amrapali Circle, Block B, Vaishali Nagar, Jaipur',
-      constructionStatus: 'Ready to Move',
-      possessionDate: 'Ready',
-      ageOfBuilding: '1-3 Years',
-      floor: '4th',
-      totalFloors: '10',
-      facing: 'East',
-      furnishing: 'Semi-Furnished',
-      parking: '1 Covered Slot',
-      postedBy: 'Owner',
-      postedByName: 'Rajesh Sharma',
-      postedByPhone: '+91 97721 17575',
-      postedByEmail: 'rajesh.jaipur@example.com',
-      isVerified: true,
-      isExclusive: true,
-      isFeatured: true,
-      slug: '3bhk-luxury-apartment-vaishali-nagar',
-      seoTitle: 'Buy 3 BHK Luxury Apartment in Vaishali Nagar Jaipur',
-      seoKeywords: '3bhk apartment, vaishali nagar, buy flat jaipur',
-      seoDescription: 'Ultra-modern 3 BHK apartment in Vaishali Nagar Jaipur.',
-      images: [
-        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
-      ],
-      amenities: ['Gymnasium', 'Clubhouse', '24/7 Security', 'Power Backup', 'Stilt Parking', 'EV Charging', 'Gated Community'],
-      postedDate: '2026-08-08',
-      viewsCount: 1890,
-      leadsCount: 24
-    },
-    {
-      id: 'jpr-2',
-      title: '4 BHK Royal Independent Villa with Private Garden',
-      description: 'Spacious 4 BHK architect-designed villa near World Trade Park. Features private landscaped lawn, modular kitchen, rooftop gazebo, staff quarters, and JDA approved clear title.',
-      price: 24000000,
-      priceDisplay: '₹2.40 Cr',
-      pricePerSqFt: 8000,
-      areaSqFt: 3000,
-      bedrooms: 4,
-      bathrooms: 5,
-      balconies: 3,
-      propertyType: 'Villa',
-      listingType: 'Buy',
-      city: 'Jaipur',
-      locality: 'Malviya Nagar',
-      address: 'Near World Trade Park, D-Block, Malviya Nagar, Jaipur',
-      constructionStatus: 'Ready to Move',
-      possessionDate: 'Ready',
-      ageOfBuilding: '0-1 Years',
-      floor: 'Ground + 2',
-      totalFloors: '3',
-      facing: 'North-East',
-      furnishing: 'Furnished',
-      parking: '2 Covered Slots',
-      postedBy: 'Owner',
-      postedByName: 'Vikram Singh Rathore',
-      postedByPhone: '+91 97721 17575',
-      postedByEmail: 'vikram.rathore@jaipurproperties.com',
-      isVerified: true,
-      isExclusive: true,
-      isFeatured: true,
-      slug: '4bhk-royal-independent-villa-malviya-nagar',
-      seoTitle: '4 BHK Royal Independent Villa in Malviya Nagar Jaipur',
-      seoKeywords: '4bhk villa, malviya nagar, independent villa jaipur',
-      seoDescription: 'Spacious 4 BHK architect-designed villa near World Trade Park.',
-      images: [
-        'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80'
-      ],
-      amenities: ['Private Garden', 'Rooftop Terrace', 'Servant Quarter', 'Solar Water Heater', 'CCTV Camera', 'Intercom'],
-      postedDate: '2026-08-07',
-      viewsCount: 2450,
-      leadsCount: 38
-    }
-  ];
-  try {
-    fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-  } catch (e) {}
-}
-
-try {
-  if (fs.existsSync(INQUIRIES_FILE_PATH)) {
-    const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
-    globalInquiries = JSON.parse(raw);
-  }
-} catch (e) {
-  console.warn("Could not load initial inquiries.json:", e);
 }
 
 // Helper function to extract normalized SiteSettings from any database row format
@@ -184,46 +62,20 @@ function normalizeSettingsRow(row: any) {
   };
 }
 
-// Global Site Settings API powered by Server Memory + File Persistence + Supabase Sync
+// Global Site Settings API powered by Supabase settings table + local fallback
 app.get("/api/settings", async (req, res) => {
-  if (!globalSiteSettings) {
-    try {
-      if (fs.existsSync(SETTINGS_FILE_PATH)) {
-        const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
-        globalSiteSettings = JSON.parse(raw);
-      }
-    } catch (e) {}
-  }
+  try {
+    const { data } = await supabase.from("settings").select("*").limit(1);
+    const firstRow = data && data.length > 0 ? data[0] : null;
 
-  if (!globalSiteSettings) {
-    try {
-      const { data } = await supabase.from("settings").select("*").limit(1);
-      if (data && data.length > 0) {
-        const normalized = normalizeSettingsRow(data[0]);
-        if (normalized) {
-          globalSiteSettings = normalized;
-        }
+    if (firstRow) {
+      const normalized = normalizeSettingsRow(firstRow);
+      if (normalized) {
+        globalSiteSettings = { ...globalSiteSettings, ...normalized };
       }
-    } catch (e) {}
-  }
-
-  if (!globalSiteSettings) {
-    globalSiteSettings = {
-      logoUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
-      faviconUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
-      portalName: "Jaipur Properties Hub",
-      tagline: "Jaipur’s #1 Verified Real Estate & Property Portal",
-      helplinePhone: "+91 97721 17575",
-      helplineWhatsapp: "+91 97721 17575",
-      helplineEmail: "support@jaipurproperties.hub",
-      officeAddress: "Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017",
-      heroHeadline: "Find Your Dream Property in Pink City, Jaipur",
-      announcementBarText: "✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!",
-      announcementBarActive: true
-    };
-    try {
-      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
-    } catch (e) {}
+    }
+  } catch (error: any) {
+    console.warn("Supabase fetch notice in GET /api/settings:", error?.message);
   }
 
   return res.json({ settings: globalSiteSettings });
@@ -237,202 +89,107 @@ app.post("/api/settings", async (req, res) => {
     }
 
     // 1. Immediately update global in-memory settings
-    globalSiteSettings = { ...globalSiteSettings, ...newSettings };
+    globalSiteSettings = newSettings;
 
     // 2. Persist to site_settings.json file
     try {
-      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
+      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(newSettings, null, 2), "utf-8");
     } catch (e) {
       console.warn("Could not write site_settings.json:", e);
     }
 
-    // 3. Sync to Supabase in background (fire and forget safely)
-    (async () => {
-      try {
-        const { data } = await supabase.from("settings").select("*").limit(1);
-        if (data && data.length > 0) {
-          const firstRow = data[0];
-          const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
-          const primaryKeyValue = firstRow[primaryKeyCol];
-          await supabase.from("settings").update({ value: globalSiteSettings }).eq(primaryKeyCol, primaryKeyValue);
-        } else {
-          await supabase.from("settings").insert([{ id: 'branding', value: globalSiteSettings }]);
+    // 3. Sync to Supabase in background
+    try {
+      const { data: existingRows } = await supabase.from("settings").select("*").limit(1);
+
+      if (existingRows && existingRows.length > 0) {
+        const firstRow = existingRows[0];
+        const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
+        const primaryKeyValue = firstRow[primaryKeyCol];
+
+        const candidateUpdates: Record<string, any> = {
+          logoUrl: newSettings.logoUrl,
+          faviconUrl: newSettings.faviconUrl,
+          portalName: newSettings.portalName,
+          tagline: newSettings.tagline,
+          helplinePhone: newSettings.helplinePhone,
+          helplineWhatsapp: newSettings.helplineWhatsapp,
+          helplineEmail: newSettings.helplineEmail,
+          officeAddress: newSettings.officeAddress,
+          heroHeadline: newSettings.heroHeadline,
+          announcementBarText: newSettings.announcementBarText,
+          announcementBarActive: newSettings.announcementBarActive,
+          seoTitle: newSettings.seoTitle,
+          seoDescription: newSettings.seoDescription,
+          seoKeywords: newSettings.seoKeywords,
+          seoCanonicalUrl: newSettings.seoCanonicalUrl,
+          logo_url: newSettings.logoUrl,
+          favicon_url: newSettings.faviconUrl,
+          portal_name: newSettings.portalName,
+          tag_line: newSettings.tagline,
+          helpline_phone: newSettings.helplinePhone,
+          helpline_whatsapp: newSettings.helplineWhatsapp,
+          helpline_email: newSettings.helplineEmail,
+          office_address: newSettings.officeAddress,
+          hero_headline: newSettings.heroHeadline,
+          announcement_bar_text: newSettings.announcementBarText,
+          announcement_bar_active: newSettings.announcementBarActive,
+          seo_title: newSettings.seoTitle,
+          seo_description: newSettings.seoDescription,
+          seo_keywords: newSettings.seoKeywords,
+          seo_canonical_url: newSettings.seoCanonicalUrl,
+          logo: newSettings.logoUrl,
+          favicon: newSettings.faviconUrl,
+          phone: newSettings.helplinePhone,
+          whatsapp: newSettings.helplineWhatsapp,
+          email: newSettings.helplineEmail,
+          address: newSettings.officeAddress,
+          name: newSettings.portalName,
+          value: newSettings,
+          data: newSettings,
+          updated_at: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        const updatePayload: Record<string, any> = {};
+        const existingCols = Object.keys(firstRow);
+
+        for (const col of existingCols) {
+          if (col !== primaryKeyCol && col in candidateUpdates && candidateUpdates[col] !== undefined) {
+            updatePayload[col] = candidateUpdates[col];
+          }
         }
-      } catch (dbErr: any) {
-        console.warn("Supabase background sync notice:", dbErr?.message);
+
+        if (Object.keys(updatePayload).length === 0) {
+          if ('value' in firstRow) {
+            updatePayload['value'] = newSettings;
+          }
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+          const { error: updateErr } = await supabase
+            .from("settings")
+            .update(updatePayload)
+            .eq(primaryKeyCol, primaryKeyValue);
+
+          if (updateErr) {
+            console.warn("Supabase update error:", updateErr.message);
+          }
+        }
+      } else {
+        const insertPayload = { id: 'branding', value: newSettings, logoUrl: newSettings.logoUrl, portalName: newSettings.portalName };
+        const { error: insertErr } = await supabase.from("settings").insert([insertPayload]);
+        if (insertErr) {
+          console.warn("Supabase insert error:", insertErr.message);
+        }
       }
-    })();
+    } catch (dbErr: any) {
+      console.warn("Supabase background sync exception:", dbErr?.message);
+    }
 
     return res.json({ status: "ok", settings: globalSiteSettings });
   } catch (error: any) {
     console.error("POST /api/settings error:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// -------------------------------------------------------------
-// Properties API (Live Server Memory + Disk + Supabase Sync)
-// -------------------------------------------------------------
-app.get("/api/properties", async (req, res) => {
-  if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
-    try {
-      if (fs.existsSync(PROPERTIES_FILE_PATH)) {
-        const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
-        globalProperties = JSON.parse(raw);
-      }
-    } catch (e) {}
-  }
-  return res.json({ properties: globalProperties || [] });
-});
-
-app.post("/api/properties", async (req, res) => {
-  try {
-    const property = req.body.property || req.body;
-    if (!property || !property.id) {
-      return res.status(400).json({ error: "Property object with id is required" });
-    }
-
-    // Upsert into memory
-    const existingIndex = globalProperties.findIndex((p: any) => p.id === property.id);
-    if (existingIndex >= 0) {
-      globalProperties[existingIndex] = { ...globalProperties[existingIndex], ...property };
-    } else {
-      globalProperties.unshift(property);
-    }
-
-    // Save to properties.json file
-    try {
-      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-    } catch (e) {
-      console.warn("Could not write properties.json:", e);
-    }
-
-    // Sync to Supabase in background
-    try {
-      await supabase.from("properties").upsert([property]);
-    } catch (dbErr: any) {
-      console.warn("Supabase properties background upsert error:", dbErr?.message);
-    }
-
-    return res.json({ status: "ok", property, properties: globalProperties });
-  } catch (error: any) {
-    console.error("POST /api/properties error:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.put("/api/properties/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body.updates || req.body;
-
-    const existingIndex = globalProperties.findIndex((p: any) => p.id === id);
-    if (existingIndex >= 0) {
-      globalProperties[existingIndex] = { ...globalProperties[existingIndex], ...updates };
-    } else {
-      globalProperties.unshift({ id, ...updates });
-    }
-
-    try {
-      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-    } catch (e) {}
-
-    try {
-      await supabase.from("properties").update(updates).eq("id", id);
-    } catch (dbErr: any) {
-      console.warn("Supabase properties background update error:", dbErr?.message);
-    }
-
-    return res.json({ status: "ok", properties: globalProperties });
-  } catch (error: any) {
-    console.error("PUT /api/properties error:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete("/api/properties/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    globalProperties = globalProperties.filter((p: any) => p.id !== id);
-
-    try {
-      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-    } catch (e) {}
-
-    try {
-      await supabase.from("properties").delete().eq("id", id);
-    } catch (dbErr: any) {
-      console.warn("Supabase properties background delete error:", dbErr?.message);
-    }
-
-    return res.json({ status: "ok", properties: globalProperties });
-  } catch (error: any) {
-    console.error("DELETE /api/properties error:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// -------------------------------------------------------------
-// Inquiries API (Live Server Memory + Disk + Supabase Sync)
-// -------------------------------------------------------------
-app.get("/api/inquiries", async (req, res) => {
-  if (!globalInquiries || !Array.isArray(globalInquiries)) {
-    try {
-      if (fs.existsSync(INQUIRIES_FILE_PATH)) {
-        const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
-        globalInquiries = JSON.parse(raw);
-      }
-    } catch (e) {}
-  }
-  return res.json({ inquiries: globalInquiries || [] });
-});
-
-app.post("/api/inquiries", async (req, res) => {
-  try {
-    const inquiry = req.body.inquiry || req.body;
-    if (!inquiry || !inquiry.id) {
-      return res.status(400).json({ error: "Inquiry object with id is required" });
-    }
-
-    globalInquiries.unshift(inquiry);
-
-    try {
-      fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
-    } catch (e) {}
-
-    try {
-      await supabase.from("inquiries").insert([inquiry]);
-    } catch (dbErr: any) {
-      console.warn("Supabase inquiry insert error:", dbErr?.message);
-    }
-
-    return res.json({ status: "ok", inquiry });
-  } catch (error: any) {
-    console.error("POST /api/inquiries error:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-app.put("/api/inquiries/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    globalInquiries = globalInquiries.map((i: any) => i.id === id ? { ...i, status } : i);
-
-    try {
-      fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
-    } catch (e) {}
-
-    try {
-      await supabase.from("inquiries").update({ status }).eq("id", id);
-    } catch (dbErr: any) {
-      console.warn("Supabase inquiry status update error:", dbErr?.message);
-    }
-
-    return res.json({ status: "ok", inquiries: globalInquiries });
-  } catch (error: any) {
-    console.error("PUT /api/inquiries error:", error);
     return res.status(500).json({ error: error.message });
   }
 });
