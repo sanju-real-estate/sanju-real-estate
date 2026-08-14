@@ -426,7 +426,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFilters(DEFAULT_FILTERS);
   };
 
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
+    try {
+      const saved = localStorage.getItem('jph_site_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...DEFAULT_SITE_SETTINGS,
+            ...parsed,
+            logoUrl: parsed.logoUrl || DEFAULT_SITE_SETTINGS.logoUrl,
+            faviconUrl: parsed.faviconUrl || parsed.logoUrl || DEFAULT_SITE_SETTINGS.faviconUrl,
+          };
+        }
+      }
+    } catch (e) {}
+    return DEFAULT_SITE_SETTINGS;
+  });
 
   // Helper function to extract normalized SiteSettings from any data payload
   const normalizeSettings = (data: any): Partial<SiteSettings> | null => {
@@ -456,6 +472,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  const applySettingsUpdate = (norm: Partial<SiteSettings>) => {
+    setSiteSettings(prev => {
+      const merged = { ...prev };
+      Object.entries(norm).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          (merged as any)[k] = v;
+        }
+      });
+      try {
+        localStorage.setItem('jph_site_settings', JSON.stringify(merged));
+      } catch (e) {}
+      return merged;
+    });
+  };
+
   const fetchSettings = async () => {
     let loaded = false;
 
@@ -466,8 +497,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const json = await res.json();
         if (json && json.settings) {
           const norm = normalizeSettings(json.settings);
-          if (norm) {
-            setSiteSettings(prev => ({ ...prev, ...norm }));
+          if (norm && Object.keys(norm).length > 0) {
+            applySettingsUpdate(norm);
             loaded = true;
           }
         }
@@ -486,8 +517,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (data && data.length > 0) {
           const norm = normalizeSettings(data[0]);
-          if (norm) {
-            setSiteSettings(prev => ({ ...prev, ...norm }));
+          if (norm && Object.keys(norm).length > 0) {
+            applySettingsUpdate(norm);
           }
         } else if (error) {
           console.warn('Supabase direct settings query notice:', error.message);
@@ -616,8 +647,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedBy: currentUser?.id || 'admin-user'
     };
     
-    // 1. Immediate UI state update for instant live preview without page refresh
+    // 1. Immediate UI state update and synchronous local storage persistence for instant refresh
     setSiteSettings(updated);
+    try {
+      localStorage.setItem('jph_site_settings', JSON.stringify(updated));
+    } catch (e) {}
 
     let saveSuccess = false;
 
