@@ -3,8 +3,8 @@ import { Property } from '../types';
 import { useApp } from '../context/AppContext';
 import { 
   Heart, MapPin, CheckCircle, Bed, Bath, Maximize2, Phone, Calendar, 
-  ArrowLeft, Share2, Shield, Compass, Car, Sparkles, Building, Play, X,
-  Layers, ChevronRight, Check, CheckCircle2, Info, Loader2
+  ArrowLeft, Share2, Shield, Building, X,
+  Layers, Check, CheckCircle2, Loader2
 } from 'lucide-react';
 
 interface PropertyDetailPageProps {

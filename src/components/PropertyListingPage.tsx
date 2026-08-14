@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { PropertyCard } from './PropertyCard';
 import { Property, PropertyType, PostedBy, FurnishingStatus, ConstructionStatus } from '../types';
-import { Filter, SlidersHorizontal, Grid, List, RotateCcw, Search, ChevronDown, Check, Building, ShieldCheck, Home } from 'lucide-react';
+import { SlidersHorizontal, Grid, List, RotateCcw, Search } from 'lucide-react';
 
 interface PropertyListingPageProps {
   onContactClick: (property: Property) => void;

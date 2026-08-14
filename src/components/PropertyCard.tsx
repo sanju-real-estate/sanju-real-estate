@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Property } from '../types';
 import { useApp } from '../context/AppContext';
-import { Heart, MapPin, CheckCircle, Bed, Bath, Maximize2, Phone, Calendar, ArrowRight, Eye, User, Share2 } from 'lucide-react';
+import { Heart, MapPin, CheckCircle, Bed, Bath, Maximize2, Phone, User, Share2 } from 'lucide-react';
 
 interface PropertyCardProps {
   property: Property;
