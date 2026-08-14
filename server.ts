@@ -47,6 +47,105 @@ try {
   console.warn("Could not load initial properties.json:", e);
 }
 
+// Fallback seed if properties.json is empty or missing
+if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
+  globalProperties = [
+    {
+      id: 'jpr-1',
+      title: '3 BHK Luxury Apartment in Vaishali Nagar',
+      description: 'Ultra-modern 3 BHK apartment with premium wooden flooring, modular kitchen, power backup, and 24/7 gated security in the heart of Vaishali Nagar.',
+      price: 7500000,
+      priceDisplay: '₹75 Lac',
+      pricePerSqFt: 5172,
+      areaSqFt: 1450,
+      bedrooms: 3,
+      bathrooms: 3,
+      balconies: 2,
+      propertyType: 'Apartment',
+      listingType: 'Buy',
+      city: 'Jaipur',
+      locality: 'Vaishali Nagar',
+      address: 'Amrapali Circle, Block B, Vaishali Nagar, Jaipur',
+      constructionStatus: 'Ready to Move',
+      possessionDate: 'Ready',
+      ageOfBuilding: '1-3 Years',
+      floor: '4th',
+      totalFloors: '10',
+      facing: 'East',
+      furnishing: 'Semi-Furnished',
+      parking: '1 Covered Slot',
+      postedBy: 'Owner',
+      postedByName: 'Rajesh Sharma',
+      postedByPhone: '+91 97721 17575',
+      postedByEmail: 'rajesh.jaipur@example.com',
+      isVerified: true,
+      isExclusive: true,
+      isFeatured: true,
+      slug: '3bhk-luxury-apartment-vaishali-nagar',
+      seoTitle: 'Buy 3 BHK Luxury Apartment in Vaishali Nagar Jaipur',
+      seoKeywords: '3bhk apartment, vaishali nagar, buy flat jaipur',
+      seoDescription: 'Ultra-modern 3 BHK apartment in Vaishali Nagar Jaipur.',
+      images: [
+        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
+      ],
+      amenities: ['Gymnasium', 'Clubhouse', '24/7 Security', 'Power Backup', 'Stilt Parking', 'EV Charging', 'Gated Community'],
+      postedDate: '2026-08-08',
+      viewsCount: 1890,
+      leadsCount: 24
+    },
+    {
+      id: 'jpr-2',
+      title: '4 BHK Royal Independent Villa with Private Garden',
+      description: 'Spacious 4 BHK architect-designed villa near World Trade Park. Features private landscaped lawn, modular kitchen, rooftop gazebo, staff quarters, and JDA approved clear title.',
+      price: 24000000,
+      priceDisplay: '₹2.40 Cr',
+      pricePerSqFt: 8000,
+      areaSqFt: 3000,
+      bedrooms: 4,
+      bathrooms: 5,
+      balconies: 3,
+      propertyType: 'Villa',
+      listingType: 'Buy',
+      city: 'Jaipur',
+      locality: 'Malviya Nagar',
+      address: 'Near World Trade Park, D-Block, Malviya Nagar, Jaipur',
+      constructionStatus: 'Ready to Move',
+      possessionDate: 'Ready',
+      ageOfBuilding: '0-1 Years',
+      floor: 'Ground + 2',
+      totalFloors: '3',
+      facing: 'North-East',
+      furnishing: 'Furnished',
+      parking: '2 Covered Slots',
+      postedBy: 'Owner',
+      postedByName: 'Vikram Singh Rathore',
+      postedByPhone: '+91 97721 17575',
+      postedByEmail: 'vikram.rathore@jaipurproperties.com',
+      isVerified: true,
+      isExclusive: true,
+      isFeatured: true,
+      slug: '4bhk-royal-independent-villa-malviya-nagar',
+      seoTitle: '4 BHK Royal Independent Villa in Malviya Nagar Jaipur',
+      seoKeywords: '4bhk villa, malviya nagar, independent villa jaipur',
+      seoDescription: 'Spacious 4 BHK architect-designed villa near World Trade Park.',
+      images: [
+        'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80'
+      ],
+      amenities: ['Private Garden', 'Rooftop Terrace', 'Servant Quarter', 'Solar Water Heater', 'CCTV Camera', 'Intercom'],
+      postedDate: '2026-08-07',
+      viewsCount: 2450,
+      leadsCount: 38
+    }
+  ];
+  try {
+    fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+  } catch (e) {}
+}
+
 try {
   if (fs.existsSync(INQUIRIES_FILE_PATH)) {
     const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
@@ -221,18 +320,15 @@ app.post("/api/settings", async (req, res) => {
 // Properties API (Live Server Memory + Disk + Supabase Sync)
 // -------------------------------------------------------------
 app.get("/api/properties", async (req, res) => {
-  try {
-    const { data } = await supabase.from("properties").select("*").order("postedDate", { ascending: false });
-    if (data && data.length > 0) {
-      globalProperties = data;
-      try {
-        fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-      } catch (e) {}
-    }
-  } catch (err: any) {
-    console.warn("Supabase fetch notice in GET /api/properties:", err?.message);
+  if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
+    try {
+      if (fs.existsSync(PROPERTIES_FILE_PATH)) {
+        const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
+        globalProperties = JSON.parse(raw);
+      }
+    } catch (e) {}
   }
-  return res.json({ properties: globalProperties });
+  return res.json({ properties: globalProperties || [] });
 });
 
 app.post("/api/properties", async (req, res) => {
@@ -326,18 +422,15 @@ app.delete("/api/properties/:id", async (req, res) => {
 // Inquiries API (Live Server Memory + Disk + Supabase Sync)
 // -------------------------------------------------------------
 app.get("/api/inquiries", async (req, res) => {
-  try {
-    const { data } = await supabase.from("inquiries").select("*").order("createdAt", { ascending: false });
-    if (data && data.length > 0) {
-      globalInquiries = data;
-      try {
-        fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
-      } catch (e) {}
-    }
-  } catch (err: any) {
-    console.warn("Supabase fetch notice in GET /api/inquiries:", err?.message);
+  if (!globalInquiries || !Array.isArray(globalInquiries)) {
+    try {
+      if (fs.existsSync(INQUIRIES_FILE_PATH)) {
+        const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
+        globalInquiries = JSON.parse(raw);
+      }
+    } catch (e) {}
   }
-  return res.json({ inquiries: globalInquiries });
+  return res.json({ inquiries: globalInquiries || [] });
 });
 
 app.post("/api/inquiries", async (req, res) => {

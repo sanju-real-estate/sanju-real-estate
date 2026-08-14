@@ -611,7 +611,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const res = await fetch('/api/properties');
       if (res.ok) {
         const json = await res.json();
-        if (json && Array.isArray(json.properties) && json.properties.length > 0) {
+        if (json && Array.isArray(json.properties)) {
           setProperties(json.properties);
           try {
             localStorage.setItem('mb_properties', JSON.stringify(json.properties));
