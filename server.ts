@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
@@ -14,146 +13,11 @@ const PORT = 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Initialize Supabase Client
+// Initialize Supabase Client (Single Source of Truth)
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "https://fucisvuntdonaipcodqz.supabase.co";
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "sb_publishable_NaZZz6vzuF3BxoLa_fcoSA_Y6Gbk3VK";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// File-system persistence fallback for live server
-const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
-const PROPERTIES_FILE_PATH = path.join(process.cwd(), "properties.json");
-const INQUIRIES_FILE_PATH = path.join(process.cwd(), "inquiries.json");
-
-let globalSiteSettings: any = null;
-let globalProperties: any[] = [];
-let globalInquiries: any[] = [];
-
-try {
-  if (fs.existsSync(SETTINGS_FILE_PATH)) {
-    const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
-    globalSiteSettings = JSON.parse(raw);
-  }
-} catch (e) {
-  console.warn("Could not load initial site_settings.json:", e);
-}
-
-try {
-  if (fs.existsSync(PROPERTIES_FILE_PATH)) {
-    const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
-    globalProperties = JSON.parse(raw);
-  }
-} catch (e) {
-  console.warn("Could not load initial properties.json:", e);
-}
-
-// Fallback seed if properties.json is empty or missing
-if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
-  globalProperties = [
-    {
-      id: 'jpr-1',
-      title: '3 BHK Luxury Apartment in Vaishali Nagar',
-      description: 'Ultra-modern 3 BHK apartment with premium wooden flooring, modular kitchen, power backup, and 24/7 gated security in the heart of Vaishali Nagar.',
-      price: 7500000,
-      priceDisplay: '₹75 Lac',
-      pricePerSqFt: 5172,
-      areaSqFt: 1450,
-      bedrooms: 3,
-      bathrooms: 3,
-      balconies: 2,
-      propertyType: 'Apartment',
-      listingType: 'Buy',
-      city: 'Jaipur',
-      locality: 'Vaishali Nagar',
-      address: 'Amrapali Circle, Block B, Vaishali Nagar, Jaipur',
-      constructionStatus: 'Ready to Move',
-      possessionDate: 'Ready',
-      ageOfBuilding: '1-3 Years',
-      floor: '4th',
-      totalFloors: '10',
-      facing: 'East',
-      furnishing: 'Semi-Furnished',
-      parking: '1 Covered Slot',
-      postedBy: 'Owner',
-      postedByName: 'Rajesh Sharma',
-      postedByPhone: '+91 97721 17575',
-      postedByEmail: 'rajesh.jaipur@example.com',
-      isVerified: true,
-      isExclusive: true,
-      isFeatured: true,
-      slug: '3bhk-luxury-apartment-vaishali-nagar',
-      seoTitle: 'Buy 3 BHK Luxury Apartment in Vaishali Nagar Jaipur',
-      seoKeywords: '3bhk apartment, vaishali nagar, buy flat jaipur',
-      seoDescription: 'Ultra-modern 3 BHK apartment in Vaishali Nagar Jaipur.',
-      images: [
-        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
-      ],
-      amenities: ['Gymnasium', 'Clubhouse', '24/7 Security', 'Power Backup', 'Stilt Parking', 'EV Charging', 'Gated Community'],
-      postedDate: '2026-08-08',
-      viewsCount: 1890,
-      leadsCount: 24
-    },
-    {
-      id: 'jpr-2',
-      title: '4 BHK Royal Independent Villa with Private Garden',
-      description: 'Spacious 4 BHK architect-designed villa near World Trade Park. Features private landscaped lawn, modular kitchen, rooftop gazebo, staff quarters, and JDA approved clear title.',
-      price: 24000000,
-      priceDisplay: '₹2.40 Cr',
-      pricePerSqFt: 8000,
-      areaSqFt: 3000,
-      bedrooms: 4,
-      bathrooms: 5,
-      balconies: 3,
-      propertyType: 'Villa',
-      listingType: 'Buy',
-      city: 'Jaipur',
-      locality: 'Malviya Nagar',
-      address: 'Near World Trade Park, D-Block, Malviya Nagar, Jaipur',
-      constructionStatus: 'Ready to Move',
-      possessionDate: 'Ready',
-      ageOfBuilding: '0-1 Years',
-      floor: 'Ground + 2',
-      totalFloors: '3',
-      facing: 'North-East',
-      furnishing: 'Furnished',
-      parking: '2 Covered Slots',
-      postedBy: 'Owner',
-      postedByName: 'Vikram Singh Rathore',
-      postedByPhone: '+91 97721 17575',
-      postedByEmail: 'vikram.rathore@jaipurproperties.com',
-      isVerified: true,
-      isExclusive: true,
-      isFeatured: true,
-      slug: '4bhk-royal-independent-villa-malviya-nagar',
-      seoTitle: '4 BHK Royal Independent Villa in Malviya Nagar Jaipur',
-      seoKeywords: '4bhk villa, malviya nagar, independent villa jaipur',
-      seoDescription: 'Spacious 4 BHK architect-designed villa near World Trade Park.',
-      images: [
-        'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80',
-        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=80'
-      ],
-      amenities: ['Private Garden', 'Rooftop Terrace', 'Servant Quarter', 'Solar Water Heater', 'CCTV Camera', 'Intercom'],
-      postedDate: '2026-08-07',
-      viewsCount: 2450,
-      leadsCount: 38
-    }
-  ];
-  try {
-    fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-  } catch (e) {}
-}
-
-try {
-  if (fs.existsSync(INQUIRIES_FILE_PATH)) {
-    const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
-    globalInquiries = JSON.parse(raw);
-  }
-} catch (e) {
-  console.warn("Could not load initial inquiries.json:", e);
-}
 
 // Helper function to extract normalized SiteSettings from any database row format
 function normalizeSettingsRow(row: any) {
@@ -165,8 +29,8 @@ function normalizeSettingsRow(row: any) {
     : row;
 
   return {
-    logoUrl: source.logoUrl || source.logo_url || source.logo || '',
-    faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || source.logo || '',
+    logoUrl: source.logoUrl || source.logo_url || source.logo || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80',
+    faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || source.logo || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80',
     portalName: source.portalName || source.portal_name || source.name || 'Jaipur Properties Hub',
     tagline: source.tagline || source.tag_line || 'Jaipur’s #1 Verified Real Estate & Property Portal',
     helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || '+91 97721 17575',
@@ -184,47 +48,42 @@ function normalizeSettingsRow(row: any) {
   };
 }
 
-// Global Site Settings API powered by Server Memory + File Persistence + Supabase Sync
+// Default Site Settings Fallback if table is unseeded
+const DEFAULT_SITE_SETTINGS = {
+  logoUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
+  faviconUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
+  portalName: "Jaipur Properties Hub",
+  tagline: "Jaipur’s #1 Verified Real Estate & Property Portal",
+  helplinePhone: "+91 97721 17575",
+  helplineWhatsapp: "+91 97721 17575",
+  helplineEmail: "support@jaipurproperties.hub",
+  officeAddress: "Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017",
+  heroHeadline: "Find Your Dream Property in Pink City, Jaipur",
+  announcementBarText: "✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!",
+  announcementBarActive: true
+};
+
+// -------------------------------------------------------------
+// Site Settings API (Pure Supabase Source of Truth)
+// -------------------------------------------------------------
 app.get("/api/settings", async (req, res) => {
-  if (!globalSiteSettings) {
-    try {
-      if (fs.existsSync(SETTINGS_FILE_PATH)) {
-        const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
-        globalSiteSettings = JSON.parse(raw);
-      }
-    } catch (e) {}
-  }
+  try {
+    const { data, error } = await supabase.from("settings").select("*").limit(1);
+    if (error) {
+      console.error("GET /api/settings error:", error);
+      return res.status(500).json({ error: error.message || "Failed to fetch settings from Supabase" });
+    }
 
-  if (!globalSiteSettings) {
-    try {
-      const { data } = await supabase.from("settings").select("*").limit(1);
-      if (data && data.length > 0) {
-        const normalized = normalizeSettingsRow(data[0]);
-        if (normalized) globalSiteSettings = normalized;
-      }
-    } catch (e) {}
-  }
+    if (data && data.length > 0) {
+      const normalized = normalizeSettingsRow(data[0]);
+      return res.json({ settings: normalized });
+    }
 
-  if (!globalSiteSettings) {
-    globalSiteSettings = {
-      logoUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
-      faviconUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
-      portalName: "Jaipur Properties Hub",
-      tagline: "Jaipur’s #1 Verified Real Estate & Property Portal",
-      helplinePhone: "+91 97721 17575",
-      helplineWhatsapp: "+91 97721 17575",
-      helplineEmail: "support@jaipurproperties.hub",
-      officeAddress: "Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017",
-      heroHeadline: "Find Your Dream Property in Pink City, Jaipur",
-      announcementBarText: "✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!",
-      announcementBarActive: true
-    };
-    try {
-      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
-    } catch (e) {}
+    return res.json({ settings: DEFAULT_SITE_SETTINGS });
+  } catch (err: any) {
+    console.error("GET /api/settings exception:", err);
+    return res.status(500).json({ error: err.message || "Server error fetching settings" });
   }
-
-  return res.json({ settings: globalSiteSettings });
 });
 
 app.post("/api/settings", async (req, res) => {
@@ -234,91 +93,69 @@ app.post("/api/settings", async (req, res) => {
       return res.status(400).json({ error: "Missing settings payload" });
     }
 
-    // 1. Immediately update global in-memory settings
-    globalSiteSettings = { ...globalSiteSettings, ...newSettings };
+    const payload = {
+      id: 'branding',
+      value: newSettings,
+      data: newSettings,
+      logoUrl: newSettings.logoUrl,
+      logo_url: newSettings.logoUrl,
+      portalName: newSettings.portalName,
+      portal_name: newSettings.portalName,
+      tagline: newSettings.tagline,
+      helplinePhone: newSettings.helplinePhone,
+      helpline_phone: newSettings.helplinePhone,
+      helplineWhatsapp: newSettings.helplineWhatsapp,
+      helpline_whatsapp: newSettings.helplineWhatsapp,
+      helplineEmail: newSettings.helplineEmail,
+      officeAddress: newSettings.officeAddress,
+      heroHeadline: newSettings.heroHeadline,
+      hero_headline: newSettings.heroHeadline,
+      announcementBarText: newSettings.announcementBarText,
+      announcementBarActive: newSettings.announcementBarActive,
+      updatedAt: new Date().toISOString()
+    };
 
-    // 2. Persist to site_settings.json file
-    try {
-      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
-    } catch (e) {
-      console.warn("Could not write site_settings.json:", e);
+    const { data: existingRows } = await supabase.from("settings").select("*").limit(1);
+
+    if (existingRows && existingRows.length > 0) {
+      const firstRow = existingRows[0];
+      const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
+      const primaryKeyValue = firstRow[primaryKeyCol];
+      const { error: updateErr } = await supabase.from("settings").update(payload).eq(primaryKeyCol, primaryKeyValue);
+      if (updateErr) {
+        console.error("POST /api/settings update error:", updateErr);
+        return res.status(500).json({ error: updateErr.message || "Failed to update settings in Supabase" });
+      }
+    } else {
+      const { error: insertErr } = await supabase.from("settings").insert([payload]);
+      if (insertErr) {
+        console.error("POST /api/settings insert error:", insertErr);
+        return res.status(500).json({ error: insertErr.message || "Failed to insert settings in Supabase" });
+      }
     }
 
-    // 3. Sync to Supabase in background
-    (async () => {
-      try {
-        const payload = {
-          id: 'branding',
-          value: globalSiteSettings,
-          data: globalSiteSettings,
-          logoUrl: globalSiteSettings.logoUrl,
-          logo_url: globalSiteSettings.logoUrl,
-          portalName: globalSiteSettings.portalName,
-          portal_name: globalSiteSettings.portalName,
-          tagline: globalSiteSettings.tagline,
-          helplinePhone: globalSiteSettings.helplinePhone,
-          helpline_phone: globalSiteSettings.helplinePhone,
-          helplineWhatsapp: globalSiteSettings.helplineWhatsapp,
-          helpline_whatsapp: globalSiteSettings.helplineWhatsapp,
-          helplineEmail: globalSiteSettings.helplineEmail,
-          officeAddress: globalSiteSettings.officeAddress,
-          heroHeadline: globalSiteSettings.heroHeadline,
-          hero_headline: globalSiteSettings.heroHeadline,
-          announcementBarText: globalSiteSettings.announcementBarText,
-          announcementBarActive: globalSiteSettings.announcementBarActive,
-          updatedAt: new Date().toISOString()
-        };
-
-        const { data } = await supabase.from("settings").select("*").limit(1);
-        if (data && data.length > 0) {
-          const firstRow = data[0];
-          const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
-          const primaryKeyValue = firstRow[primaryKeyCol];
-          await supabase.from("settings").update(payload).eq(primaryKeyCol, primaryKeyValue);
-        } else {
-          await supabase.from("settings").insert([payload]);
-        }
-      } catch (dbErr: any) {
-        console.warn("Supabase background sync notice:", dbErr?.message);
-      }
-    })();
-
-    return res.json({ status: "ok", settings: globalSiteSettings });
+    return res.json({ status: "ok", settings: newSettings });
   } catch (error: any) {
     console.error("POST /api/settings error:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || "Server error saving settings" });
   }
 });
 
 // -------------------------------------------------------------
-// Properties API (Live Server Memory + Disk + Supabase Sync)
+// Properties API (Pure Supabase Source of Truth)
 // -------------------------------------------------------------
 app.get("/api/properties", async (req, res) => {
-  if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
-    try {
-      if (fs.existsSync(PROPERTIES_FILE_PATH)) {
-        const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          globalProperties = parsed;
-        }
-      }
-    } catch (e) {}
+  try {
+    const { data, error } = await supabase.from("properties").select("*");
+    if (error) {
+      console.error("GET /api/properties error:", error);
+      return res.status(500).json({ error: error.message || "Failed to fetch properties from Supabase" });
+    }
+    return res.json({ properties: data || [] });
+  } catch (err: any) {
+    console.error("GET /api/properties exception:", err);
+    return res.status(500).json({ error: err.message || "Server error fetching properties" });
   }
-
-  if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
-    try {
-      const { data, error } = await supabase.from("properties").select("*");
-      if (!error && data && Array.isArray(data) && data.length > 0) {
-        globalProperties = data;
-        try {
-          fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-        } catch (e) {}
-      }
-    } catch (e) {}
-  }
-
-  return res.json({ properties: globalProperties || [] });
 });
 
 app.post("/api/properties", async (req, res) => {
@@ -328,32 +165,22 @@ app.post("/api/properties", async (req, res) => {
       return res.status(400).json({ error: "Property object with id is required" });
     }
 
-    // Upsert into memory
-    const existingIndex = globalProperties.findIndex((p: any) => p.id === property.id);
-    if (existingIndex >= 0) {
-      globalProperties[existingIndex] = { ...globalProperties[existingIndex], ...property };
-    } else {
-      globalProperties.unshift(property);
+    const { error: dbErr } = await supabase.from("properties").upsert([property]);
+    if (dbErr) {
+      console.error("POST /api/properties upsert error:", dbErr);
+      return res.status(500).json({ error: dbErr.message || "Failed to save property to Supabase" });
     }
 
-    // Save to properties.json file
-    try {
-      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-    } catch (e) {
-      console.warn("Could not write properties.json:", e);
+    const { data: freshData, error: fetchErr } = await supabase.from("properties").select("*");
+    if (fetchErr) {
+      console.error("POST /api/properties fetch error:", fetchErr);
+      return res.status(500).json({ error: fetchErr.message || "Failed to fetch updated properties list" });
     }
 
-    // Sync to Supabase in background
-    try {
-      await supabase.from("properties").upsert([property]);
-    } catch (dbErr: any) {
-      console.warn("Supabase properties background upsert error:", dbErr?.message);
-    }
-
-    return res.json({ status: "ok", property, properties: globalProperties });
+    return res.json({ status: "ok", property, properties: freshData || [] });
   } catch (error: any) {
     console.error("POST /api/properties error:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || "Server error saving property" });
   }
 });
 
@@ -362,81 +189,63 @@ app.put("/api/properties/:id", async (req, res) => {
     const { id } = req.params;
     const updates = req.body.updates || req.body;
 
-    const existingIndex = globalProperties.findIndex((p: any) => p.id === id);
-    if (existingIndex >= 0) {
-      globalProperties[existingIndex] = { ...globalProperties[existingIndex], ...updates };
-    } else {
-      globalProperties.unshift({ id, ...updates });
+    const { error: dbErr } = await supabase.from("properties").update(updates).eq("id", id);
+    if (dbErr) {
+      console.error("PUT /api/properties/:id error:", dbErr);
+      return res.status(500).json({ error: dbErr.message || "Failed to update property in Supabase" });
     }
 
-    try {
-      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-    } catch (e) {}
-
-    try {
-      await supabase.from("properties").update(updates).eq("id", id);
-    } catch (dbErr: any) {
-      console.warn("Supabase properties background update error:", dbErr?.message);
+    const { data: freshData, error: fetchErr } = await supabase.from("properties").select("*");
+    if (fetchErr) {
+      console.error("PUT /api/properties/:id fetch error:", fetchErr);
+      return res.status(500).json({ error: fetchErr.message || "Failed to fetch updated properties list" });
     }
 
-    return res.json({ status: "ok", properties: globalProperties });
+    return res.json({ status: "ok", properties: freshData || [] });
   } catch (error: any) {
     console.error("PUT /api/properties error:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || "Server error updating property" });
   }
 });
 
 app.delete("/api/properties/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    globalProperties = globalProperties.filter((p: any) => p.id !== id);
 
-    try {
-      fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-    } catch (e) {}
-
-    try {
-      await supabase.from("properties").delete().eq("id", id);
-    } catch (dbErr: any) {
-      console.warn("Supabase properties background delete error:", dbErr?.message);
+    const { error: dbErr } = await supabase.from("properties").delete().eq("id", id);
+    if (dbErr) {
+      console.error("DELETE /api/properties/:id error:", dbErr);
+      return res.status(500).json({ error: dbErr.message || "Failed to delete property from Supabase" });
     }
 
-    return res.json({ status: "ok", properties: globalProperties });
+    const { data: freshData, error: fetchErr } = await supabase.from("properties").select("*");
+    if (fetchErr) {
+      console.error("DELETE /api/properties/:id fetch error:", fetchErr);
+      return res.status(500).json({ error: fetchErr.message || "Failed to fetch updated properties list" });
+    }
+
+    return res.json({ status: "ok", properties: freshData || [] });
   } catch (error: any) {
     console.error("DELETE /api/properties error:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || "Server error deleting property" });
   }
 });
 
 // -------------------------------------------------------------
-// Inquiries API (Live Server Memory + Disk + Supabase Sync)
+// Inquiries API (Pure Supabase Source of Truth)
 // -------------------------------------------------------------
 app.get("/api/inquiries", async (req, res) => {
-  if (!globalInquiries || !Array.isArray(globalInquiries)) {
-    try {
-      if (fs.existsSync(INQUIRIES_FILE_PATH)) {
-        const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          globalInquiries = parsed;
-        }
-      }
-    } catch (e) {}
+  try {
+    const { data, error } = await supabase.from("inquiries").select("*");
+    if (error) {
+      console.error("GET /api/inquiries error:", error);
+      return res.status(500).json({ error: error.message || "Failed to fetch inquiries from Supabase" });
+    }
+    return res.json({ inquiries: data || [] });
+  } catch (err: any) {
+    console.error("GET /api/inquiries exception:", err);
+    return res.status(500).json({ error: err.message || "Server error fetching inquiries" });
   }
-
-  if (!globalInquiries || !Array.isArray(globalInquiries)) {
-    try {
-      const { data, error } = await supabase.from("inquiries").select("*");
-      if (!error && data && Array.isArray(data)) {
-        globalInquiries = data;
-        try {
-          fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
-        } catch (e) {}
-      }
-    } catch (e) {}
-  }
-
-  return res.json({ inquiries: globalInquiries || [] });
 });
 
 app.post("/api/inquiries", async (req, res) => {
@@ -446,22 +255,17 @@ app.post("/api/inquiries", async (req, res) => {
       return res.status(400).json({ error: "Inquiry object with id is required" });
     }
 
-    globalInquiries.unshift(inquiry);
-
-    try {
-      fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
-    } catch (e) {}
-
-    try {
-      await supabase.from("inquiries").insert([inquiry]);
-    } catch (dbErr: any) {
-      console.warn("Supabase inquiry insert error:", dbErr?.message);
+    const { error: dbErr } = await supabase.from("inquiries").insert([inquiry]);
+    if (dbErr) {
+      console.error("POST /api/inquiries insert error:", dbErr);
+      return res.status(500).json({ error: dbErr.message || "Failed to create inquiry in Supabase" });
     }
 
-    return res.json({ status: "ok", inquiry });
+    const { data: freshData } = await supabase.from("inquiries").select("*");
+    return res.json({ status: "ok", inquiry, inquiries: freshData || [] });
   } catch (error: any) {
     console.error("POST /api/inquiries error:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || "Server error creating inquiry" });
   }
 });
 
@@ -470,22 +274,22 @@ app.put("/api/inquiries/:id", async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    globalInquiries = globalInquiries.map((i: any) => i.id === id ? { ...i, status } : i);
-
-    try {
-      fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
-    } catch (e) {}
-
-    try {
-      await supabase.from("inquiries").update({ status }).eq("id", id);
-    } catch (dbErr: any) {
-      console.warn("Supabase inquiry status update error:", dbErr?.message);
+    const { error: dbErr } = await supabase.from("inquiries").update({ status }).eq("id", id);
+    if (dbErr) {
+      console.error("PUT /api/inquiries/:id error:", dbErr);
+      return res.status(500).json({ error: dbErr.message || "Failed to update inquiry status in Supabase" });
     }
 
-    return res.json({ status: "ok", inquiries: globalInquiries });
+    const { data: freshData, error: fetchErr } = await supabase.from("inquiries").select("*");
+    if (fetchErr) {
+      console.error("PUT /api/inquiries/:id fetch error:", fetchErr);
+      return res.status(500).json({ error: fetchErr.message || "Failed to fetch updated inquiries list" });
+    }
+
+    return res.json({ status: "ok", inquiries: freshData || [] });
   } catch (error: any) {
     console.error("PUT /api/inquiries error:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || "Server error updating inquiry" });
   }
 });
 
@@ -505,7 +309,7 @@ const getAi = () => {
 
 // Health Check API
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", service: "Jaipur Properties Hub with Firebase" });
+  res.json({ status: "ok", service: "Jaipur Properties Hub with Supabase" });
 });
 
 // Gemini AI Locality Insights
