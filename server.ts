@@ -186,23 +186,27 @@ function normalizeSettingsRow(row: any) {
 
 // Global Site Settings API powered by Server Memory + File Persistence + Supabase Sync
 app.get("/api/settings", async (req, res) => {
+  // Always query Supabase first to get real-time cross-device updates
+  try {
+    const { data, error } = await supabase.from("settings").select("*").limit(1);
+    if (!error && data && data.length > 0) {
+      const normalized = normalizeSettingsRow(data[0]);
+      if (normalized) {
+        globalSiteSettings = { ...globalSiteSettings, ...normalized };
+        try {
+          fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
+        } catch (e) {}
+      }
+    }
+  } catch (e) {
+    console.warn("GET /api/settings Supabase sync warning:", e);
+  }
+
   if (!globalSiteSettings) {
     try {
       if (fs.existsSync(SETTINGS_FILE_PATH)) {
         const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
         globalSiteSettings = JSON.parse(raw);
-      }
-    } catch (e) {}
-  }
-
-  if (!globalSiteSettings) {
-    try {
-      const { data } = await supabase.from("settings").select("*").limit(1);
-      if (data && data.length > 0) {
-        const normalized = normalizeSettingsRow(data[0]);
-        if (normalized) {
-          globalSiteSettings = normalized;
-        }
       }
     } catch (e) {}
   }
@@ -246,17 +250,39 @@ app.post("/api/settings", async (req, res) => {
       console.warn("Could not write site_settings.json:", e);
     }
 
-    // 3. Sync to Supabase in background (fire and forget safely)
+    // 3. Sync to Supabase in background
     (async () => {
       try {
+        const payload = {
+          id: 'branding',
+          value: globalSiteSettings,
+          data: globalSiteSettings,
+          logoUrl: globalSiteSettings.logoUrl,
+          logo_url: globalSiteSettings.logoUrl,
+          portalName: globalSiteSettings.portalName,
+          portal_name: globalSiteSettings.portalName,
+          tagline: globalSiteSettings.tagline,
+          helplinePhone: globalSiteSettings.helplinePhone,
+          helpline_phone: globalSiteSettings.helplinePhone,
+          helplineWhatsapp: globalSiteSettings.helplineWhatsapp,
+          helpline_whatsapp: globalSiteSettings.helplineWhatsapp,
+          helplineEmail: globalSiteSettings.helplineEmail,
+          officeAddress: globalSiteSettings.officeAddress,
+          heroHeadline: globalSiteSettings.heroHeadline,
+          hero_headline: globalSiteSettings.heroHeadline,
+          announcementBarText: globalSiteSettings.announcementBarText,
+          announcementBarActive: globalSiteSettings.announcementBarActive,
+          updatedAt: new Date().toISOString()
+        };
+
         const { data } = await supabase.from("settings").select("*").limit(1);
         if (data && data.length > 0) {
           const firstRow = data[0];
           const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
           const primaryKeyValue = firstRow[primaryKeyCol];
-          await supabase.from("settings").update({ value: globalSiteSettings }).eq(primaryKeyCol, primaryKeyValue);
+          await supabase.from("settings").update(payload).eq(primaryKeyCol, primaryKeyValue);
         } else {
-          await supabase.from("settings").insert([{ id: 'branding', value: globalSiteSettings }]);
+          await supabase.from("settings").insert([payload]);
         }
       } catch (dbErr: any) {
         console.warn("Supabase background sync notice:", dbErr?.message);
@@ -274,6 +300,18 @@ app.post("/api/settings", async (req, res) => {
 // Properties API (Live Server Memory + Disk + Supabase Sync)
 // -------------------------------------------------------------
 app.get("/api/properties", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("properties").select("*");
+    if (!error && data && Array.isArray(data) && data.length > 0) {
+      globalProperties = data;
+      try {
+        fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+      } catch (e) {}
+    }
+  } catch (e) {
+    console.warn("GET /api/properties Supabase sync warning:", e);
+  }
+
   if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
     try {
       if (fs.existsSync(PROPERTIES_FILE_PATH)) {
@@ -376,6 +414,18 @@ app.delete("/api/properties/:id", async (req, res) => {
 // Inquiries API (Live Server Memory + Disk + Supabase Sync)
 // -------------------------------------------------------------
 app.get("/api/inquiries", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("inquiries").select("*");
+    if (!error && data && Array.isArray(data) && data.length > 0) {
+      globalInquiries = data;
+      try {
+        fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+      } catch (e) {}
+    }
+  } catch (e) {
+    console.warn("GET /api/inquiries Supabase sync warning:", e);
+  }
+
   if (!globalInquiries || !Array.isArray(globalInquiries)) {
     try {
       if (fs.existsSync(INQUIRIES_FILE_PATH)) {

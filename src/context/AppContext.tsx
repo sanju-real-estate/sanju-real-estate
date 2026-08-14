@@ -562,23 +562,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ? data.data 
       : data;
 
-    return {
-      logoUrl: source.logoUrl || source.logo_url || source.logo || undefined,
-      faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || undefined,
-      portalName: source.portalName || source.portal_name || source.name || undefined,
-      tagline: source.tagline || source.tag_line || undefined,
-      helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || undefined,
-      helplineWhatsapp: source.helplineWhatsapp || source.helpline_whatsapp || source.whatsapp || undefined,
-      helplineEmail: source.helplineEmail || source.helpline_email || source.email || undefined,
-      officeAddress: source.officeAddress || source.office_address || source.address || undefined,
-      heroHeadline: source.heroHeadline || source.hero_headline || undefined,
-      announcementBarText: source.announcementBarText || source.announcement_bar_text || undefined,
-      announcementBarActive: source.announcementBarActive !== undefined ? Boolean(source.announcementBarActive) : undefined,
-      seoTitle: source.seoTitle || source.seo_title || undefined,
-      seoDescription: source.seoDescription || source.seo_description || undefined,
-      seoKeywords: source.seoKeywords || source.seo_keywords || undefined,
-      seoCanonicalUrl: source.seoCanonicalUrl || source.seo_canonical_url || undefined,
-    };
+    const res: Partial<SiteSettings> = {};
+
+    const logo = source.logoUrl || source.logo_url || source.logo;
+    if (logo) res.logoUrl = logo;
+
+    const favicon = source.faviconUrl || source.favicon_url || source.favicon || logo;
+    if (favicon) res.faviconUrl = favicon;
+
+    const portal = source.portalName || source.portal_name || source.name;
+    if (portal) res.portalName = portal;
+
+    const tag = source.tagline || source.tag_line;
+    if (tag) res.tagline = tag;
+
+    const phone = source.helplinePhone || source.helpline_phone || source.phone;
+    if (phone) res.helplinePhone = phone;
+
+    const wa = source.helplineWhatsapp || source.helpline_whatsapp || source.whatsapp;
+    if (wa) res.helplineWhatsapp = wa;
+
+    const email = source.helplineEmail || source.helpline_email || source.email;
+    if (email) res.helplineEmail = email;
+
+    const addr = source.officeAddress || source.office_address || source.address;
+    if (addr) res.officeAddress = addr;
+
+    const hero = source.heroHeadline || source.hero_headline;
+    if (hero) res.heroHeadline = hero;
+
+    const barText = source.announcementBarText || source.announcement_bar_text;
+    if (barText) res.announcementBarText = barText;
+
+    if (source.announcementBarActive !== undefined && source.announcementBarActive !== null) {
+      res.announcementBarActive = Boolean(source.announcementBarActive);
+    }
+
+    const st = source.seoTitle || source.seo_title;
+    if (st) res.seoTitle = st;
+
+    const sd = source.seoDescription || source.seo_description;
+    if (sd) res.seoDescription = sd;
+
+    const sk = source.seoKeywords || source.seo_keywords;
+    if (sk) res.seoKeywords = sk;
+
+    const sc = source.seoCanonicalUrl || source.seo_canonical_url;
+    if (sc) res.seoCanonicalUrl = sc;
+
+    return res;
   };
 
   const applySettingsUpdate = (norm: Partial<SiteSettings>) => {
@@ -724,10 +756,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    // Poll every 5 seconds as a bulletproof fallback for all devices & browsers
+    // Poll every 3 seconds as a bulletproof fallback for all devices & browsers
     const pollInterval = setInterval(() => {
       syncAllData();
-    }, 5000);
+    }, 3000);
 
     const handleFocus = () => {
       syncAllData();
