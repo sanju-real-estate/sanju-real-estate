@@ -408,48 +408,115 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
-  // Load global branding settings directly from Supabase settings table on page load
-  useEffect(() => {
-    const fetchSettings = async () => {
-      let loaded = false;
+  // Helper function to extract normalized SiteSettings from any data payload
+  const normalizeSettings = (data: any): Partial<SiteSettings> | null => {
+    if (!data) return null;
+    const source = (data.value && typeof data.value === 'object') 
+      ? data.value 
+      : (data.data && typeof data.data === 'object') 
+      ? data.data 
+      : data;
 
-      // 1. Fetch from Supabase public.settings table
-      if (isSupabaseConfigured()) {
-        try {
-          const { data, error } = await supabase
-            .from('settings')
-            .select('value')
-            .eq('id', 'branding')
-            .single();
-          if (data && data.value) {
-            const parsed = data.value as SiteSettings;
-            setSiteSettings(prev => ({ ...prev, ...parsed }));
+    return {
+      logoUrl: source.logoUrl || source.logo_url || source.logo || undefined,
+      faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || undefined,
+      portalName: source.portalName || source.portal_name || source.name || undefined,
+      tagline: source.tagline || source.tag_line || undefined,
+      helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || undefined,
+      helplineWhatsapp: source.helplineWhatsapp || source.helpline_whatsapp || source.whatsapp || undefined,
+      helplineEmail: source.helplineEmail || source.helpline_email || source.email || undefined,
+      officeAddress: source.officeAddress || source.office_address || source.address || undefined,
+      heroHeadline: source.heroHeadline || source.hero_headline || undefined,
+      announcementBarText: source.announcementBarText || source.announcement_bar_text || undefined,
+      announcementBarActive: source.announcementBarActive !== undefined ? Boolean(source.announcementBarActive) : undefined,
+      seoTitle: source.seoTitle || source.seo_title || undefined,
+      seoDescription: source.seoDescription || source.seo_description || undefined,
+      seoKeywords: source.seoKeywords || source.seo_keywords || undefined,
+      seoCanonicalUrl: source.seoCanonicalUrl || source.seo_canonical_url || undefined,
+    };
+  };
+
+  const fetchSettings = async () => {
+    let loaded = false;
+
+    // 1. Fetch from Express API route (which queries Supabase settings table)
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.settings) {
+          const norm = normalizeSettings(json.settings);
+          if (norm) {
+            setSiteSettings(prev => ({ ...prev, ...norm }));
             loaded = true;
-          } else if (error) {
-            console.warn('Supabase settings query notice:', error.message);
           }
-        } catch (err) {
-          console.warn('Supabase branding settings load notice:', err);
         }
       }
+    } catch (err) {
+      console.warn('Server settings fetch notice:', err);
+    }
 
-      // 2. Fallback to server API if Supabase didn't load settings
-      if (!loaded) {
-        try {
-          const res = await fetch('/api/settings');
-          if (res.ok) {
-            const json = await res.json();
-            if (json && json.settings) {
-              setSiteSettings(prev => ({ ...prev, ...json.settings }));
-            }
+    // 2. Direct Supabase query fallback
+    if (!loaded && isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('settings')
+          .select('*')
+          .limit(1);
+
+        if (data && data.length > 0) {
+          const norm = normalizeSettings(data[0]);
+          if (norm) {
+            setSiteSettings(prev => ({ ...prev, ...norm }));
           }
-        } catch (err) {
-          console.warn('Server settings fetch notice:', err);
+        } else if (error) {
+          console.warn('Supabase direct settings query notice:', error.message);
         }
+      } catch (err) {
+        console.warn('Supabase branding settings load notice:', err);
       }
+    }
+  };
+
+  // Initial load and auto-sync setup (polling + real-time channel + window focus)
+  useEffect(() => {
+    fetchSettings();
+
+    // Supabase Realtime Subscription for automatic updates on all devices
+    let channel: any = null;
+    if (isSupabaseConfigured()) {
+      try {
+        channel = supabase
+          .channel('public_settings_changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
+            fetchSettings();
+          })
+          .subscribe();
+      } catch (e) {
+        console.warn('Realtime subscription notice:', e);
+      }
+    }
+
+    // Poll every 8 seconds as a bulletproof fallback for all browsers/devices
+    const pollInterval = setInterval(() => {
+      fetchSettings();
+    }, 8000);
+
+    const handleFocus = () => {
+      fetchSettings();
     };
 
-    fetchSettings();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
+      if (channel && isSupabaseConfigured()) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {}
+      }
+    };
   }, []);
 
   // Update HTML document head tags (SEO & Favicon) dynamically when siteSettings changes
@@ -512,50 +579,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 1. Immediate UI state update for instant live preview without page refresh
     setSiteSettings(updated);
 
-    let supabaseSaved = false;
+    let saveSuccess = false;
 
-    // 2. Perform upsert / update to Supabase public.settings table
-    if (isSupabaseConfigured()) {
-      try {
-        const { error: upsertErr } = await supabase
-          .from('settings')
-          .upsert({ id: 'branding', value: updated }, { onConflict: 'id' });
-
-        if (upsertErr) {
-          console.warn('Supabase settings upsert warning, trying update:', upsertErr.message);
-          const { error: updateErr } = await supabase
-            .from('settings')
-            .update({ value: updated })
-            .eq('id', 'branding');
-
-          if (!updateErr) {
-            supabaseSaved = true;
-          } else {
-            console.error('Supabase settings update error:', updateErr.message);
-          }
-        } else {
-          supabaseSaved = true;
-        }
-      } catch (error) {
-        console.error('Error persisting site settings to Supabase:', error);
-      }
-    }
-
-    // 3. Persist to live server API
+    // 2. Persist to live server API (which updates Supabase with schema mapping)
     try {
-      await fetch('/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings: updated })
       });
+      if (res.ok) {
+        saveSuccess = true;
+      }
     } catch (e) {
       console.warn('Server API settings save notice:', e);
     }
 
-    if (supabaseSaved) {
-      showToast('Logo & branding settings saved server-side in Supabase!', 'success');
+    // 3. Direct Supabase update fallback if configured
+    if (isSupabaseConfigured()) {
+      try {
+        const { data: existingRows } = await supabase.from('settings').select('*').limit(1);
+        if (existingRows && existingRows.length > 0) {
+          const firstRow = existingRows[0];
+          const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
+          const primaryKeyValue = firstRow[primaryKeyCol];
+
+          const payload: any = {
+            logoUrl: updated.logoUrl,
+            logo_url: updated.logoUrl,
+            logo: updated.logoUrl,
+            portalName: updated.portalName,
+            portal_name: updated.portalName,
+            value: updated
+          };
+
+          const { error } = await supabase.from('settings').update(payload).eq(primaryKeyCol, primaryKeyValue);
+          if (!error) {
+            saveSuccess = true;
+          }
+        }
+      } catch (error) {
+        console.error('Direct Supabase save fallback notice:', error);
+      }
+    }
+
+    if (saveSuccess) {
+      showToast('Logo & site settings saved live to Supabase server!', 'success');
     } else {
-      showToast('Logo & branding settings saved live to server!', 'success');
+      showToast('Logo & site settings updated locally.', 'info');
     }
   };
 

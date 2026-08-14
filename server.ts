@@ -19,6 +19,35 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPA
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Helper function to extract normalized SiteSettings from any database row format
+function normalizeSettingsRow(row: any) {
+  if (!row) return null;
+  const source = (row.value && typeof row.value === 'object') 
+    ? row.value 
+    : (row.data && typeof row.data === 'object') 
+    ? row.data 
+    : row;
+
+  return {
+    logoUrl: source.logoUrl || source.logo_url || source.logo || '',
+    faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || source.logo || '',
+    portalName: source.portalName || source.portal_name || source.name || 'Jaipur Properties Hub',
+    tagline: source.tagline || source.tag_line || 'Jaipur’s #1 Verified Real Estate & Property Portal',
+    helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || '+91 97721 17575',
+    helplineWhatsapp: source.helplineWhatsapp || source.helpline_whatsapp || source.whatsapp || '+91 97721 17575',
+    helplineEmail: source.helplineEmail || source.helpline_email || source.email || 'support@jaipurproperties.hub',
+    officeAddress: source.officeAddress || source.office_address || source.address || 'Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017',
+    heroHeadline: source.heroHeadline || source.hero_headline || 'Find Your Dream Property in Pink City, Jaipur',
+    announcementBarText: source.announcementBarText || source.announcement_bar_text || '✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!',
+    announcementBarActive: source.announcementBarActive !== undefined ? Boolean(source.announcementBarActive) : true,
+    seoTitle: source.seoTitle || source.seo_title || '',
+    seoDescription: source.seoDescription || source.seo_description || '',
+    seoKeywords: source.seoKeywords || source.seo_keywords || '',
+    seoCanonicalUrl: source.seoCanonicalUrl || source.seo_canonical_url || '',
+    updatedAt: source.updatedAt || source.updated_at || new Date().toISOString()
+  };
+}
+
 // Global Site Settings API powered by Supabase settings table
 app.get("/api/settings", async (req, res) => {
   try {
@@ -29,17 +58,12 @@ app.get("/api/settings", async (req, res) => {
     }
 
     const firstRow = data && data.length > 0 ? data[0] : null;
-    let settingsData: any = null;
-
-    if (firstRow) {
-      if (firstRow.value && typeof firstRow.value === 'object') {
-        settingsData = firstRow.value;
-      } else {
-        settingsData = firstRow;
-      }
+    if (!firstRow) {
+      return res.json({ settings: null });
     }
 
-    return res.json({ settings: settingsData });
+    const settingsData = normalizeSettingsRow(firstRow);
+    return res.json({ settings: settingsData, raw: firstRow });
   } catch (error: any) {
     console.error("GET /api/settings error:", error);
     return res.status(500).json({ error: error.message });
@@ -54,19 +78,86 @@ app.post("/api/settings", async (req, res) => {
     }
 
     // Fetch existing row from settings table
-    const { data: existingRows } = await supabase.from("settings").select("*").limit(1);
+    const { data: existingRows, error: fetchErr } = await supabase.from("settings").select("*").limit(1);
+
+    if (fetchErr) {
+      console.warn("Fetch settings error during POST:", fetchErr.message);
+    }
 
     if (existingRows && existingRows.length > 0) {
       const firstRow = existingRows[0];
-      const hasValueCol = 'value' in firstRow;
       const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
       const primaryKeyValue = firstRow[primaryKeyCol];
 
-      let updatePayload: any = {};
-      if (hasValueCol) {
-        updatePayload = { value: newSettings };
-      } else {
-        updatePayload = { ...newSettings };
+      // Build dictionary of all possible field names
+      const candidateUpdates: Record<string, any> = {
+        // camelCase
+        logoUrl: newSettings.logoUrl,
+        faviconUrl: newSettings.faviconUrl,
+        portalName: newSettings.portalName,
+        tagline: newSettings.tagline,
+        helplinePhone: newSettings.helplinePhone,
+        helplineWhatsapp: newSettings.helplineWhatsapp,
+        helplineEmail: newSettings.helplineEmail,
+        officeAddress: newSettings.officeAddress,
+        heroHeadline: newSettings.heroHeadline,
+        announcementBarText: newSettings.announcementBarText,
+        announcementBarActive: newSettings.announcementBarActive,
+        seoTitle: newSettings.seoTitle,
+        seoDescription: newSettings.seoDescription,
+        seoKeywords: newSettings.seoKeywords,
+        seoCanonicalUrl: newSettings.seoCanonicalUrl,
+
+        // snake_case
+        logo_url: newSettings.logoUrl,
+        favicon_url: newSettings.faviconUrl,
+        portal_name: newSettings.portalName,
+        tag_line: newSettings.tagline,
+        helpline_phone: newSettings.helplinePhone,
+        helpline_whatsapp: newSettings.helplineWhatsapp,
+        helpline_email: newSettings.helplineEmail,
+        office_address: newSettings.officeAddress,
+        hero_headline: newSettings.heroHeadline,
+        announcement_bar_text: newSettings.announcementBarText,
+        announcement_bar_active: newSettings.announcementBarActive,
+        seo_title: newSettings.seoTitle,
+        seo_description: newSettings.seoDescription,
+        seo_keywords: newSettings.seoKeywords,
+        seo_canonical_url: newSettings.seoCanonicalUrl,
+
+        // short names
+        logo: newSettings.logoUrl,
+        favicon: newSettings.faviconUrl,
+        phone: newSettings.helplinePhone,
+        whatsapp: newSettings.helplineWhatsapp,
+        email: newSettings.helplineEmail,
+        address: newSettings.officeAddress,
+        name: newSettings.portalName,
+
+        // JSON value column fallback
+        value: newSettings,
+        data: newSettings,
+        updated_at: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Match against columns that exist in the database table
+      const updatePayload: Record<string, any> = {};
+      const existingCols = Object.keys(firstRow);
+
+      for (const col of existingCols) {
+        if (col in candidateUpdates && candidateUpdates[col] !== undefined) {
+          updatePayload[col] = candidateUpdates[col];
+        }
+      }
+
+      // Fallback if no matching column was detected
+      if (Object.keys(updatePayload).length === 0) {
+        if ('value' in firstRow) {
+          updatePayload['value'] = newSettings;
+        } else {
+          Object.assign(updatePayload, candidateUpdates);
+        }
       }
 
       // Perform update on the existing single row
@@ -76,7 +167,7 @@ app.post("/api/settings", async (req, res) => {
         .eq(primaryKeyCol, primaryKeyValue);
 
       if (updateErr) {
-        // Fallback update without eq if primary key query fails
+        console.warn("Primary key update error, trying general update:", updateErr.message);
         const { error: fallbackErr } = await supabase.from("settings").update(updatePayload);
         if (fallbackErr) {
           console.error("Supabase settings update error:", fallbackErr.message);
@@ -84,8 +175,8 @@ app.post("/api/settings", async (req, res) => {
         }
       }
     } else {
-      // If no row exists yet, insert initial settings
-      const insertPayload = { id: 'branding', value: newSettings };
+      // If no row exists yet, insert initial settings row
+      const insertPayload = { id: 'branding', value: newSettings, logoUrl: newSettings.logoUrl, portalName: newSettings.portalName };
       const { error: insertErr } = await supabase.from("settings").insert([insertPayload]);
       if (insertErr) {
         const { error: rawInsertErr } = await supabase.from("settings").insert([newSettings]);
