@@ -186,27 +186,21 @@ function normalizeSettingsRow(row: any) {
 
 // Global Site Settings API powered by Server Memory + File Persistence + Supabase Sync
 app.get("/api/settings", async (req, res) => {
-  // Always query Supabase first to get real-time cross-device updates
-  try {
-    const { data, error } = await supabase.from("settings").select("*").limit(1);
-    if (!error && data && data.length > 0) {
-      const normalized = normalizeSettingsRow(data[0]);
-      if (normalized) {
-        globalSiteSettings = { ...globalSiteSettings, ...normalized };
-        try {
-          fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
-        } catch (e) {}
-      }
-    }
-  } catch (e) {
-    console.warn("GET /api/settings Supabase sync warning:", e);
-  }
-
   if (!globalSiteSettings) {
     try {
       if (fs.existsSync(SETTINGS_FILE_PATH)) {
         const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
         globalSiteSettings = JSON.parse(raw);
+      }
+    } catch (e) {}
+  }
+
+  if (!globalSiteSettings) {
+    try {
+      const { data } = await supabase.from("settings").select("*").limit(1);
+      if (data && data.length > 0) {
+        const normalized = normalizeSettingsRow(data[0]);
+        if (normalized) globalSiteSettings = normalized;
       }
     } catch (e) {}
   }
@@ -300,26 +294,30 @@ app.post("/api/settings", async (req, res) => {
 // Properties API (Live Server Memory + Disk + Supabase Sync)
 // -------------------------------------------------------------
 app.get("/api/properties", async (req, res) => {
-  try {
-    const { data, error } = await supabase.from("properties").select("*");
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      globalProperties = data;
-      try {
-        fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
-      } catch (e) {}
-    }
-  } catch (e) {
-    console.warn("GET /api/properties Supabase sync warning:", e);
-  }
-
   if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
     try {
       if (fs.existsSync(PROPERTIES_FILE_PATH)) {
         const raw = fs.readFileSync(PROPERTIES_FILE_PATH, "utf-8");
-        globalProperties = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          globalProperties = parsed;
+        }
       }
     } catch (e) {}
   }
+
+  if (!globalProperties || !Array.isArray(globalProperties) || globalProperties.length === 0) {
+    try {
+      const { data, error } = await supabase.from("properties").select("*");
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        globalProperties = data;
+        try {
+          fs.writeFileSync(PROPERTIES_FILE_PATH, JSON.stringify(globalProperties, null, 2), "utf-8");
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
   return res.json({ properties: globalProperties || [] });
 });
 
@@ -414,26 +412,30 @@ app.delete("/api/properties/:id", async (req, res) => {
 // Inquiries API (Live Server Memory + Disk + Supabase Sync)
 // -------------------------------------------------------------
 app.get("/api/inquiries", async (req, res) => {
-  try {
-    const { data, error } = await supabase.from("inquiries").select("*");
-    if (!error && data && Array.isArray(data) && data.length > 0) {
-      globalInquiries = data;
-      try {
-        fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
-      } catch (e) {}
-    }
-  } catch (e) {
-    console.warn("GET /api/inquiries Supabase sync warning:", e);
-  }
-
   if (!globalInquiries || !Array.isArray(globalInquiries)) {
     try {
       if (fs.existsSync(INQUIRIES_FILE_PATH)) {
         const raw = fs.readFileSync(INQUIRIES_FILE_PATH, "utf-8");
-        globalInquiries = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          globalInquiries = parsed;
+        }
       }
     } catch (e) {}
   }
+
+  if (!globalInquiries || !Array.isArray(globalInquiries)) {
+    try {
+      const { data, error } = await supabase.from("inquiries").select("*");
+      if (!error && data && Array.isArray(data)) {
+        globalInquiries = data;
+        try {
+          fs.writeFileSync(INQUIRIES_FILE_PATH, JSON.stringify(globalInquiries, null, 2), "utf-8");
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
   return res.json({ inquiries: globalInquiries || [] });
 });
 

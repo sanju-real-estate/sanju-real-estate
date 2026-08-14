@@ -380,11 +380,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Live Server Sync
     (async () => {
       try {
-        await fetch('/api/properties', {
+        const res = await fetch('/api/properties', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ property: newProperty })
         });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && Array.isArray(json.properties)) {
+            setProperties(json.properties);
+            try {
+              localStorage.setItem('mb_properties', JSON.stringify(json.properties));
+              localStorage.setItem('mb_properties_sync', Date.now().toString());
+            } catch (e) {}
+          }
+        }
       } catch (e) {
         console.warn('Server properties sync notice:', e);
       }
@@ -413,11 +423,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Live Server Sync
     (async () => {
       try {
-        await fetch(`/api/properties/${propertyId}`, {
+        const res = await fetch(`/api/properties/${propertyId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ updates })
         });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && Array.isArray(json.properties)) {
+            setProperties(json.properties);
+            try {
+              localStorage.setItem('mb_properties', JSON.stringify(json.properties));
+              localStorage.setItem('mb_properties_sync', Date.now().toString());
+            } catch (e) {}
+          }
+        }
       } catch (e) {
         console.warn('Server property update notice:', e);
       }
@@ -443,9 +463,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Live Server Sync
     (async () => {
       try {
-        await fetch(`/api/properties/${propertyId}`, {
+        const res = await fetch(`/api/properties/${propertyId}`, {
           method: 'DELETE'
         });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && Array.isArray(json.properties)) {
+            setProperties(json.properties);
+            try {
+              localStorage.setItem('mb_properties', JSON.stringify(json.properties));
+              localStorage.setItem('mb_properties_sync', Date.now().toString());
+            } catch (e) {}
+          }
+        }
       } catch (e) {
         console.warn('Server property delete notice:', e);
       }
@@ -766,13 +796,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'jph_site_settings_sync' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (parsed.settings) {
-            setSiteSettings(prev => ({ ...prev, ...parsed.settings }));
-          }
-        } catch (err) {}
+      if (e.key === 'jph_site_settings_sync' || e.key === 'mb_properties_sync' || e.key === 'mb_inquiries_sync') {
+        syncAllData();
       }
     };
 
