@@ -1167,10 +1167,22 @@ export const AdminDashboard: React.FC = () => {
                           </p>
                         )}
 
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-200/60">
-                          <span className="text-[11px] text-gray-500">
-                            Visit Date: <strong className="text-gray-800">{inq.preferredDate || 'Flexible'}</strong>
-                          </span>
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200/60">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-gray-500">
+                              Visit Date: <strong className="text-gray-800">{inq.preferredDate || 'Flexible'}</strong>
+                            </span>
+                            {inq.phone && (
+                              <a
+                                href={`https://wa.me/${inq.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${inq.name}, regarding your inquiry for property: ${inq.propertyTitle || inq.propertyId}`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-xs transition-colors"
+                              >
+                                💬 Reply on WhatsApp
+                              </a>
+                            )}
+                          </div>
                           
                           <select
                             value={inq.status}

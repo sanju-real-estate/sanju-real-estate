@@ -304,8 +304,18 @@ export const UserDashboard: React.FC = () => {
                     <tr key={inq.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="p-4">
                         <div className="font-bold text-gray-900">{inq.userName}</div>
-                        <div className="text-gray-500 flex items-center gap-1 mt-0.5">
+                        <div className="text-gray-500 flex items-center gap-1.5 mt-0.5">
                           <Phone className="w-3 h-3 text-emerald-600" /> {inq.userPhone}
+                          {inq.userPhone && (
+                            <a
+                              href={`https://wa.me/${inq.userPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${inq.userName}, regarding your inquiry for property: ${inq.propertyTitle}`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold inline-flex items-center gap-1 shadow-2xs"
+                            >
+                              💬 WhatsApp
+                            </a>
+                          )}
                         </div>
                         <div className="text-gray-400 flex items-center gap-1 mt-0.5">
                           <Mail className="w-3 h-3" /> {inq.userEmail}

@@ -28,13 +28,13 @@ export const AuthModal: React.FC = () => {
 
     try {
       // Simulate seamless Google popup authentication delay
-      setTimeout(async () => {
-        const googleEmail = email.trim() || 'eigeltumspaces@gmail.com';
-        const googleName = fullName.trim() || 'Google User';
-        await loginWithOtp(googleEmail, googleName, phone || '+91 97721 17575', userType);
-        setIsGoogleLoading(false);
-      }, 600);
+      await new Promise(resolve => setTimeout(resolve, 600));
+      const googleEmail = email.trim() || 'eigeltumspaces@gmail.com';
+      const googleName = fullName.trim() || 'Google User';
+      await loginWithOtp(googleEmail, googleName, phone || '+91 97721 17575', userType);
     } catch (err) {
+      console.warn('Google login error:', err);
+    } finally {
       setIsGoogleLoading(false);
     }
   };

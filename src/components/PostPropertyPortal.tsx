@@ -32,8 +32,10 @@ export const PostPropertyPortal: React.FC = () => {
   const [furnishing, setFurnishing] = useState<FurnishingStatus>('Semi-Furnished');
   const [parking, setParking] = useState('1 Covered, 1 Open');
   const [postedBy, setPostedBy] = useState<PostedBy>('Owner');
-  const [postedByName, setPostedByName] = useState(currentUser?.fullName || currentUser?.name || 'Sanju Meena');
+  const [postedByName, setPostedByName] = useState(currentUser?.fullName || currentUser?.name || '');
   const [postedByPhone, setPostedByPhone] = useState(currentUser?.phone || '+91 97721 17575');
+  const [postedByWhatsapp, setPostedByWhatsapp] = useState(currentUser?.phone || '+91 97721 17575');
+  const [sameAsPhone, setSameAsPhone] = useState(true);
   const [images, setImages] = useState<string[]>([
     'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
     'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80'
@@ -64,7 +66,7 @@ export const PostPropertyPortal: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file: File) => {
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         if (uploadEvent.target?.result) {
@@ -151,6 +153,7 @@ export const PostPropertyPortal: React.FC = () => {
       postedBy,
       postedByName: postedByName || currentUser.fullName || currentUser.name,
       postedByPhone: postedByPhone || currentUser.phone || '+91 97721 17575',
+      postedByWhatsapp: sameAsPhone ? (postedByPhone || currentUser.phone || '+91 97721 17575') : (postedByWhatsapp || postedByPhone || '+91 97721 17575'),
       postedByEmail: currentUser.email,
       isVerified: true,
       isExclusive: true,
@@ -657,7 +660,7 @@ export const PostPropertyPortal: React.FC = () => {
               7. Contact Information
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">
                   I am posting as <span className="text-red-600">*</span>
@@ -675,30 +678,69 @@ export const PostPropertyPortal: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">
-                  Your Full Name
+                  Your Full Name <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
                   value={postedByName}
                   onChange={(e) => setPostedByName(e.target.value)}
-                  placeholder="Sanju Meena"
+                  placeholder="Your Name"
+                  required
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:border-red-600 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">
+                  📞 Contact Phone Number <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={postedByPhone}
+                  onChange={(e) => {
+                    setPostedByPhone(e.target.value);
+                    if (sameAsPhone) setPostedByWhatsapp(e.target.value);
+                  }}
+                  placeholder="+91 97721 17575"
                   required
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:border-red-600 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">
-                  Phone Number
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-emerald-700 uppercase tracking-wider">
+                    💬 WhatsApp Number <span className="text-red-600">*</span>
+                  </label>
+                  <label className="text-[11px] font-bold text-gray-500 flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sameAsPhone}
+                      onChange={(e) => {
+                        setSameAsPhone(e.target.checked);
+                        if (e.target.checked) setPostedByWhatsapp(postedByPhone);
+                      }}
+                      className="rounded text-red-600 focus:ring-0"
+                    />
+                    <span>Same as Phone</span>
+                  </label>
+                </div>
                 <input
                   type="tel"
-                  value={postedByPhone}
-                  onChange={(e) => setPostedByPhone(e.target.value)}
+                  value={sameAsPhone ? postedByPhone : postedByWhatsapp}
+                  onChange={(e) => setPostedByWhatsapp(e.target.value)}
+                  disabled={sameAsPhone}
                   placeholder="+91 97721 17575"
                   required
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:border-red-600 outline-none"
+                  className={`w-full px-4 py-2.5 border rounded-xl text-xs font-medium outline-none transition-all ${
+                    sameAsPhone ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-emerald-50/50 border-emerald-300 text-gray-900 focus:bg-white focus:border-emerald-600'
+                  }`}
                 />
+                <span className="text-[10px] text-emerald-600 font-medium mt-1 block">
+                  ⚡ Buyer leads will be sent directly to this WhatsApp number!
+                </span>
               </div>
             </div>
 

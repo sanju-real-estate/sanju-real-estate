@@ -131,17 +131,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return JSON.parse(saved);
       }
     } catch (e) {}
-    return {
-      id: 'user-default-01',
-      name: 'Sanju Owner',
-      fullName: 'Sanju Owner',
-      email: 'sanjumeena@gmail.com',
-      phone: '+91 97721 17575',
-      city: 'Jaipur',
-      userType: 'Owner',
-      role: 'admin',
-      isVerified: true
-    };
+    return null;
   });
 
   useEffect(() => {
@@ -398,7 +388,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {
         console.warn('Server properties sync notice:', e);
       }
-    })();
+    })().catch(err => console.warn('addProperty async error:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -408,7 +398,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch (err) {
           console.warn('Supabase insert error:', err);
         }
-      })();
+      })().catch(err => console.warn('Supabase insert async error:', err));
       showToast('🎉 Property published live on server & database!', 'success');
     } else {
       showToast('🎉 Property published successfully!', 'success');
@@ -431,7 +421,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {
         console.warn('Server property update notice:', e);
       }
-    })();
+    })().catch(err => console.warn('updateProperty async error:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -441,7 +431,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch (err) {
           console.warn('Supabase update error:', err);
         }
-      })();
+      })().catch(err => console.warn('Supabase update async error:', err));
     }
     showToast('Property details updated successfully', 'success');
   };
@@ -459,7 +449,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {
         console.warn('Server property delete notice:', e);
       }
-    })();
+    })().catch(err => console.warn('deleteProperty async error:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -469,7 +459,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch (err) {
           console.warn('Supabase delete error:', err);
         }
-      })();
+      })().catch(err => console.warn('Supabase delete async error:', err));
     }
     showToast('Property listing deleted', 'info');
   };
@@ -496,7 +486,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {
         console.warn('Server inquiry sync notice:', e);
       }
-    })();
+    })().catch(err => console.warn('addInquiry async error:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -506,7 +496,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch (err) {
           console.warn('Supabase inquiry error:', err);
         }
-      })();
+      })().catch(err => console.warn('Supabase inquiry async error:', err));
     }
 
     showToast('Your inquiry & visit request has been sent to the property owner!', 'success');
@@ -526,7 +516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {
         console.warn('Server inquiry status update notice:', e);
       }
-    })();
+    })().catch(err => console.warn('updateInquiryStatus async error:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -536,7 +526,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch (err) {
           console.warn('Supabase update inquiry error:', err);
         }
-      })();
+      })().catch(err => console.warn('Supabase update inquiry async error:', err));
     }
     showToast(`Lead status updated to "${status}"`, 'info');
   };

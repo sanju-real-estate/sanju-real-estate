@@ -473,31 +473,36 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
                 </div>
                 <div>
                   <span className="text-[10px] font-extrabold uppercase text-red-600 tracking-wider">
-                    Broker Helpline ({property.postedBy})
+                    Posted By {property.postedBy}
                   </span>
-                  <h3 className="text-sm font-bold text-gray-900 line-clamp-1">Jaipur Properties Hub</h3>
-                  <a href="tel:+919772117575" className="text-xs font-black text-gray-900 hover:text-red-600 flex items-center gap-1 mt-0.5">
-                    <span>+91 97721 17575</span>
-                  </a>
+                  <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{property.postedByName || 'Property Owner'}</h3>
+                  <div className="flex flex-col gap-0.5 text-xs font-bold text-gray-900 mt-0.5">
+                    <a href={`tel:${(property.postedByPhone || '+919772117575').replace(/[^0-9+]/g, '')}`} className="hover:text-red-600 flex items-center gap-1">
+                      <span>📞 {property.postedByPhone || '+91 97721 17575'}</span>
+                    </a>
+                    <span className="text-emerald-700 font-semibold text-[11px] flex items-center gap-1">
+                      💬 WhatsApp: {property.postedByWhatsapp || property.postedByPhone || '+91 97721 17575'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Direct Call & WhatsApp Buttons */}
               <div className="grid grid-cols-2 gap-2">
                 <a
-                  href="tel:+919772117575"
+                  href={`tel:${(property.postedByPhone || '+919772117575').replace(/[^0-9+]/g, '')}`}
                   className="bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 text-center"
                 >
                   <Phone className="w-3.5 h-3.5" />
-                  <span>Call 9772117575</span>
+                  <span>Call Owner</span>
                 </a>
                 <a
-                  href={`https://wa.me/919772117575?text=${encodeURIComponent(`Hello Jaipur Properties Hub, I am interested in property: ${property.title} (${property.id})`)}`}
+                  href={`https://wa.me/${(property.postedByWhatsapp || property.postedByPhone || '919772117575').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${property.postedByName || 'Owner'}, I am interested in your property: *${property.title}* (${property.priceDisplay}) in ${property.locality}, ${property.city}. Please share details!`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 text-center"
                 >
-                  <span>WhatsApp</span>
+                  <span>WhatsApp Lead</span>
                 </a>
               </div>
 

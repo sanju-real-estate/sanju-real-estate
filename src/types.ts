@@ -43,6 +43,7 @@ export interface Property {
   postedBy: PostedBy;
   postedByName: string;
   postedByPhone: string;
+  postedByWhatsapp?: string;
   postedByEmail: string;
   isVerified: boolean;
   isExclusive: boolean;
