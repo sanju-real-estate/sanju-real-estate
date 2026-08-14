@@ -184,20 +184,46 @@ function normalizeSettingsRow(row: any) {
   };
 }
 
-// Global Site Settings API powered by Supabase settings table + local fallback
+// Global Site Settings API powered by Server Memory + File Persistence + Supabase Sync
 app.get("/api/settings", async (req, res) => {
-  try {
-    const { data } = await supabase.from("settings").select("*").limit(1);
-    const firstRow = data && data.length > 0 ? data[0] : null;
-
-    if (firstRow) {
-      const normalized = normalizeSettingsRow(firstRow);
-      if (normalized) {
-        globalSiteSettings = { ...globalSiteSettings, ...normalized };
+  if (!globalSiteSettings) {
+    try {
+      if (fs.existsSync(SETTINGS_FILE_PATH)) {
+        const raw = fs.readFileSync(SETTINGS_FILE_PATH, "utf-8");
+        globalSiteSettings = JSON.parse(raw);
       }
-    }
-  } catch (error: any) {
-    console.warn("Supabase fetch notice in GET /api/settings:", error?.message);
+    } catch (e) {}
+  }
+
+  if (!globalSiteSettings) {
+    try {
+      const { data } = await supabase.from("settings").select("*").limit(1);
+      if (data && data.length > 0) {
+        const normalized = normalizeSettingsRow(data[0]);
+        if (normalized) {
+          globalSiteSettings = normalized;
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (!globalSiteSettings) {
+    globalSiteSettings = {
+      logoUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
+      faviconUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
+      portalName: "Jaipur Properties Hub",
+      tagline: "Jaipur’s #1 Verified Real Estate & Property Portal",
+      helplinePhone: "+91 97721 17575",
+      helplineWhatsapp: "+91 97721 17575",
+      helplineEmail: "support@jaipurproperties.hub",
+      officeAddress: "Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017",
+      heroHeadline: "Find Your Dream Property in Pink City, Jaipur",
+      announcementBarText: "✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!",
+      announcementBarActive: true
+    };
+    try {
+      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
+    } catch (e) {}
   }
 
   return res.json({ settings: globalSiteSettings });
@@ -211,103 +237,31 @@ app.post("/api/settings", async (req, res) => {
     }
 
     // 1. Immediately update global in-memory settings
-    globalSiteSettings = newSettings;
+    globalSiteSettings = { ...globalSiteSettings, ...newSettings };
 
     // 2. Persist to site_settings.json file
     try {
-      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(newSettings, null, 2), "utf-8");
+      fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(globalSiteSettings, null, 2), "utf-8");
     } catch (e) {
       console.warn("Could not write site_settings.json:", e);
     }
 
-    // 3. Sync to Supabase in background
-    try {
-      const { data: existingRows } = await supabase.from("settings").select("*").limit(1);
-
-      if (existingRows && existingRows.length > 0) {
-        const firstRow = existingRows[0];
-        const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
-        const primaryKeyValue = firstRow[primaryKeyCol];
-
-        const candidateUpdates: Record<string, any> = {
-          logoUrl: newSettings.logoUrl,
-          faviconUrl: newSettings.faviconUrl,
-          portalName: newSettings.portalName,
-          tagline: newSettings.tagline,
-          helplinePhone: newSettings.helplinePhone,
-          helplineWhatsapp: newSettings.helplineWhatsapp,
-          helplineEmail: newSettings.helplineEmail,
-          officeAddress: newSettings.officeAddress,
-          heroHeadline: newSettings.heroHeadline,
-          announcementBarText: newSettings.announcementBarText,
-          announcementBarActive: newSettings.announcementBarActive,
-          seoTitle: newSettings.seoTitle,
-          seoDescription: newSettings.seoDescription,
-          seoKeywords: newSettings.seoKeywords,
-          seoCanonicalUrl: newSettings.seoCanonicalUrl,
-          logo_url: newSettings.logoUrl,
-          favicon_url: newSettings.faviconUrl,
-          portal_name: newSettings.portalName,
-          tag_line: newSettings.tagline,
-          helpline_phone: newSettings.helplinePhone,
-          helpline_whatsapp: newSettings.helplineWhatsapp,
-          helpline_email: newSettings.helplineEmail,
-          office_address: newSettings.officeAddress,
-          hero_headline: newSettings.heroHeadline,
-          announcement_bar_text: newSettings.announcementBarText,
-          announcement_bar_active: newSettings.announcementBarActive,
-          seo_title: newSettings.seoTitle,
-          seo_description: newSettings.seoDescription,
-          seo_keywords: newSettings.seoKeywords,
-          seo_canonical_url: newSettings.seoCanonicalUrl,
-          logo: newSettings.logoUrl,
-          favicon: newSettings.faviconUrl,
-          phone: newSettings.helplinePhone,
-          whatsapp: newSettings.helplineWhatsapp,
-          email: newSettings.helplineEmail,
-          address: newSettings.officeAddress,
-          name: newSettings.portalName,
-          value: newSettings,
-          data: newSettings,
-          updated_at: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-
-        const updatePayload: Record<string, any> = {};
-        const existingCols = Object.keys(firstRow);
-
-        for (const col of existingCols) {
-          if (col !== primaryKeyCol && col in candidateUpdates && candidateUpdates[col] !== undefined) {
-            updatePayload[col] = candidateUpdates[col];
-          }
+    // 3. Sync to Supabase in background (fire and forget safely)
+    (async () => {
+      try {
+        const { data } = await supabase.from("settings").select("*").limit(1);
+        if (data && data.length > 0) {
+          const firstRow = data[0];
+          const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
+          const primaryKeyValue = firstRow[primaryKeyCol];
+          await supabase.from("settings").update({ value: globalSiteSettings }).eq(primaryKeyCol, primaryKeyValue);
+        } else {
+          await supabase.from("settings").insert([{ id: 'branding', value: globalSiteSettings }]);
         }
-
-        if (Object.keys(updatePayload).length === 0) {
-          if ('value' in firstRow) {
-            updatePayload['value'] = newSettings;
-          }
-        }
-
-        if (Object.keys(updatePayload).length > 0) {
-          const { error: updateErr } = await supabase
-            .from("settings")
-            .update(updatePayload)
-            .eq(primaryKeyCol, primaryKeyValue);
-
-          if (updateErr) {
-            console.warn("Supabase update error:", updateErr.message);
-          }
-        }
-      } else {
-        const insertPayload = { id: 'branding', value: newSettings, logoUrl: newSettings.logoUrl, portalName: newSettings.portalName };
-        const { error: insertErr } = await supabase.from("settings").insert([insertPayload]);
-        if (insertErr) {
-          console.warn("Supabase insert error:", insertErr.message);
-        }
+      } catch (dbErr: any) {
+        console.warn("Supabase background sync notice:", dbErr?.message);
       }
-    } catch (dbErr: any) {
-      console.warn("Supabase background sync exception:", dbErr?.message);
-    }
+    })();
 
     return res.json({ status: "ok", settings: globalSiteSettings });
   } catch (error: any) {

@@ -97,11 +97,13 @@ export const AdminDashboard: React.FC = () => {
 
   // Sync state when context updates from Firestore / Supabase
   useEffect(() => {
-    setFormData(() => ({
-      ...DEFAULT_SITE_SETTINGS,
-      ...siteSettings
-    }));
-  }, [siteSettings]);
+    if (!isSaving) {
+      setFormData(prev => ({
+        ...DEFAULT_SITE_SETTINGS,
+        ...siteSettings
+      }));
+    }
+  }, [siteSettings, isSaving]);
 
   // Admin Login Handler
   const handleAdminLogin = (e: React.FormEvent) => {
