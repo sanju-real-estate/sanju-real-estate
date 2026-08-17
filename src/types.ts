@@ -130,6 +130,7 @@ export interface UserProfile {
   fullName?: string;
   email: string;
   phone: string;
+  avatarUrl?: string;
   city?: string;
   userType: 'Buyer / Tenant' | 'Owner' | 'Agent / Builder';
   role?: string;
