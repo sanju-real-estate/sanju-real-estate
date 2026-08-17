@@ -383,38 +383,75 @@ function saveSettingsToDisk(settings: any) {
   }
 }
 
+// Background sync helpers with Supabase
+async function syncPropertiesToSupabase() {
+  try {
+    await supabase.from("settings").upsert([{
+      id: "properties",
+      value: globalProperties
+    }]);
+  } catch (e: any) {
+    console.warn("Supabase properties sync warning:", e?.message);
+  }
+}
+
+async function syncInquiriesToSupabase() {
+  try {
+    await supabase.from("settings").upsert([{
+      id: "inquiries",
+      value: globalInquiries
+    }]);
+  } catch (e: any) {
+    console.warn("Supabase inquiries sync warning:", e?.message);
+  }
+}
+
+async function syncSettingsToSupabase() {
+  try {
+    await supabase.from("settings").upsert([{
+      id: "branding",
+      value: globalSiteSettings,
+      logo: globalSiteSettings.logoUrl,
+      favicon: globalSiteSettings.faviconUrl,
+      meta_title: globalSiteSettings.seoTitle,
+      meta_description: globalSiteSettings.seoDescription
+    }]);
+  } catch (e: any) {
+    console.warn("Supabase settings sync warning:", e?.message);
+  }
+}
+
 // Background sync from Supabase on startup
 async function syncFromSupabaseCloud() {
   try {
-    const { data: settingsData } = await supabase.from("settings").select("*").limit(1);
+    // 1. Settings / Branding
+    const { data: settingsData } = await supabase.from("settings").select("*").eq("id", "branding");
     if (settingsData && settingsData.length > 0) {
       const normalized = normalizeSettingsRow(settingsData[0]);
       if (normalized) {
         globalSiteSettings = { ...DEFAULT_SERVER_SETTINGS, ...globalSiteSettings, ...normalized };
         saveSettingsToDisk(globalSiteSettings);
       }
+    } else {
+      await syncSettingsToSupabase();
     }
 
-    const { data: propsData } = await supabase.from("properties").select("*");
-    if (propsData && propsData.length > 0) {
-      const cloudMap = new Map();
-      propsData.forEach((p: any) => cloudMap.set(p.id, p));
-      globalProperties.forEach((p: any) => {
-        if (!cloudMap.has(p.id)) cloudMap.set(p.id, p);
-      });
-      globalProperties = Array.from(cloudMap.values());
+    // 2. Properties
+    const { data: propsData } = await supabase.from("settings").select("*").eq("id", "properties");
+    if (propsData && propsData.length > 0 && Array.isArray(propsData[0].value) && propsData[0].value.length > 0) {
+      globalProperties = propsData[0].value;
       savePropertiesToDisk();
+    } else {
+      await syncPropertiesToSupabase();
     }
 
-    const { data: inqData } = await supabase.from("inquiries").select("*");
-    if (inqData && inqData.length > 0) {
-      const inqMap = new Map();
-      inqData.forEach((i: any) => inqMap.set(i.id, i));
-      globalInquiries.forEach((i: any) => {
-        if (!inqMap.has(i.id)) inqMap.set(i.id, i);
-      });
-      globalInquiries = Array.from(inqMap.values());
+    // 3. Inquiries
+    const { data: inqData } = await supabase.from("settings").select("*").eq("id", "inquiries");
+    if (inqData && inqData.length > 0 && Array.isArray(inqData[0].value)) {
+      globalInquiries = inqData[0].value;
       saveInquiriesToDisk();
+    } else {
+      await syncInquiriesToSupabase();
     }
   } catch (e: any) {
     console.warn("Supabase startup sync notice:", e?.message);
@@ -433,8 +470,8 @@ function normalizeSettingsRow(row: any) {
     : row;
 
   return {
-    logoUrl: source.logoUrl || source.logo_url || source.logo || '',
-    faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || source.logo || '',
+    logoUrl: source.logoUrl || source.logo_url || source.logo || row.logo || '',
+    faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || row.favicon || source.logoUrl || source.logo_url || '',
     portalName: source.portalName || source.portal_name || source.name || 'Jaipur Properties Hub',
     tagline: source.tagline || source.tag_line || 'Jaipur’s #1 Verified Real Estate & Property Portal',
     helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || '+91 97721 17575',
@@ -444,8 +481,8 @@ function normalizeSettingsRow(row: any) {
     heroHeadline: source.heroHeadline || source.hero_headline || 'Find Your Dream Property in Pink City, Jaipur',
     announcementBarText: source.announcementBarText || source.announcement_bar_text || '✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!',
     announcementBarActive: source.announcementBarActive !== undefined ? Boolean(source.announcementBarActive) : true,
-    seoTitle: source.seoTitle || source.seo_title || '',
-    seoDescription: source.seoDescription || source.seo_description || '',
+    seoTitle: source.seoTitle || source.seo_title || row.meta_title || '',
+    seoDescription: source.seoDescription || source.seo_description || row.meta_description || '',
     seoKeywords: source.seoKeywords || source.seo_keywords || '',
     seoCanonicalUrl: source.seoCanonicalUrl || source.seo_canonical_url || '',
     updatedAt: source.updatedAt || source.updated_at || new Date().toISOString()
@@ -489,11 +526,7 @@ app.post("/api/properties", async (req, res) => {
     savePropertiesToDisk();
 
     // Background Supabase Sync
-    try {
-      await supabase.from("properties").upsert([createdProperty]);
-    } catch (e: any) {
-      console.warn("Supabase properties upsert notice:", e?.message);
-    }
+    syncPropertiesToSupabase().catch(() => {});
 
     return res.json({ status: "ok", property: createdProperty, version: globalSyncVersion });
   } catch (error: any) {
@@ -524,11 +557,7 @@ app.put("/api/properties/:id", async (req, res) => {
     savePropertiesToDisk();
 
     // Background Supabase Sync
-    try {
-      await supabase.from("properties").update(updates).eq("id", id);
-    } catch (e: any) {
-      console.warn("Supabase properties update notice:", e?.message);
-    }
+    syncPropertiesToSupabase().catch(() => {});
 
     return res.json({ status: "ok", version: globalSyncVersion });
   } catch (error: any) {
@@ -545,11 +574,7 @@ app.delete("/api/properties/:id", async (req, res) => {
     savePropertiesToDisk();
 
     // Background Supabase Sync
-    try {
-      await supabase.from("properties").delete().eq("id", id);
-    } catch (e: any) {
-      console.warn("Supabase properties delete notice:", e?.message);
-    }
+    syncPropertiesToSupabase().catch(() => {});
 
     return res.json({ status: "ok", version: globalSyncVersion });
   } catch (error: any) {
@@ -581,16 +606,12 @@ app.post("/api/inquiries", async (req, res) => {
         p.id === createdInquiry.propertyId ? { ...p, leadsCount: (p.leadsCount || 0) + 1 } : p
       );
       savePropertiesToDisk();
+      syncPropertiesToSupabase().catch(() => {});
     }
 
     globalSyncVersion = Date.now();
     saveInquiriesToDisk();
-
-    try {
-      await supabase.from("inquiries").insert([createdInquiry]);
-    } catch (e: any) {
-      console.warn("Supabase inquiries insert notice:", e?.message);
-    }
+    syncInquiriesToSupabase().catch(() => {});
 
     return res.json({ status: "ok", inquiry: createdInquiry, version: globalSyncVersion });
   } catch (error: any) {
@@ -607,12 +628,7 @@ app.put("/api/inquiries/:id", async (req, res) => {
     globalInquiries = globalInquiries.map(i => i.id === id ? { ...i, ...updates } : i);
     globalSyncVersion = Date.now();
     saveInquiriesToDisk();
-
-    try {
-      await supabase.from("inquiries").update(updates).eq("id", id);
-    } catch (e: any) {
-      console.warn("Supabase inquiries update notice:", e?.message);
-    }
+    syncInquiriesToSupabase().catch(() => {});
 
     return res.json({ status: "ok", version: globalSyncVersion });
   } catch (error: any) {
@@ -627,12 +643,7 @@ app.delete("/api/inquiries/:id", async (req, res) => {
     globalInquiries = globalInquiries.filter(i => i.id !== id);
     globalSyncVersion = Date.now();
     saveInquiriesToDisk();
-
-    try {
-      await supabase.from("inquiries").delete().eq("id", id);
-    } catch (e: any) {
-      console.warn("Supabase inquiries delete notice:", e?.message);
-    }
+    syncInquiriesToSupabase().catch(() => {});
 
     return res.json({ status: "ok", version: globalSyncVersion });
   } catch (error: any) {
@@ -654,100 +665,14 @@ app.post("/api/settings", async (req, res) => {
     }
 
     // 1. Immediately update global in-memory settings & bump sync version
-    globalSiteSettings = newSettings;
+    globalSiteSettings = { ...DEFAULT_SERVER_SETTINGS, ...globalSiteSettings, ...newSettings };
     globalSyncVersion = Date.now();
 
     // 2. Persist to disk files
-    saveSettingsToDisk(newSettings);
+    saveSettingsToDisk(globalSiteSettings);
 
-    // 3. Sync to Supabase in background
-    try {
-      const { data: existingRows } = await supabase.from("settings").select("*").limit(1);
-
-      if (existingRows && existingRows.length > 0) {
-        const firstRow = existingRows[0];
-        const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
-        const primaryKeyValue = firstRow[primaryKeyCol];
-
-        const candidateUpdates: Record<string, any> = {
-          logoUrl: newSettings.logoUrl,
-          faviconUrl: newSettings.faviconUrl,
-          portalName: newSettings.portalName,
-          tagline: newSettings.tagline,
-          helplinePhone: newSettings.helplinePhone,
-          helplineWhatsapp: newSettings.helplineWhatsapp,
-          helplineEmail: newSettings.helplineEmail,
-          officeAddress: newSettings.officeAddress,
-          heroHeadline: newSettings.heroHeadline,
-          announcementBarText: newSettings.announcementBarText,
-          announcementBarActive: newSettings.announcementBarActive,
-          seoTitle: newSettings.seoTitle,
-          seoDescription: newSettings.seoDescription,
-          seoKeywords: newSettings.seoKeywords,
-          seoCanonicalUrl: newSettings.seoCanonicalUrl,
-          logo_url: newSettings.logoUrl,
-          favicon_url: newSettings.faviconUrl,
-          portal_name: newSettings.portalName,
-          tag_line: newSettings.tagline,
-          helpline_phone: newSettings.helplinePhone,
-          helpline_whatsapp: newSettings.helplineWhatsapp,
-          helpline_email: newSettings.helplineEmail,
-          office_address: newSettings.officeAddress,
-          hero_headline: newSettings.heroHeadline,
-          announcement_bar_text: newSettings.announcementBarText,
-          announcement_bar_active: newSettings.announcementBarActive,
-          seo_title: newSettings.seoTitle,
-          seo_description: newSettings.seoDescription,
-          seo_keywords: newSettings.seoKeywords,
-          seo_canonical_url: newSettings.seoCanonicalUrl,
-          logo: newSettings.logoUrl,
-          favicon: newSettings.faviconUrl,
-          phone: newSettings.helplinePhone,
-          whatsapp: newSettings.helplineWhatsapp,
-          email: newSettings.helplineEmail,
-          address: newSettings.officeAddress,
-          name: newSettings.portalName,
-          value: newSettings,
-          data: newSettings,
-          updated_at: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-
-        const updatePayload: Record<string, any> = {};
-        const existingCols = Object.keys(firstRow);
-
-        for (const col of existingCols) {
-          if (col !== primaryKeyCol && col in candidateUpdates && candidateUpdates[col] !== undefined) {
-            updatePayload[col] = candidateUpdates[col];
-          }
-        }
-
-        if (Object.keys(updatePayload).length === 0) {
-          if ('value' in firstRow) {
-            updatePayload['value'] = newSettings;
-          }
-        }
-
-        if (Object.keys(updatePayload).length > 0) {
-          const { error: updateErr } = await supabase
-            .from("settings")
-            .update(updatePayload)
-            .eq(primaryKeyCol, primaryKeyValue);
-
-          if (updateErr) {
-            console.warn("Supabase update error:", updateErr.message);
-          }
-        }
-      } else {
-        const insertPayload = { id: 'branding', value: newSettings, logoUrl: newSettings.logoUrl, portalName: newSettings.portalName };
-        const { error: insertErr } = await supabase.from("settings").insert([insertPayload]);
-        if (insertErr) {
-          console.warn("Supabase insert error:", insertErr.message);
-        }
-      }
-    } catch (dbErr: any) {
-      console.warn("Supabase background sync exception:", dbErr?.message);
-    }
+    // 3. Sync to Supabase branding row
+    syncSettingsToSupabase().catch(() => {});
 
     return res.json({ status: "ok", settings: globalSiteSettings, version: globalSyncVersion });
   } catch (error: any) {

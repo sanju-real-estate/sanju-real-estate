@@ -332,7 +332,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       postedDate: new Date().toISOString().split('T')[0]
     };
 
-    setProperties(prev => [newProperty, ...prev.filter(p => p.id !== newId)]);
+    setProperties(prev => {
+      const nextList = [newProperty, ...prev.filter(p => p.id !== newId)];
+      try {
+        localStorage.setItem('mb_properties', JSON.stringify(nextList));
+      } catch (e) {}
+
+      // 2. Direct Supabase Cloud sync to settings table (row: 'properties')
+      if (isSupabaseConfigured()) {
+        Promise.resolve(supabase.from('settings').upsert([{
+          id: 'properties',
+          value: nextList
+        }])).catch(err => console.warn('Supabase insert property warning:', err));
+      }
+
+      return nextList;
+    });
 
     // 1. Persist to live server API (visible across all devices)
     fetch('/api/properties', {
@@ -343,24 +358,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     .then(() => fetchAllLiveServerData().catch(() => {}))
     .catch(err => console.warn('Server property post warning:', err));
 
-    // 2. Supabase secondary backup
-    if (isSupabaseConfigured()) {
-      (async () => {
-        try {
-          const { error } = await supabase.from('properties').insert([newProperty]);
-          if (error) console.warn('Supabase insert property warning:', error.message);
-        } catch (err) {
-          console.warn('Supabase insert error:', err);
-        }
-      })();
-    }
-
     showToast('🎉 Property published live across all devices!', 'success');
     return newProperty;
   };
 
   const updateProperty = (propertyId: string, updates: Partial<Property>) => {
-    setProperties(prev => prev.map(p => p.id === propertyId ? { ...p, ...updates } : p));
+    setProperties(prev => {
+      const nextList = prev.map(p => p.id === propertyId ? { ...p, ...updates } : p);
+      try {
+        localStorage.setItem('mb_properties', JSON.stringify(nextList));
+      } catch (e) {}
+
+      if (isSupabaseConfigured()) {
+        Promise.resolve(supabase.from('settings').upsert([{
+          id: 'properties',
+          value: nextList
+        }])).catch(err => console.warn('Supabase update property warning:', err));
+      }
+
+      return nextList;
+    });
     
     // Persist to live server API
     fetch(`/api/properties/${encodeURIComponent(propertyId)}`, {
@@ -371,21 +388,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     .then(() => fetchAllLiveServerData().catch(() => {}))
     .catch(err => console.warn('Server property update warning:', err));
 
-    if (isSupabaseConfigured()) {
-      (async () => {
-        try {
-          const { error } = await supabase.from('properties').update(updates).eq('id', propertyId);
-          if (error) console.warn('Supabase update property warning:', error.message);
-        } catch (err) {
-          console.warn('Supabase update error:', err);
-        }
-      })();
-    }
     showToast('Property details updated live on server', 'success');
   };
 
   const deleteProperty = (propertyId: string) => {
-    setProperties(prev => prev.filter(p => p.id !== propertyId));
+    setProperties(prev => {
+      const nextList = prev.filter(p => p.id !== propertyId);
+      try {
+        localStorage.setItem('mb_properties', JSON.stringify(nextList));
+      } catch (e) {}
+
+      if (isSupabaseConfigured()) {
+        Promise.resolve(supabase.from('settings').upsert([{
+          id: 'properties',
+          value: nextList
+        }])).catch(err => console.warn('Supabase delete property warning:', err));
+      }
+
+      return nextList;
+    });
     setWishlistIds(prev => prev.filter(id => id !== propertyId));
     
     // Persist deletion to live server API
@@ -395,16 +416,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     .then(() => fetchAllLiveServerData().catch(() => {}))
     .catch(err => console.warn('Server property delete warning:', err));
 
-    if (isSupabaseConfigured()) {
-      (async () => {
-        try {
-          const { error } = await supabase.from('properties').delete().eq('id', propertyId);
-          if (error) console.warn('Supabase delete property warning:', error.message);
-        } catch (err) {
-          console.warn('Supabase delete error:', err);
-        }
-      })();
-    }
     showToast('Property listing deleted live from server', 'info');
   };
 
@@ -416,7 +427,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
     };
 
-    setInquiries(prev => [newInquiry, ...prev]);
+    setInquiries(prev => {
+      const nextInquiries = [newInquiry, ...prev];
+      try {
+        localStorage.setItem('mb_inquiries', JSON.stringify(nextInquiries));
+      } catch (e) {}
+
+      if (isSupabaseConfigured()) {
+        Promise.resolve(supabase.from('settings').upsert([{
+          id: 'inquiries',
+          value: nextInquiries
+        }])).catch(err => console.warn('Supabase insert inquiry warning:', err));
+      }
+
+      return nextInquiries;
+    });
+
     setProperties(prev => prev.map(p => p.id === inquiryData.propertyId ? { ...p, leadsCount: (p.leadsCount || 0) + 1 } : p));
 
     // Persist inquiry to live server API
@@ -428,22 +454,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     .then(() => fetchAllLiveServerData().catch(() => {}))
     .catch(err => console.warn('Server inquiry post warning:', err));
 
-    if (isSupabaseConfigured()) {
-      (async () => {
-        try {
-          const { error } = await supabase.from('inquiries').insert([newInquiry]);
-          if (error) console.warn('Supabase insert inquiry warning:', error.message);
-        } catch (err) {
-          console.warn('Supabase inquiry error:', err);
-        }
-      })();
-    }
-
     showToast('Your inquiry & visit request has been sent to the property owner!', 'success');
   };
 
   const updateInquiryStatus = (inquiryId: string, status: Inquiry['status']) => {
-    setInquiries(prev => prev.map(i => i.id === inquiryId ? { ...i, status } : i));
+    setInquiries(prev => {
+      const nextInquiries = prev.map(i => i.id === inquiryId ? { ...i, status } : i);
+      try {
+        localStorage.setItem('mb_inquiries', JSON.stringify(nextInquiries));
+      } catch (e) {}
+
+      if (isSupabaseConfigured()) {
+        Promise.resolve(supabase.from('settings').upsert([{
+          id: 'inquiries',
+          value: nextInquiries
+        }])).catch(err => console.warn('Supabase update inquiry warning:', err));
+      }
+
+      return nextInquiries;
+    });
     
     // Persist status update to live server API
     fetch(`/api/inquiries/${encodeURIComponent(inquiryId)}`, {
@@ -452,16 +481,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       body: JSON.stringify({ status })
     }).catch(err => console.warn('Server inquiry status update warning:', err));
 
-    if (isSupabaseConfigured()) {
-      (async () => {
-        try {
-          const { error } = await supabase.from('inquiries').update({ status }).eq('id', inquiryId);
-          if (error) console.warn('Supabase update inquiry warning:', error.message);
-        } catch (err) {
-          console.warn('Supabase update inquiry error:', err);
-        }
-      })();
-    }
     showToast(`Lead status updated to "${status}"`, 'info');
   };
 
@@ -497,8 +516,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       : data;
 
     return {
-      logoUrl: source.logoUrl || source.logo_url || source.logo || undefined,
-      faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || source.logoUrl || source.logo_url || undefined,
+      logoUrl: source.logoUrl || source.logo_url || source.logo || data.logo || undefined,
+      faviconUrl: source.faviconUrl || source.favicon_url || source.favicon || data.favicon || source.logoUrl || source.logo_url || undefined,
       portalName: source.portalName || source.portal_name || source.name || undefined,
       tagline: source.tagline || source.tag_line || undefined,
       helplinePhone: source.helplinePhone || source.helpline_phone || source.phone || undefined,
@@ -508,8 +527,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       heroHeadline: source.heroHeadline || source.hero_headline || undefined,
       announcementBarText: source.announcementBarText || source.announcement_bar_text || undefined,
       announcementBarActive: source.announcementBarActive !== undefined ? Boolean(source.announcementBarActive) : undefined,
-      seoTitle: source.seoTitle || source.seo_title || undefined,
-      seoDescription: source.seoDescription || source.seo_description || undefined,
+      seoTitle: source.seoTitle || source.seo_title || data.meta_title || undefined,
+      seoDescription: source.seoDescription || source.seo_description || data.meta_description || undefined,
       seoKeywords: source.seoKeywords || source.seo_keywords || undefined,
       seoCanonicalUrl: source.seoCanonicalUrl || source.seo_canonical_url || undefined,
     };
@@ -530,12 +549,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Full Live Server Sync (Properties, Inquiries, Settings) across all devices
   const fetchAllLiveServerData = async () => {
+    // 1. Fetch from Server API
     try {
       const res = await fetch('/api/sync-all');
       if (res.ok) {
         const json = await res.json();
         
-        // 1. Sync Properties
+        // Sync Properties
         if (Array.isArray(json.properties) && json.properties.length > 0) {
           setProperties(json.properties);
           try {
@@ -543,7 +563,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           } catch (e) {}
         }
 
-        // 2. Sync Inquiries
+        // Sync Inquiries
         if (Array.isArray(json.inquiries)) {
           setInquiries(json.inquiries);
           try {
@@ -551,7 +571,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           } catch (e) {}
         }
 
-        // 3. Sync Settings
+        // Sync Settings
         if (json.settings) {
           const norm = normalizeSettings(json.settings);
           if (norm && Object.keys(norm).length > 0) {
@@ -561,6 +581,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err) {
       console.warn('Server live sync notice:', err);
+    }
+
+    // 2. Direct Cloud Database Fetch from Supabase Settings Table
+    if (isSupabaseConfigured()) {
+      try {
+        const { data: rows } = await supabase.from('settings').select('*');
+        if (rows && rows.length > 0) {
+          for (const row of rows) {
+            if (row.id === 'branding' || (!row.id || row.id === 1)) {
+              const norm = normalizeSettings(row);
+              if (norm && Object.keys(norm).length > 0) {
+                applySettingsUpdate(norm);
+              }
+            } else if (row.id === 'properties') {
+              if (Array.isArray(row.value) && row.value.length > 0) {
+                setProperties(row.value);
+                try {
+                  localStorage.setItem('mb_properties', JSON.stringify(row.value));
+                } catch (e) {}
+              }
+            } else if (row.id === 'inquiries') {
+              if (Array.isArray(row.value)) {
+                setInquiries(row.value);
+                try {
+                  localStorage.setItem('mb_inquiries', JSON.stringify(row.value));
+                } catch (e) {}
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Direct Supabase fetch notice:', err);
+      }
     }
   };
 
@@ -574,42 +627,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         channel = supabase
           .channel('public_properties_and_app_sync')
-          // Real-time listener for ALL property changes (INSERT, UPDATE, DELETE)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'properties' },
-            (payload: any) => {
-              try {
-                const { eventType, new: newRecord, old: oldRecord } = payload;
-                
-                if (eventType === 'INSERT' && newRecord && newRecord.id) {
-                  setProperties(prev => {
-                    const exists = prev.some(p => p.id === newRecord.id);
-                    if (exists) {
-                      return prev.map(p => p.id === newRecord.id ? { ...p, ...newRecord } : p);
-                    }
-                    return [newRecord as Property, ...prev];
-                  });
-                } else if (eventType === 'UPDATE' && newRecord && newRecord.id) {
-                  setProperties(prev =>
-                    prev.map(p => (p.id === newRecord.id ? { ...p, ...newRecord } : p))
-                  );
-                  setSelectedProperty(prev =>
-                    prev && prev.id === newRecord.id ? { ...prev, ...newRecord } : prev
-                  );
-                } else if (eventType === 'DELETE' && oldRecord && oldRecord.id) {
-                  setProperties(prev => prev.filter(p => p.id !== oldRecord.id));
-                  setWishlistIds(prev => prev.filter(id => id !== oldRecord.id));
-                  setSelectedProperty(prev => (prev && prev.id === oldRecord.id ? null : prev));
-                }
-              } catch (err) {
-                console.warn('Realtime property payload error:', err);
-              }
-              // Reconcile with live server to guarantee state consistency
-              fetchAllLiveServerData().catch(() => {});
-            }
-          )
-          // Real-time listener for Settings changes
+          // Real-time listener for Settings table (Branding, Properties list, Inquiries)
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'settings' },
@@ -617,37 +635,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               try {
                 const { new: newRecord } = payload;
                 if (newRecord) {
-                  const norm = normalizeSettings(newRecord);
-                  if (norm && Object.keys(norm).length > 0) {
-                    applySettingsUpdate(norm);
+                  if (newRecord.id === 'branding' || (!newRecord.id || newRecord.id === 1)) {
+                    const norm = normalizeSettings(newRecord);
+                    if (norm && Object.keys(norm).length > 0) {
+                      applySettingsUpdate(norm);
+                    }
+                  } else if (newRecord.id === 'properties' && Array.isArray(newRecord.value)) {
+                    setProperties(newRecord.value);
+                    try {
+                      localStorage.setItem('mb_properties', JSON.stringify(newRecord.value));
+                    } catch (e) {}
+                  } else if (newRecord.id === 'inquiries' && Array.isArray(newRecord.value)) {
+                    setInquiries(newRecord.value);
+                    try {
+                      localStorage.setItem('mb_inquiries', JSON.stringify(newRecord.value));
+                    } catch (e) {}
                   }
                 }
               } catch (err) {
                 console.warn('Realtime settings payload error:', err);
-              }
-              fetchAllLiveServerData().catch(() => {});
-            }
-          )
-          // Real-time listener for Inquiries/Leads changes
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'inquiries' },
-            (payload: any) => {
-              try {
-                const { eventType, new: newRecord, old: oldRecord } = payload;
-                if (eventType === 'INSERT' && newRecord && newRecord.id) {
-                  setInquiries(prev => {
-                    const exists = prev.some(i => i.id === newRecord.id);
-                    if (exists) return prev.map(i => i.id === newRecord.id ? { ...i, ...newRecord } : i);
-                    return [newRecord as Inquiry, ...prev];
-                  });
-                } else if (eventType === 'UPDATE' && newRecord && newRecord.id) {
-                  setInquiries(prev => prev.map(i => i.id === newRecord.id ? { ...i, ...newRecord } : i));
-                } else if (eventType === 'DELETE' && oldRecord && oldRecord.id) {
-                  setInquiries(prev => prev.filter(i => i.id !== oldRecord.id));
-                }
-              } catch (err) {
-                console.warn('Realtime inquiries payload error:', err);
               }
               fetchAllLiveServerData().catch(() => {});
             }
@@ -785,28 +791,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Server API settings save notice:', e);
     }
 
-    // 3. Direct Supabase update fallback if configured
+    // 3. Direct Supabase update fallback to settings branding row
     if (isSupabaseConfigured()) {
       try {
-        const { data: existingRows } = await supabase.from('settings').select('*').limit(1);
-        if (existingRows && existingRows.length > 0) {
-          const firstRow = existingRows[0];
-          const primaryKeyCol = 'id' in firstRow ? 'id' : Object.keys(firstRow)[0];
-          const primaryKeyValue = firstRow[primaryKeyCol];
-
-          const payload: any = {
-            logoUrl: updated.logoUrl,
-            logo_url: updated.logoUrl,
-            logo: updated.logoUrl,
-            portalName: updated.portalName,
-            portal_name: updated.portalName,
-            value: updated
-          };
-
-          const { error } = await supabase.from('settings').update(payload).eq(primaryKeyCol, primaryKeyValue);
-          if (!error) {
-            saveSuccess = true;
-          }
+        const { error } = await supabase.from('settings').upsert([{
+          id: 'branding',
+          value: updated,
+          logo: updated.logoUrl,
+          favicon: updated.faviconUrl,
+          meta_title: updated.seoTitle,
+          meta_description: updated.seoDescription
+        }]);
+        if (!error) {
+          saveSuccess = true;
+        } else {
+          console.warn('Supabase upsert branding notice:', error.message);
         }
       } catch (error) {
         console.error('Direct Supabase save fallback notice:', error);
