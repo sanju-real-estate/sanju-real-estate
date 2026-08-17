@@ -34,7 +34,7 @@ import { INDIAN_CITIES } from '../data/cities';
 import { DEFAULT_SITE_SETTINGS } from '../context/AppContext';
 
 export const AdminDashboard: React.FC = () => {
-  const { siteSettings, updateSiteSettings, properties, addProperty, deleteProperty, inquiries, updateInquiryStatus, showToast } = useApp();
+  const { siteSettings, updateSiteSettings, properties, addProperty, updateProperty, deleteProperty, inquiries, updateInquiryStatus, showToast } = useApp();
 
   // Admin Authentication State (Check Session Storage)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -53,6 +53,12 @@ export const AdminDashboard: React.FC = () => {
   }));
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'branding' | 'seo' | 'post-property' | 'manage-properties' | 'inquiries' | 'contact' | 'hero'>('branding');
+
+  // Edit Property Modal State
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Property>>({});
+  const [editImageInput, setEditImageInput] = useState('');
+  const [isUpdatingProperty, setIsUpdatingProperty] = useState(false);
 
   // New Property Form State
   const [newProp, setNewProp] = useState<Partial<Property>>({
@@ -211,6 +217,92 @@ export const AdminDashboard: React.FC = () => {
         images: [...(prev.images || []), propImageInput.trim()]
       }));
       setPropImageInput('');
+    }
+  };
+
+  // Open Edit Modal
+  const handleOpenEditProperty = (prop: Property) => {
+    setEditingProperty(prop);
+    setEditFormData({
+      ...prop,
+      images: [...(prop.images || [])],
+      amenities: [...(prop.amenities || [])]
+    });
+    setEditImageInput('');
+  };
+
+  // Upload Photo directly via file picker for editing property
+  const handleEditFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Image size should be less than 5MB', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setEditFormData(prev => ({
+          ...prev,
+          images: [...(prev.images || []), base64String]
+        }));
+        showToast('Photo added to property', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Add photo via URL for editing property
+  const handleAddEditImageUrl = () => {
+    if (editImageInput.trim()) {
+      setEditFormData(prev => ({
+        ...prev,
+        images: [...(prev.images || []), editImageInput.trim()]
+      }));
+      setEditImageInput('');
+    }
+  };
+
+  // Delete photo from editing property
+  const handleDeleteEditImage = (indexToRemove: number) => {
+    setEditFormData(prev => ({
+      ...prev,
+      images: (prev.images || []).filter((_, idx) => idx !== indexToRemove)
+    }));
+    showToast('Photo removed from property', 'info');
+  };
+
+  // Save Property Updates Live
+  const handleSavePropertyUpdates = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProperty || !editFormData.title?.trim()) {
+      showToast('Property title is required', 'error');
+      return;
+    }
+    setIsUpdatingProperty(true);
+    try {
+      const formattedPrice = (editFormData.price || 0) >= 10000000 
+        ? `₹${((editFormData.price || 0) / 10000000).toFixed(2)} Cr`
+        : (editFormData.price || 0) >= 100000
+        ? `₹${((editFormData.price || 0) / 100000).toFixed(2)} Lac`
+        : `₹${(editFormData.price || 0).toLocaleString()}`;
+
+      const updates: Partial<Property> = {
+        ...editFormData,
+        priceDisplay: editFormData.priceDisplay || formattedPrice,
+        images: (editFormData.images && editFormData.images.length > 0) 
+          ? editFormData.images 
+          : [APP_LOGO]
+      };
+
+      await updateProperty(editingProperty.id, updates);
+      showToast('🎉 Property and photos updated live across all devices!', 'success');
+      setEditingProperty(null);
+    } catch (err) {
+      console.error('Failed to update property:', err);
+      showToast('Error updating property', 'error');
+    } finally {
+      setIsUpdatingProperty(false);
     }
   };
 
@@ -837,48 +929,276 @@ export const AdminDashboard: React.FC = () => {
                   <div>
                     <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
                       <Building2 className="w-5 h-5 text-red-600" />
-                      Manage Published Properties ({properties.length})
+                      Manage & Edit Published Properties ({properties.length})
                     </h2>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Delete or inspect active property listings in Firestore.
+                      Edit details, upload new photos, delete photos, or delete active property listings.
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   {properties.map((prop) => (
-                    <div key={prop.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-between gap-4">
+                    <div key={prop.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-red-200 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
-                        <img 
-                          src={prop.images[0] || APP_LOGO} 
-                          alt={prop.title} 
-                          className="w-14 h-14 rounded-xl object-cover shrink-0 border border-gray-200"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-bold text-xs text-gray-900 truncate">{prop.title}</p>
-                          <p className="text-[11px] text-gray-500">{prop.locality}, {prop.city} • <strong className="text-red-600">{prop.priceDisplay}</strong></p>
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full inline-block mt-1">
-                            Verified Listing
+                        <div className="relative shrink-0">
+                          <img 
+                            src={prop.images[0] || APP_LOGO} 
+                            alt={prop.title} 
+                            className="w-16 h-16 rounded-xl object-cover border border-gray-200 shadow-sm"
+                          />
+                          <span className="absolute -bottom-1.5 -right-1.5 bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow">
+                            {prop.images?.length || 0} 📷
                           </span>
+                        </div>
+                        <div className="min-w-0 space-y-0.5">
+                          <p className="font-bold text-sm text-gray-900 truncate">{prop.title}</p>
+                          <p className="text-xs text-gray-500">{prop.locality}, {prop.city} • <strong className="text-red-600 font-extrabold">{prop.priceDisplay}</strong></p>
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full inline-block">
+                              Verified Listing
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                              {prop.propertyType} • {prop.bedrooms ? `${prop.bedrooms} BHK` : 'Commercial'}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`Delete property "${prop.title}" permanently?`)) {
-                            deleteProperty(prop.id);
-                            showToast('Property deleted', 'info');
-                          }
-                        }}
-                        className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl cursor-pointer transition-colors shrink-0"
-                        title="Delete Property"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditProperty(prop)}
+                          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1.5 shadow-sm"
+                          title="Edit Property & Photos"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Edit & Photos</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Delete property "${prop.title}" permanently?`)) {
+                              deleteProperty(prop.id);
+                              showToast('Property deleted', 'info');
+                            }
+                          }}
+                          className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl cursor-pointer transition-colors"
+                          title="Delete Property"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
+
+                {/* EDIT PROPERTY MODAL */}
+                {editingProperty && (
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+                      
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 bg-red-100 text-red-700 rounded-full">
+                            Property Editor
+                          </span>
+                          <h3 className="text-lg font-black text-gray-900 mt-1 flex items-center gap-2">
+                            <Edit3 className="w-5 h-5 text-red-600" />
+                            Edit Property & Photo Gallery
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingProperty(null)}
+                          className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center cursor-pointer text-sm font-bold"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleSavePropertyUpdates} className="space-y-5">
+                        
+                        {/* PHOTO GALLERY SECTION (Upload, Delete, Preview) */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-black uppercase tracking-wider text-gray-900 flex items-center gap-1.5">
+                              <ImageIcon className="w-4 h-4 text-red-600" />
+                              Property Photos Gallery ({editFormData.images?.length || 0})
+                            </label>
+                            <span className="text-[11px] text-gray-500 font-medium">Click 🗑️ to delete photo</span>
+                          </div>
+
+                          {/* Existing Photos Grid */}
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                            {(editFormData.images || []).map((imgUrl, index) => (
+                              <div key={index} className="relative group rounded-xl overflow-hidden border border-gray-300 aspect-video bg-gray-200 shadow-xs">
+                                <img 
+                                  src={imgUrl} 
+                                  alt={`Property Photo ${index + 1}`} 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { e.currentTarget.src = APP_LOGO; }}
+                                />
+                                {index === 0 && (
+                                  <span className="absolute top-1 left-1 bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow">
+                                    Cover
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteEditImage(index)}
+                                  className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-1 rounded-md shadow-md cursor-pointer transition-transform group-hover:scale-110"
+                                  title="Delete this photo"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Upload Direct Photo File */}
+                          <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
+                            <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-red-300 hover:border-red-500 bg-white hover:bg-red-50/40 p-3 rounded-xl cursor-pointer text-xs font-bold text-red-600 transition-colors">
+                              <Upload className="w-4 h-4" />
+                              <span>Upload Photo from Device (JPG/PNG)</span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleEditFileUpload} 
+                                className="hidden" 
+                              />
+                            </label>
+                          </div>
+
+                          {/* Add Photo via URL */}
+                          <div className="flex gap-2">
+                            <input
+                              type="url"
+                              value={editImageInput}
+                              onChange={(e) => setEditImageInput(e.target.value)}
+                              placeholder="Or paste image URL here..."
+                              className="flex-1 px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white focus:outline-hidden focus:border-red-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddEditImageUrl}
+                              className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 cursor-pointer"
+                            >
+                              Add URL
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Property Details Edit Fields */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="sm:col-span-2">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Property Title *</label>
+                            <input
+                              type="text"
+                              required
+                              value={editFormData.title || ''}
+                              onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                              className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white font-medium"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Price (₹) *</label>
+                            <input
+                              type="number"
+                              required
+                              value={editFormData.price || 0}
+                              onChange={(e) => setEditFormData({ ...editFormData, price: Number(e.target.value) })}
+                              className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white font-bold text-red-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Price Display Label</label>
+                            <input
+                              type="text"
+                              value={editFormData.priceDisplay || ''}
+                              onChange={(e) => setEditFormData({ ...editFormData, priceDisplay: e.target.value })}
+                              placeholder="e.g. ₹85 Lac or ₹1.2 Cr"
+                              className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">City</label>
+                            <input
+                              type="text"
+                              value={editFormData.city || 'Jaipur'}
+                              onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                              className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Locality</label>
+                            <input
+                              type="text"
+                              value={editFormData.locality || ''}
+                              onChange={(e) => setEditFormData({ ...editFormData, locality: e.target.value })}
+                              className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Bedrooms (BHK)</label>
+                            <input
+                              type="number"
+                              value={editFormData.bedrooms || 0}
+                              onChange={(e) => setEditFormData({ ...editFormData, bedrooms: Number(e.target.value) })}
+                              className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Area (Sq. Ft.)</label>
+                            <input
+                              type="number"
+                              value={editFormData.areaSqFt || 0}
+                              onChange={(e) => setEditFormData({ ...editFormData, areaSqFt: Number(e.target.value) })}
+                              className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>
+                            <textarea
+                              rows={3}
+                              value={editFormData.description || ''}
+                              onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                              className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                          <button
+                            type="button"
+                            onClick={() => setEditingProperty(null)}
+                            className="px-5 py-2.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            type="submit"
+                            disabled={isUpdatingProperty}
+                            className="px-6 py-2.5 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg cursor-pointer flex items-center gap-2"
+                          >
+                            <Save className="w-4 h-4" />
+                            <span>{isUpdatingProperty ? 'Saving Live...' : 'Save & Update Live'}</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
