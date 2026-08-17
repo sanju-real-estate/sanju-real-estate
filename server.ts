@@ -641,22 +641,8 @@ app.delete("/api/inquiries/:id", async (req, res) => {
   }
 });
 
-// Global Site Settings API powered by Supabase settings table + local fallback
-app.get("/api/settings", async (req, res) => {
-  try {
-    const { data } = await supabase.from("settings").select("*").limit(1);
-    const firstRow = data && data.length > 0 ? data[0] : null;
-
-    if (firstRow) {
-      const normalized = normalizeSettingsRow(firstRow);
-      if (normalized) {
-        globalSiteSettings = { ...globalSiteSettings, ...normalized };
-      }
-    }
-  } catch (error: any) {
-    console.warn("Supabase fetch notice in GET /api/settings:", error?.message);
-  }
-
+// Global Site Settings API powered by persistent state + Supabase
+app.get("/api/settings", (req, res) => {
   return res.json({ settings: globalSiteSettings, version: globalSyncVersion });
 });
 
