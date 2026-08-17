@@ -339,7 +339,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ property: newProperty })
-    }).catch(err => console.warn('Server property post warning:', err));
+    })
+    .then(() => fetchAllLiveServerData().catch(() => {}))
+    .catch(err => console.warn('Server property post warning:', err));
 
     // 2. Supabase secondary backup
     if (isSupabaseConfigured()) {
@@ -365,7 +367,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ updates })
-    }).catch(err => console.warn('Server property update warning:', err));
+    })
+    .then(() => fetchAllLiveServerData().catch(() => {}))
+    .catch(err => console.warn('Server property update warning:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -387,7 +391,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Persist deletion to live server API
     fetch(`/api/properties/${encodeURIComponent(propertyId)}`, {
       method: 'DELETE'
-    }).catch(err => console.warn('Server property delete warning:', err));
+    })
+    .then(() => fetchAllLiveServerData().catch(() => {}))
+    .catch(err => console.warn('Server property delete warning:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -418,7 +424,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ inquiry: newInquiry })
-    }).catch(err => console.warn('Server inquiry post warning:', err));
+    })
+    .then(() => fetchAllLiveServerData().catch(() => {}))
+    .catch(err => console.warn('Server inquiry post warning:', err));
 
     if (isSupabaseConfigured()) {
       (async () => {
@@ -509,12 +517,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const applySettingsUpdate = (norm: Partial<SiteSettings>) => {
     setSiteSettings(prev => {
-      const merged = { ...prev };
-      Object.entries(norm).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== '') {
-          (merged as any)[k] = v;
-        }
-      });
+      const merged: SiteSettings = {
+        ...prev,
+        ...norm
+      };
       try {
         localStorage.setItem('jph_site_settings', JSON.stringify(merged));
       } catch (e) {}
@@ -558,25 +564,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Initial load and auto-sync setup (continuous 4s polling + real-time channel + window focus + storage events)
+  // Initial load and auto-sync setup (continuous 3s polling + real-time channel + window focus + storage events)
   useEffect(() => {
     fetchAllLiveServerData().catch(err => console.warn('Initial live sync error:', err));
 
-    // Supabase Realtime Subscription for automatic updates if enabled
+    // Supabase Realtime Subscription for instantaneous updates across all clients
     let channel: any = null;
     if (isSupabaseConfigured()) {
       try {
         channel = supabase
-          .channel('public_site_all_changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
-            fetchAllLiveServerData().catch(() => {});
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => {
-            fetchAllLiveServerData().catch(() => {});
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, () => {
-            fetchAllLiveServerData().catch(() => {});
-          })
+          .channel('public_properties_and_app_sync')
+          // Real-time listener for ALL property changes (INSERT, UPDATE, DELETE)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'properties' },
+            (payload: any) => {
+              try {
+                const { eventType, new: newRecord, old: oldRecord } = payload;
+                
+                if (eventType === 'INSERT' && newRecord && newRecord.id) {
+                  setProperties(prev => {
+                    const exists = prev.some(p => p.id === newRecord.id);
+                    if (exists) {
+                      return prev.map(p => p.id === newRecord.id ? { ...p, ...newRecord } : p);
+                    }
+                    return [newRecord as Property, ...prev];
+                  });
+                } else if (eventType === 'UPDATE' && newRecord && newRecord.id) {
+                  setProperties(prev =>
+                    prev.map(p => (p.id === newRecord.id ? { ...p, ...newRecord } : p))
+                  );
+                  setSelectedProperty(prev =>
+                    prev && prev.id === newRecord.id ? { ...prev, ...newRecord } : prev
+                  );
+                } else if (eventType === 'DELETE' && oldRecord && oldRecord.id) {
+                  setProperties(prev => prev.filter(p => p.id !== oldRecord.id));
+                  setWishlistIds(prev => prev.filter(id => id !== oldRecord.id));
+                  setSelectedProperty(prev => (prev && prev.id === oldRecord.id ? null : prev));
+                }
+              } catch (err) {
+                console.warn('Realtime property payload error:', err);
+              }
+              // Reconcile with live server to guarantee state consistency
+              fetchAllLiveServerData().catch(() => {});
+            }
+          )
+          // Real-time listener for Settings changes
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'settings' },
+            (payload: any) => {
+              try {
+                const { new: newRecord } = payload;
+                if (newRecord) {
+                  const norm = normalizeSettings(newRecord);
+                  if (norm && Object.keys(norm).length > 0) {
+                    applySettingsUpdate(norm);
+                  }
+                }
+              } catch (err) {
+                console.warn('Realtime settings payload error:', err);
+              }
+              fetchAllLiveServerData().catch(() => {});
+            }
+          )
+          // Real-time listener for Inquiries/Leads changes
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'inquiries' },
+            (payload: any) => {
+              try {
+                const { eventType, new: newRecord, old: oldRecord } = payload;
+                if (eventType === 'INSERT' && newRecord && newRecord.id) {
+                  setInquiries(prev => {
+                    const exists = prev.some(i => i.id === newRecord.id);
+                    if (exists) return prev.map(i => i.id === newRecord.id ? { ...i, ...newRecord } : i);
+                    return [newRecord as Inquiry, ...prev];
+                  });
+                } else if (eventType === 'UPDATE' && newRecord && newRecord.id) {
+                  setInquiries(prev => prev.map(i => i.id === newRecord.id ? { ...i, ...newRecord } : i));
+                } else if (eventType === 'DELETE' && oldRecord && oldRecord.id) {
+                  setInquiries(prev => prev.filter(i => i.id !== oldRecord.id));
+                }
+              } catch (err) {
+                console.warn('Realtime inquiries payload error:', err);
+              }
+              fetchAllLiveServerData().catch(() => {});
+            }
+          )
           .subscribe((status: string, err?: Error) => {
             if (err) {
               console.warn('Realtime channel status warning:', status, err.message);
@@ -587,28 +662,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    // Poll every 4 seconds so ALL devices immediately reflect admin changes in real time
+    // Poll every 3 seconds so ALL devices immediately reflect admin changes in real time
     const pollInterval = setInterval(() => {
       fetchAllLiveServerData().catch(err => console.warn('Poll live sync error:', err));
-    }, 4000);
+    }, 3000);
 
     const handleFocus = () => {
       fetchAllLiveServerData().catch(err => console.warn('Focus live sync error:', err));
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAllLiveServerData().catch(err => console.warn('Visibility live sync error:', err));
+      }
+    };
+
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'jph_site_settings_sync' || e.key === 'mb_properties' || e.key === 'mb_inquiries') {
-        fetchAllLiveServerData();
+        fetchAllLiveServerData().catch(() => {});
       }
     };
 
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('storage', handleStorage);
     window.addEventListener('online', handleFocus);
 
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('online', handleFocus);
       if (channel && isSupabaseConfigured()) {
@@ -696,6 +779,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       if (res.ok) {
         saveSuccess = true;
+        fetchAllLiveServerData().catch(() => {});
       }
     } catch (e) {
       console.warn('Server API settings save notice:', e);

@@ -286,6 +286,25 @@ const SEED_INQUIRIES = [
   }
 ];
 
+const DEFAULT_SERVER_SETTINGS = {
+  logoUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
+  faviconUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=150&q=80",
+  portalName: 'Jaipur Properties Hub',
+  tagline: 'Jaipur’s #1 Verified Real Estate & Property Portal',
+  helplinePhone: '+91 97721 17575',
+  helplineWhatsapp: '+91 97721 17575',
+  helplineEmail: 'support@jaipurproperties.hub',
+  officeAddress: 'Main Tonk Road, Opposite Gaurav Tower, Malviya Nagar, Jaipur, Rajasthan 302017',
+  heroHeadline: 'Find Your Dream Property in Pink City, Jaipur',
+  announcementBarText: '✨ Special Festival Offer: ZERO Brokerage on Verified Direct Builder & Owner Properties in Mansarovar & Vaishali Nagar!',
+  announcementBarActive: true,
+  seoTitle: 'Jaipur Properties Hub | Buy, Sell & Rent Verified Real Estate in Jaipur',
+  seoDescription: 'Find verified flats, luxury villas, residential plots & commercial properties for sale and rent in Jaipur with zero brokerage.',
+  seoKeywords: 'Jaipur properties, flats in Jaipur, villas in Vaishali Nagar, plots in Mansarovar, real estate Jaipur',
+  seoCanonicalUrl: '',
+  updatedAt: new Date().toISOString()
+};
+
 // Initialize Settings
 try {
   if (fs.existsSync(DATA_SETTINGS_FILE_PATH)) {
@@ -297,6 +316,10 @@ try {
   }
 } catch (e) {
   console.warn("Could not load initial site_settings.json:", e);
+}
+
+if (!globalSiteSettings) {
+  globalSiteSettings = DEFAULT_SERVER_SETTINGS;
 }
 
 // Initialize Properties
@@ -359,6 +382,46 @@ function saveSettingsToDisk(settings: any) {
     console.warn("Failed to write site_settings.json:", e);
   }
 }
+
+// Background sync from Supabase on startup
+async function syncFromSupabaseCloud() {
+  try {
+    const { data: settingsData } = await supabase.from("settings").select("*").limit(1);
+    if (settingsData && settingsData.length > 0) {
+      const normalized = normalizeSettingsRow(settingsData[0]);
+      if (normalized) {
+        globalSiteSettings = { ...DEFAULT_SERVER_SETTINGS, ...globalSiteSettings, ...normalized };
+        saveSettingsToDisk(globalSiteSettings);
+      }
+    }
+
+    const { data: propsData } = await supabase.from("properties").select("*");
+    if (propsData && propsData.length > 0) {
+      const cloudMap = new Map();
+      propsData.forEach((p: any) => cloudMap.set(p.id, p));
+      globalProperties.forEach((p: any) => {
+        if (!cloudMap.has(p.id)) cloudMap.set(p.id, p);
+      });
+      globalProperties = Array.from(cloudMap.values());
+      savePropertiesToDisk();
+    }
+
+    const { data: inqData } = await supabase.from("inquiries").select("*");
+    if (inqData && inqData.length > 0) {
+      const inqMap = new Map();
+      inqData.forEach((i: any) => inqMap.set(i.id, i));
+      globalInquiries.forEach((i: any) => {
+        if (!inqMap.has(i.id)) inqMap.set(i.id, i);
+      });
+      globalInquiries = Array.from(inqMap.values());
+      saveInquiriesToDisk();
+    }
+  } catch (e: any) {
+    console.warn("Supabase startup sync notice:", e?.message);
+  }
+}
+
+syncFromSupabaseCloud().catch(() => {});
 
 // Helper function to extract normalized SiteSettings from any database row format
 function normalizeSettingsRow(row: any) {
