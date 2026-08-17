@@ -246,7 +246,30 @@ export const AdminDashboard: React.FC = () => {
           ...prev,
           images: [...(prev.images || []), base64String]
         }));
-        showToast('Photo added to property', 'success');
+        showToast('Photo added to property gallery', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Upload Floor Plan Photo (2D or 3D) for editing property
+  const handleFloorPlanFileUpload = (type: '2D' | '3D', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Floor plan size should be less than 5MB', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        if (type === '2D') {
+          setEditFormData(prev => ({ ...prev, floorPlanUrl: base64String }));
+          showToast('2D Floor Plan layout photo uploaded', 'success');
+        } else {
+          setEditFormData(prev => ({ ...prev, floorPlan3DUrl: base64String }));
+          showToast('3D Isometric Floor Plan photo uploaded', 'success');
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -1173,6 +1196,177 @@ export const AdminDashboard: React.FC = () => {
                               onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                               className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-red-500 bg-white"
                             />
+                          </div>
+                        </div>
+
+                        {/* FLOOR PLAN PHOTO UPLOAD SECTION (2D & 3D Isometric) */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-black uppercase tracking-wider text-gray-900 flex items-center gap-1.5">
+                              <Layers className="w-4 h-4 text-red-600" />
+                              Floor Plan & Architecture Photos (2D & 3D)
+                            </label>
+                            <span className="text-[11px] text-gray-500 font-medium">Shown in detail page layout viewer</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                            {/* 2D Architecture Floor Plan */}
+                            <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-gray-800">2D Architecture Plan</span>
+                                {editFormData.floorPlanUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditFormData(prev => ({ ...prev, floorPlanUrl: '' }))}
+                                    className="text-[10px] text-red-600 hover:underline font-bold"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                              {editFormData.floorPlanUrl ? (
+                                <div className="h-28 rounded-lg overflow-hidden border border-gray-200 bg-slate-900 flex items-center justify-center">
+                                  <img 
+                                    src={editFormData.floorPlanUrl} 
+                                    alt="2D Floor Plan" 
+                                    className="h-full w-full object-contain"
+                                    onError={(e) => { e.currentTarget.src = APP_LOGO; }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="h-28 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 text-center p-2">
+                                  <Layers className="w-6 h-6 mb-1 opacity-50" />
+                                  <span className="text-[10px]">No 2D floor plan photo</span>
+                                </div>
+                              )}
+                              <label className="flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 p-2 rounded-lg cursor-pointer text-xs font-bold transition-colors">
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>Upload 2D Photo</span>
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  onChange={(e) => handleFloorPlanFileUpload('2D', e)} 
+                                  className="hidden" 
+                                />
+                              </label>
+                            </div>
+
+                            {/* 3D Isometric View Floor Plan */}
+                            <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-gray-800">3D Isometric View</span>
+                                {editFormData.floorPlan3DUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditFormData(prev => ({ ...prev, floorPlan3DUrl: '' }))}
+                                    className="text-[10px] text-red-600 hover:underline font-bold"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                              {editFormData.floorPlan3DUrl ? (
+                                <div className="h-28 rounded-lg overflow-hidden border border-gray-200 bg-slate-900 flex items-center justify-center">
+                                  <img 
+                                    src={editFormData.floorPlan3DUrl} 
+                                    alt="3D Floor Plan" 
+                                    className="h-full w-full object-contain"
+                                    onError={(e) => { e.currentTarget.src = APP_LOGO; }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="h-28 rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 text-center p-2">
+                                  <Sparkles className="w-6 h-6 mb-1 opacity-50 text-amber-500" />
+                                  <span className="text-[10px]">No 3D isometric photo</span>
+                                </div>
+                              )}
+                              <label className="flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 p-2 rounded-lg cursor-pointer text-xs font-bold transition-colors">
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>Upload 3D Photo</span>
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  onChange={(e) => handleFloorPlanFileUpload('3D', e)} 
+                                  className="hidden" 
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ADVANCED SEO & SLUG SETTINGS SECTION */}
+                        <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                              <Globe className="w-4 h-4 text-amber-700" />
+                              Property SEO Meta Details & Custom Slug URL
+                            </label>
+                            <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-2 py-0.5 rounded">
+                              Search Engine Optimization
+                            </span>
+                          </div>
+
+                          <div className="space-y-3 pt-1">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-700 mb-1">
+                                Custom URL Slug (e.g. 3bhk-luxury-apartment-mansarovar)
+                              </label>
+                              <div className="flex items-center bg-white border border-gray-300 rounded-xl overflow-hidden focus-within:border-amber-500">
+                                <span className="px-3 py-2 text-xs text-gray-500 bg-gray-100 border-r border-gray-200 font-mono">
+                                  /property/
+                                </span>
+                                <input
+                                  type="text"
+                                  value={editFormData.slug || ''}
+                                  onChange={(e) => setEditFormData({ 
+                                    ...editFormData, 
+                                    slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '-') 
+                                  })}
+                                  placeholder="e.g. 3bhk-flat-malviya-nagar-jaipur"
+                                  className="w-full px-3 py-2 text-xs focus:outline-hidden font-mono text-gray-800"
+                                />
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-1">SEO-friendly clean link structure for Google Search indexing.</p>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-700 mb-1">
+                                SEO Meta Title (Shown on Google Results & Browser Tab)
+                              </label>
+                              <input
+                                type="text"
+                                value={editFormData.seoTitle || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, seoTitle: e.target.value })}
+                                placeholder={`e.g. ${editFormData.title || 'Property'} for Sale in ${editFormData.locality || 'Jaipur'}`}
+                                className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-amber-500 bg-white"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-700 mb-1">
+                                SEO Meta Description
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={editFormData.seoDescription || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, seoDescription: e.target.value })}
+                                placeholder="Summary for Google preview snippets (recommended 140-160 characters)"
+                                className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-amber-500 bg-white"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-700 mb-1">
+                                SEO Keywords (Comma separated)
+                              </label>
+                              <input
+                                type="text"
+                                value={editFormData.seoKeywords || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, seoKeywords: e.target.value })}
+                                placeholder="e.g. 3 BHK Flat Jaipur, Luxury Apartment Mansarovar, Buy Flat, Owner Property"
+                                className="w-full px-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-amber-500 bg-white"
+                              />
+                            </div>
                           </div>
                         </div>
 

@@ -50,10 +50,16 @@ export interface Property {
   images: string[];
   videoUrl?: string;
   floorPlanUrl?: string;
+  floorPlan3DUrl?: string;
   amenities: string[];
   postedDate: string;
   viewsCount: number;
   leadsCount: number;
+  // Per-Property SEO & Custom URL Slugs
+  slug?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 }
 
 export interface Inquiry {

@@ -23,6 +23,30 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
 
   const isSaved = wishlistIds.includes(property.id);
 
+  // Dynamic SEO & Title tags for this property
+  useEffect(() => {
+    const pageTitle = property.seoTitle || `${property.title} | ${property.locality}, ${property.city}`;
+    document.title = pageTitle;
+
+    // Update meta description
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.setAttribute('name', 'description');
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute('content', property.seoDescription || property.description.slice(0, 160));
+
+    // Update meta keywords
+    let metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (!metaKeywords) {
+      metaKeywords = document.createElement('meta');
+      metaKeywords.setAttribute('name', 'keywords');
+      document.head.appendChild(metaKeywords);
+    }
+    metaKeywords.setAttribute('content', property.seoKeywords || `${property.propertyType}, ${property.locality}, ${property.city}, real estate, property for sale`);
+  }, [property]);
+
   // Fetch AI Locality Insights from server endpoint
   useEffect(() => {
     let isMounted = true;
@@ -132,6 +156,13 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
                 <MapPin className="w-4 h-4 text-red-600 shrink-0" />
                 <span>{property.address}</span>
               </div>
+
+              {property.slug && (
+                <div className="mt-2.5 flex items-center gap-1.5 text-[11px] font-mono text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200 w-fit">
+                  <span className="text-gray-400">Canonical Slug:</span>
+                  <span className="font-bold text-red-600">/property/{property.slug}</span>
+                </div>
+              )}
             </div>
 
             {/* Price Box */}
@@ -323,12 +354,18 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
 
               <div className="bg-slate-900 rounded-xl p-4 text-center">
                 <img
-                  src={property.floorPlanUrl || 'https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=800&q=80'}
-                  alt="Floor Plan"
+                  src={
+                    activeFloorPlanTab === '2D'
+                      ? (property.floorPlanUrl || 'https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=800&q=80')
+                      : (property.floorPlan3DUrl || property.floorPlanUrl || 'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?auto=format&fit=crop&w=800&q=80')
+                  }
+                  alt={`${property.title} Floor Plan ${activeFloorPlanTab}`}
                   className="max-h-80 mx-auto object-contain rounded-lg shadow-lg"
                 />
                 <p className="text-xs text-slate-400 mt-3 font-medium">
-                  Architectural floor plan depicting optimal cross-ventilation, zero space wastage, and private balcony layout.
+                  {activeFloorPlanTab === '2D'
+                    ? '2D Architectural floor plan depicting optimal cross-ventilation, zero space wastage, and private balcony layout.'
+                    : '3D Isometric Architectural visualizer showing spatial proportions, natural light paths, and room flow.'}
                 </p>
               </div>
             </div>
