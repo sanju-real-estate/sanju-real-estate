@@ -27,7 +27,9 @@ import {
   KeyRound,
   LogOut,
   Layers,
-  MessageSquare
+  MessageSquare,
+  ExternalLink,
+  Share2
 } from 'lucide-react';
 import { APP_LOGO } from '../assets/logo';
 import { INDIAN_CITIES } from '../data/cities';
@@ -44,7 +46,8 @@ export const AdminDashboard: React.FC = () => {
     inquiries, 
     updateInquiryStatus, 
     showToast,
-    setActiveView 
+    setActiveView,
+    viewPropertyDetail 
   } = useApp();
 
   // Admin Authentication State (Check Session Storage)
@@ -958,6 +961,52 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Custom URL Slug & SEO Field */}
+                <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-amber-700" />
+                      Custom URL Slug & Page Link (SEO)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newProp.title) {
+                          const autoSlug = newProp.title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-');
+                          setNewProp(prev => ({ ...prev, slug: autoSlug }));
+                        }
+                      }}
+                      className="text-[10px] bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold px-2 py-0.5 rounded cursor-pointer transition-colors"
+                    >
+                      Auto-generate from Title
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Direct Page URL: <span className="text-gray-500 font-normal">https://www.eigentumspaces.com/{newProp.slug || '2bhk-property'}</span>
+                    </label>
+                    <div className="flex items-center bg-white border border-gray-300 rounded-xl overflow-hidden focus-within:border-amber-500">
+                      <span className="px-3 py-2 text-xs text-gray-500 bg-gray-100 border-r border-gray-200 font-mono">
+                        /
+                      </span>
+                      <input
+                        type="text"
+                        value={newProp.slug || ''}
+                        onChange={(e) => setNewProp(prev => ({
+                          ...prev,
+                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '-')
+                        }))}
+                        placeholder="e.g. 2bhk-property or 3bhk-luxury-villa-jaipur"
+                        className="w-full px-3 py-2 text-xs focus:outline-hidden font-mono text-gray-800"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Direct URL ban jayega jaise <code className="bg-amber-100 px-1 py-0.5 rounded text-amber-900 font-bold">https://www.eigentumspaces.com/{newProp.slug || '2bhk-property'}</code>
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>
                   <textarea
@@ -1013,18 +1062,50 @@ export const AdminDashboard: React.FC = () => {
                         <div className="min-w-0 space-y-0.5">
                           <p className="font-bold text-sm text-gray-900 truncate">{prop.title}</p>
                           <p className="text-xs text-gray-500">{prop.locality}, {prop.city} • <strong className="text-red-600 font-extrabold">{prop.priceDisplay}</strong></p>
-                          <div className="flex items-center gap-2 pt-0.5">
+                          <div className="flex items-center gap-2 pt-0.5 flex-wrap">
                             <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full inline-block">
                               Verified Listing
                             </span>
                             <span className="text-[10px] text-gray-400">
                               {prop.propertyType} • {prop.bedrooms ? `${prop.bedrooms} BHK` : 'Commercial'}
                             </span>
+                            {prop.slug && (
+                              <span className="text-[10px] bg-blue-50 text-blue-700 font-mono font-bold px-2 py-0.5 rounded-md border border-blue-200 flex items-center gap-1">
+                                <span>/{prop.slug}</span>
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const slug = prop.slug || prop.id;
+                            const fullUrl = `${window.location.origin}/${slug}`;
+                            navigator.clipboard.writeText(fullUrl);
+                            showToast(`URL Copied: ${fullUrl}`, 'success');
+                          }}
+                          className="px-2.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1"
+                          title="Copy Direct URL"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span className="hidden md:inline">Copy Link</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            viewPropertyDetail(prop);
+                          }}
+                          className="px-2.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1"
+                          title="Preview Property Page"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span className="hidden md:inline">Preview</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => handleOpenEditProperty(prop)}
@@ -1345,11 +1426,11 @@ export const AdminDashboard: React.FC = () => {
                           <div className="space-y-3 pt-1">
                             <div>
                               <label className="block text-xs font-bold text-gray-700 mb-1">
-                                Custom URL Slug (e.g. 3bhk-luxury-apartment-mansarovar)
+                                Custom URL Slug: <span className="text-gray-500 font-normal">https://www.eigentumspaces.com/{editFormData.slug || '2bhk-property'}</span>
                               </label>
                               <div className="flex items-center bg-white border border-gray-300 rounded-xl overflow-hidden focus-within:border-amber-500">
                                 <span className="px-3 py-2 text-xs text-gray-500 bg-gray-100 border-r border-gray-200 font-mono">
-                                  /property/
+                                  /
                                 </span>
                                 <input
                                   type="text"
@@ -1358,11 +1439,11 @@ export const AdminDashboard: React.FC = () => {
                                     ...editFormData, 
                                     slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '-') 
                                   })}
-                                  placeholder="e.g. 3bhk-flat-malviya-nagar-jaipur"
+                                  placeholder="e.g. 2bhk-property or 3bhk-flat-malviya-nagar-jaipur"
                                   className="w-full px-3 py-2 text-xs focus:outline-hidden font-mono text-gray-800"
                                 />
                               </div>
-                              <p className="text-[10px] text-gray-500 mt-1">SEO-friendly clean link structure for Google Search indexing.</p>
+                              <p className="text-[10px] text-gray-500 mt-1">SEO-friendly direct page URL (e.g. <code className="bg-amber-100 px-1 py-0.5 rounded text-amber-900 font-bold">https://www.eigentumspaces.com/{editFormData.slug || '2bhk-property'}</code>)</p>
                             </div>
 
                             <div>

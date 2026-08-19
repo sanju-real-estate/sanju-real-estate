@@ -44,7 +44,7 @@ export const HeroSection: React.FC = () => {
       maxPrice: budgetMax,
       searchQuery: localityInput
     }));
-    setActiveView('listings');
+    setActiveView('listings', activeTab);
   };
 
   const setQuickFilter = (locality: string, pType?: PropertyType, maxP?: number) => {
@@ -57,7 +57,7 @@ export const HeroSection: React.FC = () => {
       maxPrice: maxP || 100000000,
       searchQuery: locality
     }));
-    setActiveView('listings');
+    setActiveView('listings', activeTab);
   };
 
   return (
@@ -270,30 +270,6 @@ export const HeroSection: React.FC = () => {
             )}
           </div>
 
-        </div>
-
-        {/* Verified Admin & Helpline Banner */}
-        <div className="mt-8 bg-gradient-to-r from-slate-900 via-red-950 to-slate-900 p-5 rounded-2xl border border-red-500/30 shadow-xl max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md">
-          <div className="space-y-1 text-center sm:text-left">
-            <div className="inline-block bg-emerald-400 text-slate-950 text-[10px] uppercase font-black px-2 py-0.5 rounded">
-              VERIFIED PROPERTY PORTAL
-            </div>
-            <h3 className="text-lg font-bold text-white">
-              Direct Verified Owner & Builder Properties
-            </h3>
-            <p className="text-xs text-red-200">
-              Zero Brokerage • Direct Contact • Instant Valuation Reports • Admin Managed
-            </p>
-          </div>
-
-          <button
-            onClick={() => setActiveView('admin')}
-            className="shrink-0 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer group"
-          >
-            <ShieldCheck className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-            <span>Admin Panel Login</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
         </div>
 
       </div>

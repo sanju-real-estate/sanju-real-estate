@@ -18,12 +18,13 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      const propUrl = `${window.location.origin}/${property.slug || property.id}`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(window.location.href)
-          .then(() => showToast('Property link copied to clipboard!', 'info'))
+        navigator.clipboard.writeText(propUrl)
+          .then(() => showToast(`Property link copied: /${property.slug || property.id}`, 'info'))
           .catch(() => showToast('Property link copied to clipboard!', 'info'));
       } else {
-        showToast('Property link copied!', 'info');
+        showToast(`Property link: /${property.slug || property.id}`, 'info');
       }
     } catch (err) {
       showToast('Property link copied!', 'info');

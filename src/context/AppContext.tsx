@@ -19,6 +19,16 @@ import {
 } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
+export function generateSlug(text: string): string {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   logoUrl: APP_LOGO,
   faviconUrl: APP_LOGO,
@@ -56,7 +66,7 @@ interface AppContextType {
   
   // Actions
   setSelectedCity: (city: string) => void;
-  setActiveView: (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin') => void;
+  setActiveView: (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin', subTypeOrSlug?: string) => void;
   setSelectedProperty: (property: Property | null) => void;
   toggleWishlist: (propertyId: string) => void;
   addProperty: (property: Omit<Property, 'id' | 'viewsCount' | 'leadsCount' | 'postedDate'>) => Property;
@@ -140,35 +150,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_INQUIRIES;
   });
 
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
+    try {
+      const saved = localStorage.getItem('jph_site_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...DEFAULT_SITE_SETTINGS,
+            ...parsed,
+            logoUrl: parsed.logoUrl || DEFAULT_SITE_SETTINGS.logoUrl,
+            faviconUrl: parsed.faviconUrl || parsed.logoUrl || DEFAULT_SITE_SETTINGS.faviconUrl,
+          };
+        }
+      }
+    } catch (e) {}
+    return DEFAULT_SITE_SETTINGS;
+  });
+
   const [selectedCity, setSelectedCity] = useState<string>('Jaipur');
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname.replace(/\/+$/, '') || '/';
+        const cleanSlug = path.replace(/^\/property\//, '').replace(/^\//, '').trim().toLowerCase();
+        if (cleanSlug && !['admin', 'post-property', 'listings', 'buy', 'rent', 'commercial', 'new-projects', 'valuation', 'calculator', 'price-estimator', 'dashboard', 'saved', 'wishlist', 'home', ''].includes(cleanSlug)) {
+          const found = INITIAL_PROPERTIES.find(p => 
+            (p.slug && p.slug.toLowerCase() === cleanSlug) || 
+            p.id.toLowerCase() === cleanSlug || 
+            generateSlug(p.title) === cleanSlug
+          );
+          if (found) return found;
+        }
+      }
+    } catch (e) {}
+    return INITIAL_PROPERTIES[0];
+  });
+
   const [activeView, setActiveViewState] = useState<'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin'>(() => {
     try {
       if (typeof window !== 'undefined') {
-        const path = window.location.pathname.toLowerCase();
+        const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
         const search = window.location.search.toLowerCase();
         const hash = window.location.hash.toLowerCase();
 
-        if (path.includes('/admin') || search.includes('admin=true') || hash.includes('admin')) {
+        if (path === '/admin' || path.startsWith('/admin/') || search.includes('admin=true') || hash.includes('admin')) {
           return 'admin';
         }
-        if (path.includes('/post-property') || hash.includes('post-property')) {
+        if (path === '/post-property' || hash.includes('post-property')) {
           return 'post-property';
         }
-        if (path.includes('/listings') || hash.includes('listings')) {
+        if (path === '/buy' || path === '/rent' || path === '/commercial' || path === '/new-projects' || path === '/listings' || hash.includes('listings')) {
           return 'listings';
         }
-        if (path.includes('/valuation') || hash.includes('valuation')) {
+        if (path === '/valuation' || path === '/calculator' || path === '/price-estimator' || hash.includes('valuation')) {
           return 'valuation';
         }
-        if (path.includes('/dashboard') || hash.includes('dashboard')) {
+        if (path === '/dashboard' || path === '/saved' || path === '/wishlist' || hash.includes('dashboard')) {
           return 'dashboard';
+        }
+        // Check if slug matches any property
+        const cleanSlug = path.replace(/^\/property\//, '').replace(/^\//, '').trim();
+        if (cleanSlug && cleanSlug !== 'home' && cleanSlug !== '') {
+          const found = INITIAL_PROPERTIES.find(p => 
+            (p.slug && p.slug.toLowerCase() === cleanSlug) || 
+            p.id.toLowerCase() === cleanSlug || 
+            generateSlug(p.title) === cleanSlug
+          );
+          if (found) return 'detail';
         }
       }
     } catch (e) {}
     return 'home';
   });
 
-  const setActiveView = (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin') => {
+  const [filters, setFilters] = useState<FilterState>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname.toLowerCase();
+        if (path === '/buy') return { ...DEFAULT_FILTERS, listingType: 'Buy' };
+        if (path === '/rent') return { ...DEFAULT_FILTERS, listingType: 'Rent' };
+        if (path === '/commercial') return { ...DEFAULT_FILTERS, listingType: 'Commercial' };
+        if (path === '/new-projects') return { ...DEFAULT_FILTERS, listingType: 'New Projects' };
+      }
+    } catch (e) {}
+    return DEFAULT_FILTERS;
+  });
+
+  const setActiveView = (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin', subTypeOrSlug?: string) => {
     setActiveViewState(view);
     try {
       if (typeof window !== 'undefined') {
@@ -176,25 +245,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (window.location.pathname !== '/admin') {
             window.history.pushState({ view: 'admin' }, '', '/admin');
           }
+          document.title = `Admin Control Panel | ${siteSettings.portalName}`;
         } else if (view === 'home') {
           if (window.location.pathname !== '/') {
             window.history.pushState({ view: 'home' }, '', '/');
           }
+          document.title = `${siteSettings.portalName} | ${siteSettings.tagline}`;
         } else if (view === 'listings') {
-          if (window.location.pathname !== '/listings') {
-            window.history.pushState({ view: 'listings' }, '', '/listings');
+          const lType = subTypeOrSlug || filters.listingType;
+          let targetPath = '/listings';
+          if (lType === 'Buy') targetPath = '/buy';
+          else if (lType === 'Rent') targetPath = '/rent';
+          else if (lType === 'Commercial') targetPath = '/commercial';
+          else if (lType === 'New Projects') targetPath = '/new-projects';
+
+          if (window.location.pathname !== targetPath) {
+            window.history.pushState({ view: 'listings', listingType: lType }, '', targetPath);
           }
+          document.title = `${lType || 'Verified'} Properties in ${selectedCity} | ${siteSettings.portalName}`;
         } else if (view === 'post-property') {
           if (window.location.pathname !== '/post-property') {
             window.history.pushState({ view: 'post-property' }, '', '/post-property');
           }
+          document.title = `Post Property | ${siteSettings.portalName}`;
         } else if (view === 'valuation') {
           if (window.location.pathname !== '/valuation') {
             window.history.pushState({ view: 'valuation' }, '', '/valuation');
           }
+          document.title = `Property Price Estimator & Real Estate Calculators | ${siteSettings.portalName}`;
         } else if (view === 'dashboard') {
           if (window.location.pathname !== '/dashboard') {
             window.history.pushState({ view: 'dashboard' }, '', '/dashboard');
+          }
+          document.title = `User Dashboard & Saved Properties | ${siteSettings.portalName}`;
+        } else if (view === 'detail') {
+          const propToView = subTypeOrSlug 
+            ? properties.find(p => p.slug === subTypeOrSlug || p.id === subTypeOrSlug || generateSlug(p.title) === subTypeOrSlug) || selectedProperty
+            : selectedProperty;
+          
+          if (propToView) {
+            const propSlug = propToView.slug || generateSlug(propToView.title) || propToView.id;
+            const targetPath = `/${propSlug}`;
+            if (window.location.pathname !== targetPath) {
+              window.history.pushState({ view: 'detail', propId: propToView.id, slug: propSlug }, '', targetPath);
+            }
+            document.title = `${propToView.seoTitle || propToView.title} | ${siteSettings.portalName}`;
           }
         }
       }
@@ -203,9 +298,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Listen to browser Back/Forward navigation and Hash/URL changes
   useEffect(() => {
-    const checkAdminOrPath = () => {
+    const resolveRouteFromUrl = () => {
       try {
-        const path = window.location.pathname.toLowerCase();
+        const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
         const search = window.location.search.toLowerCase();
         const hash = window.location.hash.toLowerCase();
 
@@ -217,16 +312,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           hash.includes('admin')
         ) {
           setActiveViewState('admin');
-        } else if (path.includes('/post-property') || hash.includes('post-property')) {
+          document.title = `Admin Control Panel | ${siteSettings.portalName}`;
+        } else if (path === '/post-property' || hash.includes('post-property')) {
           setActiveViewState('post-property');
-        } else if (path.includes('/listings') || hash.includes('listings')) {
+          document.title = `Post Property | ${siteSettings.portalName}`;
+        } else if (path === '/buy') {
+          setFilters(prev => ({ ...prev, listingType: 'Buy' }));
           setActiveViewState('listings');
-        } else if (path.includes('/valuation') || hash.includes('valuation')) {
+          document.title = `Buy Verified Properties in ${selectedCity} | ${siteSettings.portalName}`;
+        } else if (path === '/rent') {
+          setFilters(prev => ({ ...prev, listingType: 'Rent' }));
+          setActiveViewState('listings');
+          document.title = `Rent Verified Properties in ${selectedCity} | ${siteSettings.portalName}`;
+        } else if (path === '/commercial') {
+          setFilters(prev => ({ ...prev, listingType: 'Commercial' }));
+          setActiveViewState('listings');
+          document.title = `Commercial Offices & Spaces in ${selectedCity} | ${siteSettings.portalName}`;
+        } else if (path === '/new-projects') {
+          setFilters(prev => ({ ...prev, listingType: 'New Projects' }));
+          setActiveViewState('listings');
+          document.title = `New Builder Projects & Townships | ${siteSettings.portalName}`;
+        } else if (path === '/listings' || hash.includes('listings')) {
+          setActiveViewState('listings');
+          document.title = `Explore Property Listings | ${siteSettings.portalName}`;
+        } else if (path === '/valuation' || path === '/calculator' || path === '/price-estimator' || hash.includes('valuation')) {
           setActiveViewState('valuation');
-        } else if (path.includes('/dashboard') || hash.includes('dashboard')) {
+          document.title = `Property Price Estimator & EMI Calculator | ${siteSettings.portalName}`;
+        } else if (path === '/dashboard' || path === '/saved' || path === '/wishlist' || hash.includes('dashboard')) {
           setActiveViewState('dashboard');
-        } else if (path === '/' || path === '') {
-          // Keep current view unless explicit
+          document.title = `Saved Properties & Dashboard | ${siteSettings.portalName}`;
+        } else if (path === '/' || path === '' || path === '/home') {
+          setActiveViewState('home');
+          document.title = `${siteSettings.portalName} | ${siteSettings.tagline}`;
+        } else {
+          // Check for individual property slug
+          const cleanSlug = path.replace(/^\/property\//, '').replace(/^\//, '').trim();
+          if (cleanSlug) {
+            const matched = properties.find(p => 
+              (p.slug && p.slug.toLowerCase() === cleanSlug) || 
+              p.id.toLowerCase() === cleanSlug || 
+              generateSlug(p.title) === cleanSlug
+            );
+            if (matched) {
+              setSelectedProperty(matched);
+              setActiveViewState('detail');
+              document.title = `${matched.seoTitle || matched.title} | ${siteSettings.portalName}`;
+            }
+          }
         }
       } catch (e) {}
     };
@@ -239,18 +371,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
 
-    window.addEventListener('popstate', checkAdminOrPath);
-    window.addEventListener('hashchange', checkAdminOrPath);
+    resolveRouteFromUrl();
+
+    window.addEventListener('popstate', resolveRouteFromUrl);
+    window.addEventListener('hashchange', resolveRouteFromUrl);
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('popstate', checkAdminOrPath);
-      window.removeEventListener('hashchange', checkAdminOrPath);
+      window.removeEventListener('popstate', resolveRouteFromUrl);
+      window.removeEventListener('hashchange', resolveRouteFromUrl);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(INITIAL_PROPERTIES[0]);
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  }, [properties, selectedCity, siteSettings]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState<boolean>(false);
 
@@ -868,7 +1000,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const viewPropertyDetail = (property: Property) => {
     setSelectedProperty(property);
-    setActiveView('detail');
+    const propSlug = property.slug || generateSlug(property.title) || property.id;
+    try {
+      if (typeof window !== 'undefined') {
+        window.history.pushState({ view: 'detail', propId: property.id, slug: propSlug }, '', `/${propSlug}`);
+        document.title = `${property.seoTitle || property.title} | ${siteSettings.portalName}`;
+      }
+    } catch (e) {}
+    setActiveViewState('detail');
     setProperties(prev =>
       prev.map(p => (p.id === property.id ? { ...p, viewsCount: p.viewsCount + 1 } : p))
     );
@@ -883,9 +1022,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ? `₹${(newPropData.price / 100000).toFixed(2)} Lac`
       : `₹${newPropData.price.toLocaleString()}`;
 
+    const autoSlug = newPropData.slug || generateSlug(newPropData.title) || `prop-${Date.now()}`;
+
     const newProperty: Property = {
       ...newPropData,
       id: newId,
+      slug: autoSlug,
       priceDisplay: newPropData.priceDisplay || formattedPrice,
       viewsCount: 1,
       leadsCount: 0,
@@ -1047,24 +1189,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const resetFilters = () => {
     setFilters(DEFAULT_FILTERS);
   };
-
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
-    try {
-      const saved = localStorage.getItem('jph_site_settings');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          return {
-            ...DEFAULT_SITE_SETTINGS,
-            ...parsed,
-            logoUrl: parsed.logoUrl || DEFAULT_SITE_SETTINGS.logoUrl,
-            faviconUrl: parsed.faviconUrl || parsed.logoUrl || DEFAULT_SITE_SETTINGS.faviconUrl,
-          };
-        }
-      }
-    } catch (e) {}
-    return DEFAULT_SITE_SETTINGS;
-  });
 
   // Helper function to extract normalized SiteSettings from any data payload
   const normalizeSettings = (data: any): Partial<SiteSettings> | null => {

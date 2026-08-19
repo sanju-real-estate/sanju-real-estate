@@ -165,7 +165,7 @@ const MainContent: React.FC = () => {
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => { setFilters(prev => ({ ...prev, listingType: 'New Projects' })); setActiveView('listings'); }} className="text-gray-400 hover:text-red-400 transition-colors">
+                  <button onClick={() => { setFilters(prev => ({ ...prev, listingType: 'New Projects' })); setActiveView('listings', 'New Projects'); }} className="text-gray-400 hover:text-red-400 transition-colors">
                     New Builder Project Launches
                   </button>
                 </li>
@@ -175,7 +175,7 @@ const MainContent: React.FC = () => {
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => { setFilters(prev => ({ ...prev, listingType: 'Commercial' })); setActiveView('listings'); }} className="text-gray-400 hover:text-red-400 transition-colors">
+                  <button onClick={() => { setFilters(prev => ({ ...prev, listingType: 'Commercial' })); setActiveView('listings', 'Commercial'); }} className="text-gray-400 hover:text-red-400 transition-colors">
                     Commercial Workspaces & Shops
                   </button>
                 </li>

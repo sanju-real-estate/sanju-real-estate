@@ -159,8 +159,8 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({ property
 
               {property.slug && (
                 <div className="mt-2.5 flex items-center gap-1.5 text-[11px] font-mono text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200 w-fit">
-                  <span className="text-gray-400">Canonical Slug:</span>
-                  <span className="font-bold text-red-600">/property/{property.slug}</span>
+                  <span className="text-gray-400">Direct URL:</span>
+                  <span className="font-bold text-red-600">/{property.slug}</span>
                 </div>
               )}
             </div>

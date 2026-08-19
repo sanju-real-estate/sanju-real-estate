@@ -21,7 +21,7 @@ export const Navbar: React.FC = () => {
     if (listingType) {
       setFilters(prev => ({ ...prev, listingType: listingType as any }));
     }
-    setActiveView(view);
+    setActiveView(view, listingType);
     setIsMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

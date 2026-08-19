@@ -3,6 +3,7 @@ import { Property, LocalityInfo, Inquiry } from '../types';
 export const INITIAL_PROPERTIES: Property[] = [
   {
     id: 'jpr-1',
+    slug: '3bhk-luxury-apartment-vaishali-nagar',
     title: '3 BHK Luxury Apartment in Vaishali Nagar',
     description: 'Ultra-modern 3 BHK apartment with premium wooden flooring, modular kitchen, power backup, and 24/7 gated security in the heart of Vaishali Nagar. Excellent connectivity to Amrapali Circle and Ajmer Road.',
     price: 7500000,
@@ -44,6 +45,7 @@ export const INITIAL_PROPERTIES: Property[] = [
   },
   {
     id: 'jpr-2',
+    slug: '4bhk-royal-independent-villa-malviya-nagar',
     title: '4 BHK Royal Independent Villa with Private Garden',
     description: 'Spacious 4 BHK architect-designed villa near World Trade Park. Features private landscaped lawn, modular kitchen, rooftop gazebo, staff quarters, and JDA approved clear title.',
     price: 24000000,
@@ -85,6 +87,7 @@ export const INITIAL_PROPERTIES: Property[] = [
   },
   {
     id: 'jpr-3',
+    slug: '2bhk-property',
     title: '2 BHK Smart Apartment near Jagatpura Airport Road',
     description: 'Affordable and well-ventilated 2 BHK flat near Bombay Hospital & SKIT College. Proximity to Jaipur International Airport, Expressways, and top hospitals.',
     price: 4200000,
@@ -125,6 +128,7 @@ export const INITIAL_PROPERTIES: Property[] = [
   },
   {
     id: 'jpr-4',
+    slug: '3bhk-ultra-luxury-c-scheme',
     title: '3 BHK Ultra-Luxury Residence in C-Scheme',
     description: 'Exclusive heritage-style high-end luxury flat in C-Scheme with Italian marble flooring, VRV central AC, private lift lobby, and high capital growth value.',
     price: 18500000,
@@ -165,6 +169,7 @@ export const INITIAL_PROPERTIES: Property[] = [
   },
   {
     id: 'jpr-5',
+    slug: 'commercial-office-mansarovar-metro',
     title: 'Furnished Commercial Office in Mansarovar Metro Corridor',
     description: 'Ready-to-occupy office space with 20 workstations, 2 director cabins, conference room, and pantry near Mansarovar Metro Station.',
     price: 65000,
