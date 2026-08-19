@@ -196,7 +196,13 @@ const MainContent: React.FC = () => {
 
           {/* Copyright Row */}
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-gray-500 gap-4">
-            <p>© {new Date().getFullYear()} Jaipur Properties Hub. All rights reserved.</p>
+            <p 
+              onDoubleClick={() => setActiveView('admin')}
+              className="cursor-default select-none hover:text-gray-400 transition-colors"
+              title="Jaipur Properties Hub"
+            >
+              © {new Date().getFullYear()} {siteSettings.portalName || 'Jaipur Properties Hub'}. All rights reserved.
+            </p>
             <div className="flex items-center gap-4">
               <span className="hover:text-gray-400 cursor-pointer">Privacy Policy</span>
               <span>•</span>

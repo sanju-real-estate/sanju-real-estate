@@ -201,30 +201,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {}
   };
 
-  // Listen to browser Back/Forward navigation
+  // Listen to browser Back/Forward navigation and Hash/URL changes
   useEffect(() => {
-    const handlePopState = () => {
+    const checkAdminOrPath = () => {
       try {
         const path = window.location.pathname.toLowerCase();
         const search = window.location.search.toLowerCase();
-        if (path.includes('/admin') || search.includes('admin=true')) {
+        const hash = window.location.hash.toLowerCase();
+
+        if (
+          path === '/admin' || 
+          path.startsWith('/admin/') || 
+          path.includes('admin') || 
+          search.includes('admin') || 
+          hash.includes('admin')
+        ) {
           setActiveViewState('admin');
-        } else if (path.includes('/post-property')) {
+        } else if (path.includes('/post-property') || hash.includes('post-property')) {
           setActiveViewState('post-property');
-        } else if (path.includes('/listings')) {
+        } else if (path.includes('/listings') || hash.includes('listings')) {
           setActiveViewState('listings');
-        } else if (path.includes('/valuation')) {
+        } else if (path.includes('/valuation') || hash.includes('valuation')) {
           setActiveViewState('valuation');
-        } else if (path.includes('/dashboard')) {
+        } else if (path.includes('/dashboard') || hash.includes('dashboard')) {
           setActiveViewState('dashboard');
-        } else {
-          setActiveViewState('home');
+        } else if (path === '/' || path === '') {
+          // Keep current view unless explicit
         }
       } catch (e) {}
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    // Global shortcut Ctrl+Shift+A or Cmd+Shift+A to toggle Admin Panel
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        setActiveView('admin');
+      }
+    };
+
+    window.addEventListener('popstate', checkAdminOrPath);
+    window.addEventListener('hashchange', checkAdminOrPath);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('popstate', checkAdminOrPath);
+      window.removeEventListener('hashchange', checkAdminOrPath);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(INITIAL_PROPERTIES[0]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
