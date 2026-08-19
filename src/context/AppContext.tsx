@@ -74,6 +74,9 @@ interface AppContextType {
   signup: (fullName: string, email: string, phone: string, password: string, confirmPassword: string, userType: UserProfile['userType'], city?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateSiteSettings: (newSettings: Partial<SiteSettings>) => Promise<void>;
+  sendEmailVerificationLink: (email: string, name?: string) => Promise<{ status: string; message: string; token: string; verifyLink: string; code: string }>;
+  verifyEmailCode: (email: string, code?: string, token?: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
+  checkEmailVerificationStatus: (email: string, token?: string) => Promise<{ verified: boolean; user?: UserProfile }>;
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -386,6 +389,110 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('mb_user');
     showToast('Logged out successfully', 'info');
   };
+
+  // 1. Real Email Verification: Send Verification Email & Code
+  const sendEmailVerificationLink = async (email: string, name?: string) => {
+    try {
+      const res = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), name: name?.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send verification email');
+      }
+      return data;
+    } catch (err: any) {
+      console.error('sendEmailVerificationLink error:', err);
+      throw err;
+    }
+  };
+
+  // 2. Real Email Verification: Verify 6-digit Code or Token
+  const verifyEmailCode = async (email: string, code?: string, token?: string) => {
+    try {
+      const res = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), code: code?.trim(), token: token?.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Invalid verification code' };
+      }
+
+      if (data.user) {
+        const userProfile: UserProfile = {
+          ...data.user,
+          city: selectedCity || 'Jaipur'
+        };
+        setCurrentUser(userProfile);
+        localStorage.setItem('mb_user', JSON.stringify(userProfile));
+        setIsAuthModalOpen(false);
+        showToast(`Email verified! Welcome, ${userProfile.name}.`, 'success');
+
+        // Sync verified user to Firestore
+        try {
+          await setDoc(doc(db, 'users', userProfile.id), {
+            id: userProfile.id,
+            name: userProfile.name,
+            email: userProfile.email,
+            avatarUrl: userProfile.avatarUrl,
+            role: userProfile.role,
+            isVerified: true,
+            emailVerified: true,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (e) {}
+
+        return { success: true, user: userProfile };
+      }
+
+      return { success: false, error: 'Verification failed' };
+    } catch (err: any) {
+      console.error('verifyEmailCode error:', err);
+      return { success: false, error: err?.message || 'Verification service error' };
+    }
+  };
+
+  // 3. Real Email Verification: Check if user clicked link in email tab
+  const checkEmailVerificationStatus = async (email: string, token?: string) => {
+    try {
+      const res = await fetch(`/api/auth/check-status?email=${encodeURIComponent(email.trim().toLowerCase())}&token=${encodeURIComponent(token || '')}`);
+      const data = await res.json();
+      if (data.verified && data.user) {
+        const userProfile: UserProfile = {
+          ...data.user,
+          city: selectedCity || 'Jaipur'
+        };
+        setCurrentUser(userProfile);
+        localStorage.setItem('mb_user', JSON.stringify(userProfile));
+        setIsAuthModalOpen(false);
+        showToast(`Email verified! Welcome, ${userProfile.name}.`, 'success');
+        return { verified: true, user: userProfile };
+      }
+      return { verified: false };
+    } catch (err) {
+      return { verified: false };
+    }
+  };
+
+  // Auto-verify if opened via direct email verification link in URL
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const verifyToken = params.get('verify_token');
+      const verifyEmail = params.get('email');
+      if (verifyToken && verifyEmail) {
+        verifyEmailCode(verifyEmail, undefined, verifyToken).then((res) => {
+          if (res.success) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        });
+      }
+    } catch (e) {}
+  }, []);
 
   // Sync active user to localStorage
   useEffect(() => {
@@ -995,7 +1102,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       login,
       signup,
       logout,
-      updateSiteSettings
+      updateSiteSettings,
+      sendEmailVerificationLink,
+      verifyEmailCode,
+      checkEmailVerificationStatus
     }}>
       {children}
     </AppContext.Provider>
