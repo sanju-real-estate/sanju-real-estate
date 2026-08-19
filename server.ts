@@ -653,6 +653,8 @@ app.delete("/api/inquiries/:id", async (req, res) => {
 });
 
 // Email Verification & Real Authentication Store
+import nodemailer from "nodemailer";
+
 interface PendingVerification {
   email: string;
   name: string;
@@ -665,8 +667,41 @@ interface PendingVerification {
 
 const pendingVerifications = new Map<string, PendingVerification>();
 
+// Create email transporter with SMTP support
+const getMailTransporter = async () => {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (host && user && pass) {
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass }
+    });
+  }
+
+  // If no SMTP configured, use ethereal or direct test transporter
+  try {
+    const testAccount = await nodemailer.createTestAccount();
+    return nodemailer.createTransport({
+      host: "smtp.ethereal.email",
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+  } catch (e) {
+    return null;
+  }
+};
+
 // API: Send Real Email Verification Link & Code
-app.post("/api/auth/send-verification", (req, res) => {
+app.post("/api/auth/send-verification", async (req, res) => {
   try {
     const { email, name } = req.body;
     if (!email || typeof email !== "string" || !email.includes("@")) {
@@ -691,20 +726,80 @@ app.post("/api/auth/send-verification", (req, res) => {
       createdAt: Date.now()
     });
 
-    console.log(`[AUTH] Verification code generated for ${cleanEmail}: ${code} | Token: ${token}`);
+    console.log(`[AUTH] Verification OTP for ${cleanEmail}: ${code} | Token: ${token}`);
 
     const host = req.get('host') || 'localhost:3000';
     const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
     const verifyLink = `${protocol}://${host}/?verify_token=${token}&email=${encodeURIComponent(cleanEmail)}`;
 
+    // Dispatch real email via nodemailer
+    let emailSent = false;
+    let previewUrl = null;
+    try {
+      const transporter = await getMailTransporter();
+      if (transporter) {
+        const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || '"Jaipur Properties Hub" <noreply@jaipurpropertieshub.com>';
+        const mailOptions = {
+          from: fromAddress,
+          to: cleanEmail,
+          subject: `${code} is your Jaipur Properties Hub Verification Code`,
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
+              <div style="text-align: center; margin-bottom: 28px;">
+                <div style="display: inline-block; background: #dc2626; color: #ffffff; font-weight: 800; font-size: 20px; padding: 10px 20px; border-radius: 10px; letter-spacing: 0.5px;">
+                  Jaipur Properties Hub
+                </div>
+              </div>
+              
+              <h2 style="color: #0f172a; font-size: 22px; font-weight: 700; margin: 0 0 16px; text-align: center;">Verify Your Email Address</h2>
+              <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">Hello <strong>${cleanName}</strong>,</p>
+              <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">Thank you for registering on <strong>Jaipur Properties Hub</strong>. Use the 6-digit verification code below to complete your registration or verify your login:</p>
+              
+              <div style="background-color: #f8fafc; border: 2px dashed #dc2626; border-radius: 12px; padding: 24px; text-align: center; margin: 0 0 28px;">
+                <span style="font-family: monospace, Courier; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #dc2626; display: inline-block;">
+                  ${code}
+                </span>
+                <div style="color: #64748b; font-size: 13px; margin-top: 8px;">Valid for 15 minutes</div>
+              </div>
+
+              <div style="text-align: center; margin-bottom: 32px;">
+                <p style="color: #475569; font-size: 14px; margin-bottom: 16px;">Or click the secure direct verification button:</p>
+                <a href="${verifyLink}" style="background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);">
+                  Verify Email Instantly
+                </a>
+              </div>
+
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+              <p style="color: #94a3b8; font-size: 12px; line-height: 1.5; text-align: center; margin: 0;">
+                If you did not request this email, please ignore this message. Your account remains safe.
+                <br />© ${new Date().getFullYear()} Jaipur Properties Hub. All rights reserved.
+              </p>
+            </div>
+          `,
+          text: `Hello ${cleanName},\n\nYour Jaipur Properties Hub verification code is: ${code}\n\nOr verify directly by clicking: ${verifyLink}\n\nValid for 15 minutes.\nJaipur Properties Hub`
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        emailSent = true;
+        previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+          console.log(`[AUTH] Ethereal Email Preview URL: ${previewUrl}`);
+        }
+      }
+    } catch (mailErr: any) {
+      console.warn("[AUTH] SMTP dispatch notice:", mailErr.message || mailErr);
+    }
+
     return res.json({
       status: "ok",
-      message: `Verification link and code sent to ${cleanEmail}`,
+      message: `Verification link and code generated for ${cleanEmail}`,
       email: cleanEmail,
       name: cleanName,
       token,
       verifyLink,
-      code: code, // Sent to facilitate instant in-app inbox view / auto-fill
+      code: code,
+      emailSent,
+      previewUrl,
       expiresInMinutes: 15
     });
   } catch (err: any) {

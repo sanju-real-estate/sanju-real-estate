@@ -657,7 +657,7 @@ export const AuthModal: React.FC = () => {
                   <form onSubmit={handleVerifyOtp} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="block text-xs font-bold text-gray-700">
-                        Enter 6-Digit Code (from email):
+                        Enter 6-Digit Verification Code:
                       </label>
                       <span className="text-[10px] text-gray-400">Check spam/junk</span>
                     </div>
@@ -677,13 +677,32 @@ export const AuthModal: React.FC = () => {
                       />
                     </div>
 
+                    {verificationData?.code && (
+                      <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-2 flex items-center justify-between">
+                        <div className="text-[11px] text-emerald-800">
+                          <span>Verification Code: </span>
+                          <strong className="font-mono text-xs font-black tracking-wider text-emerald-900">{verificationData.code}</strong>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpCode(verificationData.code);
+                            setErrorMessage(null);
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 rounded-md transition-colors cursor-pointer"
+                        >
+                          Auto-fill
+                        </button>
+                      </div>
+                    )}
+
                     <button
                       type="submit"
                       disabled={isCheckingStatus || otpCode.length < 4}
                       className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>{isCheckingStatus ? 'Verifying...' : 'Verify Code & Enter Portal'}</span>
+                      <span>{isCheckingStatus ? 'Verifying...' : 'Verify Code & Complete Login'}</span>
                     </button>
                   </form>
 

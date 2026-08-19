@@ -211,12 +211,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Real Google Sign In via Firebase Auth
   const loginWithGoogle = async (customEmail?: string, customName?: string, customAvatar?: string): Promise<UserProfile | undefined> => {
-    // 1. Try Firebase Auth Google Popup
+    // Try Firebase Auth Google Popup
     try {
       const result = await signInWithPopup(firebaseAuth, googleProvider);
       if (result && result.user) {
         const u = result.user;
-        const displayName = u.displayName || customName || u.email?.split('@')[0] || 'User';
+        const displayName = u.displayName || customName || u.email?.split('@')[0] || 'Google User';
         const userProfile: UserProfile = {
           id: u.uid,
           name: displayName,
@@ -237,34 +237,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (e: any) {
       console.warn('Firebase popup notice:', e?.code || e?.message || e);
-      
-      // Fallback for sandboxed iframe environments where popups or 3rd party cookies may be restricted
-      const email = customEmail?.trim() || 'user@gmail.com';
-      const rawName = customName?.trim() || (email.includes('@') ? email.split('@')[0] : 'User');
-      const displayName = rawName
-        .replace(/[._-]/g, ' ')
-        .replace(/\b\w/g, (char) => char.toUpperCase());
-
-      const avatar = customAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=dc2626`;
-
-      const userProfile: UserProfile = {
-        id: 'user-' + Date.now().toString(),
-        name: displayName,
-        fullName: displayName,
-        email: email,
-        phone: '+91 97721 17575',
-        avatarUrl: avatar,
-        city: selectedCity || 'Jaipur',
-        userType: 'Buyer / Tenant',
-        role: email === 'eigeltumspaces@gmail.com' ? 'admin' : 'user',
-        isVerified: true
-      };
-
-      setCurrentUser(userProfile);
-      localStorage.setItem('mb_user', JSON.stringify(userProfile));
-      setIsAuthModalOpen(false);
-      showToast(`Welcome ${displayName}! Signed in successfully.`, 'success');
-      return userProfile;
+      if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
+        showToast('Google sign-in popup was cancelled.', 'info');
+      } else if (e?.code === 'auth/popup-blocked') {
+        showToast('Google popup was blocked by browser. Please allow popups or use Email OTP.', 'error');
+      } else {
+        showToast(e?.message || 'Google sign-in failed. Please try again.', 'error');
+      }
+      return undefined;
     }
   };
 
@@ -495,55 +475,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      // 1. Try Firebase Email Login
-      try {
-        const cred = await signInWithEmailAndPassword(firebaseAuth, email, password);
-        if (cred.user) {
-          const displayName = cred.user.displayName || email.split('@')[0];
-          const userProfile: UserProfile = {
-            id: cred.user.uid,
-            name: displayName,
-            fullName: displayName,
-            email: cred.user.email || email,
-            phone: cred.user.phoneNumber || '+91 97721 17575',
-            avatarUrl: cred.user.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=dc2626`,
-            city: selectedCity || 'Jaipur',
-            userType: 'Owner',
-            role: email === 'eigeltumspaces@gmail.com' ? 'admin' : 'user',
-            isVerified: true
-          };
-          setCurrentUser(userProfile);
-          localStorage.setItem('mb_user', JSON.stringify(userProfile));
-          setIsAuthModalOpen(false);
-          showToast('Logged in successfully with Firebase!', 'success');
-          return;
-        }
-      } catch (fbErr: any) {
-        console.warn('Firebase email login error:', fbErr?.code || fbErr?.message);
-      }
-
-      // 2. Direct Instant Authentication Fallback
-      const rawName = email.split('@')[0];
-      const displayName = rawName.replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-      const userProfile: UserProfile = {
-        id: 'user-' + Date.now().toString(),
-        name: displayName,
-        fullName: displayName,
-        email: email || 'user@example.com',
-        phone: '+91 97721 17575',
-        avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=dc2626`,
-        city: selectedCity || 'Jaipur',
-        userType: 'Owner',
-        role: email === 'eigeltumspaces@gmail.com' ? 'admin' : 'user',
-        isVerified: true
-      };
-      setCurrentUser(userProfile);
-      localStorage.setItem('mb_user', JSON.stringify(userProfile));
-      setIsAuthModalOpen(false);
-      showToast(`Welcome ${displayName}! Logged in successfully.`, 'success');
-    } catch (e) {
-      showToast('Login failed. Please check credentials.', 'error');
+    const res = await firebaseLogin(email, password);
+    if (!res.verified) {
+      showToast(res.error || 'Login failed. Please check credentials.', 'error');
     }
   };
 
@@ -556,56 +490,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     userType: UserProfile['userType'], 
     city: string = 'Jaipur'
   ) => {
-    try {
-      // 1. Try Firebase User Registration
-      try {
-        const cred = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-        if (cred.user) {
-          if (fullName) {
-            await updateProfile(cred.user, { displayName: fullName });
-          }
-          const userProfile: UserProfile = {
-            id: cred.user.uid,
-            name: fullName || email.split('@')[0],
-            fullName: fullName || email.split('@')[0],
-            email: cred.user.email || email,
-            phone: phone || '+91 97721 17575',
-            avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName || email)}&backgroundColor=dc2626`,
-            city: city || 'Jaipur',
-            userType: userType || 'Owner',
-            role: email === 'eigeltumspaces@gmail.com' ? 'admin' : 'user',
-            isVerified: true
-          };
-          setCurrentUser(userProfile);
-          localStorage.setItem('mb_user', JSON.stringify(userProfile));
-          setIsAuthModalOpen(false);
-          showToast(`Welcome, ${fullName || 'User'}! Account created on Firebase.`, 'success');
-          return;
-        }
-      } catch (fbErr: any) {
-        console.warn('Firebase registration notice:', fbErr?.code || fbErr?.message);
-      }
-
-      // 2. Direct Account Creation Fallback
-      const userProfile: UserProfile = {
-        id: 'user-' + Date.now().toString(),
-        name: fullName || 'Portal User',
-        fullName: fullName || 'Portal User',
-        email: email || 'user@portal.com',
-        phone: phone || '+91 97721 17575',
-        avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName || email)}&backgroundColor=dc2626`,
-        city: city || 'Jaipur',
-        userType: userType || 'Owner',
-        role: email === 'eigeltumspaces@gmail.com' ? 'admin' : 'user',
-        isVerified: true
-      };
-      setCurrentUser(userProfile);
-      localStorage.setItem('mb_user', JSON.stringify(userProfile));
-      setIsAuthModalOpen(false);
-      showToast(`Welcome, ${fullName || 'User'}! Account created successfully.`, 'success');
-    } catch (e) {
-      showToast('Sign up failed. Please try again.', 'error');
-    }
+    await firebaseSignup(email, password, fullName);
   };
 
   const logout = async () => {
