@@ -150,7 +150,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Google Authentication Handler with browser email sync & verification
   const loginWithGoogle = async (customEmail?: string, customName?: string, customAvatar?: string): Promise<UserProfile | undefined> => {
     try {
-      const email = customEmail?.trim() || 'eigeltumspaces@gmail.com';
+      const email = customEmail?.trim() || 'user@gmail.com';
       const rawName = customName?.trim() || email.split('@')[0];
       const displayName = rawName
         .replace(/[._-]/g, ' ')
@@ -174,16 +174,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUser(userProfile);
       localStorage.setItem('mb_user', JSON.stringify(userProfile));
       setIsAuthModalOpen(false);
-      showToast(`Welcome ${displayName}! Google account verified & synced.`, 'success');
+      showToast(`Welcome ${displayName}! Logged in successfully.`, 'success');
       return userProfile;
     } catch (e) {
       console.error('Google auth error:', e);
       // Fallback safe login
       const fallbackUser: UserProfile = {
         id: 'google-user',
-        name: 'Google User',
-        fullName: 'Google User',
-        email: 'eigeltumspaces@gmail.com',
+        name: 'Portal User',
+        fullName: 'Portal User',
+        email: 'user@gmail.com',
         phone: '+91 97721 17575',
         city: 'Jaipur',
         userType: 'Buyer / Tenant',
@@ -193,7 +193,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUser(fallbackUser);
       localStorage.setItem('mb_user', JSON.stringify(fallbackUser));
       setIsAuthModalOpen(false);
-      showToast('Signed in with Google successfully!', 'success');
+      showToast('Logged in successfully!', 'success');
       return fallbackUser;
     }
   };

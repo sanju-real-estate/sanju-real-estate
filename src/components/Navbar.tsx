@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Building2, MapPin, Heart, PlusCircle, UserCheck, ChevronDown, Search, Menu, X, Calculator, Phone, ShieldCheck } from 'lucide-react';
-import { INDIAN_CITIES } from '../data/cities';
+import { Heart, PlusCircle, UserCheck, Menu, X, Calculator, Phone, ShieldCheck } from 'lucide-react';
 import { APP_LOGO } from '../assets/logo';
 
 export const Navbar: React.FC = () => {
   const { 
-    selectedCity, 
-    setSelectedCity, 
     activeView, 
     setActiveView, 
     wishlistIds, 
@@ -15,24 +12,10 @@ export const Navbar: React.FC = () => {
     currentUser,
     openAuthModal,
     logout,
-    showToast,
     siteSettings
   } = useApp();
 
-  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
-  const [citySearchTerm, setCitySearchTerm] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const filteredCities = INDIAN_CITIES.filter(c => 
-    c.toLowerCase().includes(citySearchTerm.toLowerCase())
-  );
-
-  const handleCitySelect = (city: string) => {
-    setSelectedCity(city);
-    setFilters(prev => ({ ...prev, city }));
-    setIsCityDropdownOpen(false);
-    setCitySearchTerm('');
-  };
 
   const handleNavClick = (view: 'home' | 'listings' | 'post-property' | 'dashboard' | 'valuation' | 'admin', listingType?: string) => {
     if (listingType) {
@@ -46,17 +29,17 @@ export const Navbar: React.FC = () => {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-xs w-full">
       {/* Top Banner Bar */}
-      <div className="bg-slate-900 text-gray-300 text-xs py-1 px-2 sm:px-4">
+      <div className="bg-slate-900 text-gray-300 text-xs py-1 px-2.5 sm:px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 sm:gap-3 truncate">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             <span className="flex items-center gap-1.5 font-medium text-emerald-400 text-[11px] sm:text-xs truncate">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
               <span className="truncate">{siteSettings.portalName}</span>
             </span>
-            <span className="text-gray-500">|</span>
+            <span className="text-gray-600 hidden xs:inline">|</span>
             <a 
               href={`tel:${siteSettings.helplinePhone}`}
-              className="flex items-center gap-1 text-emerald-400 font-extrabold hover:text-emerald-300 transition-colors text-[11px] sm:text-xs shrink-0"
+              className="hidden xs:flex items-center gap-1 text-emerald-400 font-extrabold hover:text-emerald-300 transition-colors text-[11px] sm:text-xs shrink-0"
             >
               <Phone className="w-3 h-3 text-emerald-400 shrink-0" />
               <span>{siteSettings.helplinePhone}</span>
@@ -70,6 +53,7 @@ export const Navbar: React.FC = () => {
             >
               <Calculator className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Price Estimator</span>
+              <span className="sm:hidden">Estimator</span>
             </button>
             <span className="text-gray-600">|</span>
             <button
@@ -77,18 +61,18 @@ export const Navbar: React.FC = () => {
               className="hover:text-white flex items-center gap-1 text-amber-400 font-bold transition-colors cursor-pointer py-0.5 text-[11px] sm:text-xs"
             >
               <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-              <span>Admin Login</span>
+              <span>Admin</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Navigation */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
           
-          {/* Logo & City Selector */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
+          {/* Logo & Portal Name */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button 
               onClick={() => handleNavClick('home')}
               className="flex items-center gap-2 sm:gap-2.5 group text-left cursor-pointer shrink-0"
@@ -109,77 +93,14 @@ export const Navbar: React.FC = () => {
                 />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="font-extrabold text-xs sm:text-sm md:text-base tracking-tight text-gray-900 group-hover:text-red-600 transition-colors leading-tight truncate max-w-[130px] sm:max-w-[180px] md:max-w-[240px]">
+                <span className="font-black text-xs sm:text-sm md:text-base tracking-tight text-gray-900 group-hover:text-red-600 transition-colors leading-tight truncate max-w-[140px] sm:max-w-[200px] md:max-w-[260px]">
                   {siteSettings.portalName}
                 </span>
-                <span className="text-[10px] text-gray-500 font-medium hidden md:inline -mt-0.5 truncate max-w-[160px]">
+                <span className="text-[10px] text-gray-500 font-medium hidden md:inline -mt-0.5 truncate max-w-[180px]">
                   {siteSettings.tagline || 'Official Property Portal'}
                 </span>
               </div>
             </button>
-
-            {/* City Dropdown Selector */}
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-gray-700 hover:text-red-600 bg-gray-50 hover:bg-red-50/50 border border-gray-200 px-2 sm:px-2.5 py-1 rounded-lg transition-all cursor-pointer shrink-0"
-              >
-                <MapPin className="w-3 h-3 text-red-600 shrink-0" />
-                <span className="truncate max-w-[70px] sm:max-w-[100px]">{selectedCity}</span>
-                <ChevronDown className="w-3 h-3 text-gray-400 shrink-0" />
-              </button>
-
-              {isCityDropdownOpen && (
-                <>
-                  {/* Backdrop overlay */}
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => {
-                      setIsCityDropdownOpen(false);
-                      setCitySearchTerm('');
-                    }} 
-                  />
-                  <div className="absolute top-full left-0 mt-1.5 w-60 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 py-2 max-h-80 overflow-hidden flex flex-col">
-                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-white border-b border-gray-100">
-                      Select City in India
-                    </div>
-                    {/* Search box inside dropdown */}
-                    <div className="p-2 border-b border-gray-100 bg-gray-50">
-                      <div className="relative flex items-center">
-                        <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5" />
-                        <input
-                          type="text"
-                          autoFocus
-                          value={citySearchTerm}
-                          onChange={(e) => setCitySearchTerm(e.target.value)}
-                          placeholder="Search city..."
-                          className="w-full pl-8 pr-2 py-1 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-red-500"
-                        />
-                      </div>
-                    </div>
-                    {/* Cities List */}
-                    <div className="overflow-y-auto flex-1 divide-y divide-gray-50">
-                      {filteredCities.length === 0 ? (
-                        <div className="p-3 text-center text-xs text-gray-400">No city found</div>
-                      ) : (
-                        filteredCities.map(city => (
-                          <button
-                            key={city}
-                            onClick={() => handleCitySelect(city)}
-                            className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-red-50 transition-colors flex items-center justify-between cursor-pointer ${
-                              selectedCity === city ? 'text-red-600 bg-red-50/70 font-bold' : 'text-gray-700'
-                            }`}
-                          >
-                            <span>{city}</span>
-                            {selectedCity === city && <span className="w-2 h-2 rounded-full bg-red-600"></span>}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
 
           {/* Center Navigation Tabs (Desktop xl+) */}
@@ -214,7 +135,7 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Right Action CTAs */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
             {/* Wishlist Icon */}
             <button
               onClick={() => handleNavClick('dashboard')}
@@ -232,12 +153,12 @@ export const Navbar: React.FC = () => {
             {/* Post Property FREE Button */}
             <button
               onClick={() => handleNavClick('post-property')}
-              className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="hidden sm:flex bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs items-center gap-1.5 cursor-pointer shrink-0"
               title="Post Property Free - Sell or Rent"
             >
               <PlusCircle className="w-4 h-4 text-white shrink-0" />
               <span className="inline font-extrabold">Post Property</span>
-              <span className="bg-emerald-800 text-emerald-100 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline">
+              <span className="bg-emerald-800 text-emerald-100 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
                 FREE
               </span>
             </button>
@@ -255,10 +176,10 @@ export const Navbar: React.FC = () => {
               <span>Dashboard</span>
             </button>
 
-            {/* Admin Panel Button (Always Prominent) */}
+            {/* Admin Panel Button (Desktop/Tablet) */}
             <button
               onClick={() => handleNavClick('admin')}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="hidden md:flex bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all items-center gap-1.5 cursor-pointer shrink-0"
               title="Admin Panel & Site Settings"
             >
               <ShieldCheck className="w-4 h-4 text-white" />
@@ -267,8 +188,8 @@ export const Navbar: React.FC = () => {
 
             {/* Auth Button or User Profile */}
             {currentUser ? (
-              <div className="flex items-center gap-2 bg-slate-900 text-white pl-2 pr-1.5 py-1 rounded-xl text-xs font-bold shadow-xs shrink-0 border border-slate-800">
-                <div className="flex items-center gap-1.5 max-w-[120px] sm:max-w-[150px] truncate">
+              <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-900 text-white pl-2 pr-1.5 py-1 rounded-xl text-xs font-bold shadow-xs shrink-0 border border-slate-800">
+                <div className="flex items-center gap-1.5 max-w-[80px] xs:max-w-[110px] sm:max-w-[150px] truncate">
                   {currentUser.avatarUrl ? (
                     <img 
                       src={currentUser.avatarUrl} 
@@ -283,7 +204,7 @@ export const Navbar: React.FC = () => {
                 </div>
                 <button
                   onClick={logout}
-                  className="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0"
+                  className="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg transition-colors cursor-pointer shrink-0"
                   title="Logout"
                 >
                   Logout
@@ -292,7 +213,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <button
                 onClick={() => openAuthModal('login')}
-                className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all shadow-xs cursor-pointer shrink-0 hover:ring-2 hover:ring-red-500/30"
+                className="flex items-center gap-1 sm:gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all shadow-xs cursor-pointer shrink-0 hover:ring-2 hover:ring-red-500/30"
               >
                 <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -320,6 +241,7 @@ export const Navbar: React.FC = () => {
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-1.5 text-gray-700 hover:text-gray-900 xl:hidden rounded-lg hover:bg-gray-100 cursor-pointer shrink-0"
+              title="Menu"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
