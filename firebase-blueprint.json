@@ -1,28 +1,79 @@
 {
   "entities": {
-    "SiteSettings": {
-      "title": "Site Settings",
-      "description": "Global website branding and contact settings",
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Authenticated user profile and preferences",
       "type": "object",
       "properties": {
-        "logoUrl": { "type": "string", "description": "URL or data string for site logo" },
-        "portalName": { "type": "string", "description": "Primary brand or app name" },
-        "tagline": { "type": "string", "description": "Short tagline or subtitle" },
-        "helplinePhone": { "type": "string", "description": "Primary contact phone number" },
-        "helplineWhatsapp": { "type": "string", "description": "WhatsApp contact number" },
-        "helplineEmail": { "type": "string", "description": "Official support email address" },
-        "officeAddress": { "type": "string", "description": "Physical office address" },
-        "heroHeadline": { "type": "string", "description": "Main hero section headline" },
-        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" },
-        "updatedBy": { "type": "string", "description": "UID of admin user" }
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "city": { "type": "string", "maxLength": 100 },
+        "userType": { "type": "string", "maxLength": 50 },
+        "role": { "type": "string", "enum": ["user", "admin", "agent"] },
+        "createdAt": { "type": "string" }
       },
-      "required": ["portalName", "logoUrl"]
+      "required": ["id", "email"]
+    },
+    "Property": {
+      "title": "Property Listing",
+      "description": "Real estate properties for sale, rent, or lease",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "price": { "type": "number" },
+        "priceUnit": { "type": "string", "maxLength": 20 },
+        "location": { "type": "string", "maxLength": 200 },
+        "city": { "type": "string", "maxLength": 100 },
+        "propertyType": { "type": "string", "maxLength": 50 },
+        "listingType": { "type": "string", "maxLength": 50 },
+        "bhk": { "type": "number" },
+        "areaSqFt": { "type": "number" },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "ownerName": { "type": "string", "maxLength": 100 },
+        "ownerPhone": { "type": "string", "maxLength": 20 },
+        "ownerEmail": { "type": "string", "maxLength": 100 },
+        "verified": { "type": "boolean" },
+        "featured": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "price", "location", "propertyType", "listingType"]
+    },
+    "Inquiry": {
+      "title": "Property Inquiry",
+      "description": "Lead and contact inquiries sent by users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyTitle": { "type": "string", "maxLength": 200 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "userPhone": { "type": "string", "maxLength": 20 },
+        "userEmail": { "type": "string", "maxLength": 100 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "userId": { "type": "string" },
+        "status": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "propertyId", "userName", "userPhone"]
     }
   },
   "firestore": {
-    "/settings/branding": {
-      "schema": "SiteSettings",
-      "description": "Global branding and contact settings"
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile document indexed by Firebase Auth UID"
+    },
+    "/properties/{propertyId}": {
+      "schema": { "$ref": "#/entities/Property" },
+      "description": "Public property listings"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/Inquiry" },
+      "description": "Property inquiries from users"
     }
   }
 }
