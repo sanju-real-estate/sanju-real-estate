@@ -612,16 +612,16 @@ app.get("/sitemap.xml", (req, res) => {
   const host = req.get("host") || "www.eigentumspaces.com";
   const protocol = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https" ? "https" : "https";
   const baseUrl = `${protocol}://${host}`;
-  const now = new Date().toISOString().split('T')[0];
+  const staticLaunchDate = "2026-08-01";
 
   const staticPages = [
-    { url: '/', priority: '1.0', changefreq: 'daily' },
-    { url: '/buy', priority: '0.9', changefreq: 'daily' },
-    { url: '/rent', priority: '0.9', changefreq: 'daily' },
-    { url: '/commercial', priority: '0.9', changefreq: 'weekly' },
-    { url: '/new-projects', priority: '0.9', changefreq: 'daily' },
-    { url: '/valuation', priority: '0.8', changefreq: 'weekly' },
-    { url: '/dashboard', priority: '0.5', changefreq: 'monthly' }
+    { url: '/', priority: '1.0' },
+    { url: '/buy', priority: '0.9' },
+    { url: '/rent', priority: '0.9' },
+    { url: '/commercial', priority: '0.8' },
+    { url: '/new-projects', priority: '0.9' },
+    { url: '/valuation', priority: '0.8' },
+    { url: '/dashboard', priority: '0.5' }
   ];
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -631,23 +631,22 @@ app.get("/sitemap.xml", (req, res) => {
   staticPages.forEach(p => {
     xml += `  <url>
     <loc>${baseUrl}${p.url}</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>${p.changefreq}</changefreq>
+    <lastmod>${staticLaunchDate}</lastmod>
     <priority>${p.priority}</priority>
   </url>
 `;
   });
 
-  // Dynamic Property Pages
+  // Dynamic Property Pages with permanent post dates
   globalProperties.forEach(prop => {
     const slug = prop.slug || prop.id;
     const propUrl = `${baseUrl}/${encodeURIComponent(slug)}`;
-    const lastMod = prop.postedDate || now;
+    // Permanent post date: use exact property post date or default initial post date
+    const permanentPostDate = prop.postedDate || "2026-08-08";
     
     xml += `  <url>
     <loc>${propUrl}</loc>
-    <lastmod>${lastMod}</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>${permanentPostDate}</lastmod>
     <priority>0.8</priority>
   </url>
 `;

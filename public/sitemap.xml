@@ -4,86 +4,74 @@
   <!-- Primary Website Pages -->
   <url>
     <loc>https://www.eigentumspaces.com/</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2026-08-01</lastmod>
     <priority>1.0</priority>
   </url>
   
   <url>
     <loc>https://www.eigentumspaces.com/buy</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2026-08-01</lastmod>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/rent</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2026-08-01</lastmod>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/commercial</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
+    <lastmod>2026-08-01</lastmod>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/new-projects</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2026-08-01</lastmod>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/valuation</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
+    <lastmod>2026-08-01</lastmod>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/dashboard</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>monthly</changefreq>
+    <lastmod>2026-08-01</lastmod>
     <priority>0.5</priority>
   </url>
 
-  <!-- Verified Jaipur Property Listings & Slugs -->
+  <!-- Verified Jaipur Property Listings with Permanent Post Dates -->
   <url>
     <loc>https://www.eigentumspaces.com/3bhk-luxury-apartment-in-vaishali-nagar</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2026-08-08</lastmod>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/4bhk-royal-independent-villa-with-private-garden</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2026-08-08</lastmod>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/2bhk-spacious-flat-in-mansarovar-extension</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2026-08-08</lastmod>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/premium-commercial-office-space-on-tonk-road</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>weekly</changefreq>
+    <lastmod>2026-08-08</lastmod>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://www.eigentumspaces.com/jda-approved-residential-plot-in-jagatpura</loc>
-    <lastmod>2026-08-19</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2026-08-08</lastmod>
     <priority>0.8</priority>
   </url>
 
