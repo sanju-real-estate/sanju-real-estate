@@ -588,6 +588,92 @@ app.get("/api/inquiries", (req, res) => {
   res.json({ inquiries: globalInquiries, version: globalSyncVersion });
 });
 
+// Dynamic robots.txt
+app.get("/robots.txt", (req, res) => {
+  const host = req.get("host") || "www.eigentumspaces.com";
+  const protocol = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https" ? "https" : "https";
+  const robotsTxt = `# robots.txt for Jaipur Properties Hub / Eigentum Spaces
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/
+Disallow: /api/*
+
+# Sitemap Index
+Sitemap: ${protocol}://${host}/sitemap.xml
+`;
+  res.header("Content-Type", "text/plain");
+  res.send(robotsTxt);
+});
+
+// Dynamic sitemap.xml with live property URLs and XML tags
+app.get("/sitemap.xml", (req, res) => {
+  const host = req.get("host") || "www.eigentumspaces.com";
+  const protocol = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https" ? "https" : "https";
+  const baseUrl = `${protocol}://${host}`;
+  const now = new Date().toISOString().split('T')[0];
+
+  const staticPages = [
+    { url: '/', priority: '1.0', changefreq: 'daily' },
+    { url: '/buy', priority: '0.9', changefreq: 'daily' },
+    { url: '/rent', priority: '0.9', changefreq: 'daily' },
+    { url: '/commercial', priority: '0.9', changefreq: 'weekly' },
+    { url: '/new-projects', priority: '0.9', changefreq: 'daily' },
+    { url: '/valuation', priority: '0.8', changefreq: 'weekly' },
+    { url: '/dashboard', priority: '0.5', changefreq: 'monthly' }
+  ];
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+`;
+
+  staticPages.forEach(p => {
+    xml += `  <url>
+    <loc>${baseUrl}${p.url}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>
+`;
+  });
+
+  // Dynamic Property Pages
+  globalProperties.forEach(prop => {
+    const slug = prop.slug || prop.id;
+    const propUrl = `${baseUrl}/${encodeURIComponent(slug)}`;
+    const lastMod = prop.postedDate || now;
+    
+    xml += `  <url>
+    <loc>${propUrl}</loc>
+    <lastmod>${lastMod}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>`;
+    
+    if (prop.images && Array.isArray(prop.images) && prop.images.length > 0) {
+      prop.images.slice(0, 3).forEach((imgUrl: string) => {
+        if (imgUrl && !imgUrl.startsWith('data:')) {
+          xml += `
+    <image:image>
+      <image:loc>${imgUrl.replace(/&/g, '&amp;')}</image:loc>
+      <image:title>${(prop.title || 'Property in Jaipur').replace(/&/g, '&amp;')}</image:title>
+    </image:image>`;
+        }
+      });
+    }
+
+    xml += `
+  </url>
+`;
+  });
+
+  xml += `</urlset>`;
+
+  res.header("Content-Type", "application/xml; charset=utf-8");
+  res.send(xml);
+});
+
 app.post("/api/inquiries", async (req, res) => {
   try {
     const newInquiry = req.body.inquiry || req.body;

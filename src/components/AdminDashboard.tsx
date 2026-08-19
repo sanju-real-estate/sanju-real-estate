@@ -796,9 +796,49 @@ export const AdminDashboard: React.FC = () => {
                     type="url"
                     value={formData.seoCanonicalUrl || ''}
                     onChange={(e) => handleChange('seoCanonicalUrl', e.target.value)}
-                    placeholder="https://jaipurproperties.hub"
+                    placeholder="https://www.eigentumspaces.com"
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-900 focus:bg-white focus:border-red-500 focus:outline-none"
                   />
+                </div>
+
+                {/* Sitemap & Robots.txt Live Status */}
+                <div className="p-4 bg-slate-900 rounded-2xl text-white space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      Live Search Engine Indexes
+                    </span>
+                    <span className="text-[10px] bg-slate-800 text-gray-300 font-mono px-2 py-0.5 rounded">
+                      Google / Bing Ready
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <a
+                      href="/sitemap.xml"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl flex items-center justify-between group transition-colors"
+                    >
+                      <div>
+                        <p className="font-bold text-white group-hover:text-red-400 transition-colors">/sitemap.xml</p>
+                        <p className="text-[10px] text-gray-400">Auto-updating XML Sitemap with all properties</p>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                    </a>
+
+                    <a
+                      href="/robots.txt"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl flex items-center justify-between group transition-colors"
+                    >
+                      <div>
+                        <p className="font-bold text-white group-hover:text-red-400 transition-colors">/robots.txt</p>
+                        <p className="text-[10px] text-gray-400">Search engine crawler instructions & sitemap link</p>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                    </a>
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 flex justify-end">

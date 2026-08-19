@@ -13,6 +13,7 @@ import { LeadModal } from './components/LeadModal';
 import { AiAssistantDrawer } from './components/AiAssistantDrawer';
 import { ToastContainer } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { SEOHead } from './components/SEOHead';
 import { Property } from './types';
 import { Building2, Phone, Mail, MapPin, Heart, ShieldCheck, Sparkles, ChevronRight, Calculator, PlusCircle, Settings } from 'lucide-react';
 import { APP_LOGO } from './assets/logo';
@@ -33,6 +34,9 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 font-sans antialiased">
+      {/* Dynamic SEO & Schema Meta Manager */}
+      <SEOHead property={selectedProperty} />
+
       {/* Top Navbar */}
       <Navbar />
 

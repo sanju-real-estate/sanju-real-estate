@@ -1,0 +1,11 @@
+# robots.txt for Jaipur Properties Hub / Eigentum Spaces
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/
+Disallow: /api/*
+
+# Sitemap Location
+Sitemap: https://www.eigentumspaces.com/sitemap.xml
+Sitemap: https://jaipurpropertieshub.eigentumspaces.com/sitemap.xml
