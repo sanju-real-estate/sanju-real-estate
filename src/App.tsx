@@ -8,6 +8,7 @@ import { PropertyDetailPage } from './components/PropertyDetailPage';
 import { PostPropertyPortal } from './components/PostPropertyPortal';
 import { UserDashboard } from './components/UserDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
+import { RealEstateCalculators } from './components/RealEstateCalculators';
 import { LeadModal } from './components/LeadModal';
 import { AiAssistantDrawer } from './components/AiAssistantDrawer';
 import { ToastContainer } from './components/Toast';
@@ -56,8 +57,12 @@ const MainContent: React.FC = () => {
           <PostPropertyPortal />
         )}
 
-        {(activeView === 'dashboard' || activeView === 'valuation') && (
+        {activeView === 'dashboard' && (
           <UserDashboard />
+        )}
+
+        {activeView === 'valuation' && (
+          <RealEstateCalculators />
         )}
 
         {activeView === 'admin' && (
@@ -179,16 +184,42 @@ const MainContent: React.FC = () => {
 
             {/* Col 4: Real Estate Services & Contact */}
             <div>
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Real Estate Services</h4>
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Calculators & Services</h4>
               <ul className="space-y-2">
-                <li className="flex items-center gap-1.5 text-amber-300 font-medium">
-                  <Calculator className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Property Price Estimator</span>
+                <li>
+                  <button 
+                    onClick={() => { setActiveView('valuation'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="flex items-center gap-1.5 text-amber-300 hover:text-amber-200 font-bold transition-colors cursor-pointer"
+                  >
+                    <Calculator className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Property Price Estimator</span>
+                  </button>
                 </li>
-                <li className="text-gray-400">Locality Growth Reports</li>
-                <li className="text-gray-400">Automated Description Helper</li>
-                <li className="text-gray-400">Direct Buyer Inquiries Tracker</li>
-                <li className="text-gray-400">Verified Owner Checks</li>
+                <li>
+                  <button 
+                    onClick={() => { setActiveView('valuation'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    Home Loan EMI Calculator
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => { setActiveView('valuation'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    Stamp Duty & Registry Calculator
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => { setActiveView('valuation'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    Rental Yield & ROI Matrix
+                  </button>
+                </li>
+                <li className="text-gray-400">Verified Owner Property Checks</li>
               </ul>
             </div>
 
