@@ -98,40 +98,26 @@ export const HeroSection: React.FC = () => {
         {/* Main Search Filter Box */}
         <div className="bg-white text-gray-900 rounded-2xl shadow-2xl p-3.5 sm:p-6 border border-gray-100 max-w-4xl mx-auto">
           
-          {/* Listing Type Tabs (Buy, Rent, Commercial, New Projects) & Post Property Button */}
-          <div className="flex items-center justify-between border-b border-gray-200 pb-2.5 gap-1.5 sm:gap-4 overflow-x-auto scrollbar-none flex-nowrap -mx-1 px-1">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              {(['Buy', 'Rent', 'Commercial', 'New Projects'] as ListingType[]).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
-                    activeTab === tab
-                      ? 'bg-red-600 text-white shadow-md'
-                      : 'text-gray-600 hover:text-red-600 hover:bg-red-50/50 bg-gray-50/80 sm:bg-transparent'
-                  }`}
-                >
-                  {tab === 'Buy' && <Home className="w-4 h-4 shrink-0" />}
-                  {tab === 'Rent' && <Key className="w-4 h-4 shrink-0" />}
-                  {tab === 'Commercial' && <Building className="w-4 h-4 shrink-0" />}
-                  {tab === 'New Projects' && <Layers className="w-4 h-4 shrink-0" />}
-                  <span>{tab}</span>
-                </button>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveView('post-property');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="py-2 px-3 sm:px-4 text-xs sm:text-sm font-extrabold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-sm ml-auto"
-            >
-              <PlusCircle className="w-4 h-4 shrink-0 text-white" />
-              <span>Post Property FREE</span>
-            </button>
+          {/* Listing Type Tabs (Buy, Rent, Commercial, New Projects) */}
+          <div className="flex items-center justify-start border-b border-gray-200 pb-2.5 gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none flex-nowrap -mx-1 px-1">
+            {(['Buy', 'Rent', 'Commercial', 'New Projects'] as ListingType[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`py-2 px-3 sm:px-4 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
+                  activeTab === tab
+                    ? 'bg-red-600 text-white shadow-md'
+                    : 'text-gray-600 hover:text-red-600 hover:bg-red-50/50 bg-gray-50/80 sm:bg-transparent'
+                }`}
+              >
+                {tab === 'Buy' && <Home className="w-4 h-4 shrink-0" />}
+                {tab === 'Rent' && <Key className="w-4 h-4 shrink-0" />}
+                {tab === 'Commercial' && <Building className="w-4 h-4 shrink-0" />}
+                {tab === 'New Projects' && <Layers className="w-4 h-4 shrink-0" />}
+                <span>{tab}</span>
+              </button>
+            ))}
           </div>
 
           {/* Search Form Controls */}

@@ -125,10 +125,11 @@ export const AdminDashboard: React.FC = () => {
     e.preventDefault();
     setLoginError('');
 
-    if (adminEmail.trim().toLowerCase() === 'sanjumeena@gmail.com' && adminPassword === 'sanju@8233') {
+    const validEmails = ['sanjumeena@gmail.com', 'eigeltumspaces@gmail.com', 'admin@eigentumspaces.com'];
+    if (validEmails.includes(adminEmail.trim().toLowerCase()) && adminPassword === 'sanju@8233') {
       setIsAdminAuthenticated(true);
       sessionStorage.setItem('admin_authenticated', 'true');
-      showToast('Welcome Admin Sanju Meena! Admin Session Unlocked.', 'success');
+      showToast('Admin Session Unlocked successfully.', 'success');
     } else {
       setLoginError('Invalid Admin Email or Password. Access Denied.');
       showToast('Invalid Admin Credentials', 'error');
@@ -446,22 +447,6 @@ export const AdminDashboard: React.FC = () => {
             >
               <KeyRound className="w-4 h-4" />
               <span>Unlock Admin Panel</span>
-            </button>
-
-            {/* 1-Click Fast Unlock for Admin */}
-            <button
-              type="button"
-              onClick={() => {
-                setAdminEmail('sanjumeena@gmail.com');
-                setAdminPassword('sanju@8233');
-                setIsAdminAuthenticated(true);
-                sessionStorage.setItem('admin_authenticated', 'true');
-                showToast('Welcome Admin Sanju Meena! Session Unlocked.', 'success');
-              }}
-              className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-gray-300 font-bold py-2.5 rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Quick Unlock Admin (Sanju Meena)</span>
             </button>
           </form>
 

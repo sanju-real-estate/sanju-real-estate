@@ -142,19 +142,6 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
-            {/* Post Property FREE Button */}
-            <button
-              onClick={() => handleNavClick('post-property')}
-              className="hidden sm:flex bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs items-center gap-1.5 cursor-pointer shrink-0"
-              title="Post Property Free - Sell or Rent"
-            >
-              <PlusCircle className="w-4 h-4 text-white shrink-0" />
-              <span className="inline font-extrabold">Post Property</span>
-              <span className="bg-emerald-800 text-emerald-100 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                FREE
-              </span>
-            </button>
-
             {/* User Dashboard (lg+) */}
             <button
               onClick={() => handleNavClick('dashboard')}
@@ -223,18 +210,6 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1">
-            <button
-              onClick={() => handleNavClick('post-property')}
-              className="text-left py-3 px-3.5 text-sm font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl min-h-[44px] flex items-center justify-between shadow-sm cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <PlusCircle className="w-5 h-5 text-white shrink-0" />
-                <span>Post Property FREE</span>
-              </div>
-              <span className="text-[10px] bg-emerald-800 text-white font-extrabold px-2 py-0.5 rounded-full uppercase">
-                Zero Fee
-              </span>
-            </button>
             <button
               onClick={() => handleNavClick('home')}
               className="text-left py-3 px-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-xl min-h-[44px] flex items-center"

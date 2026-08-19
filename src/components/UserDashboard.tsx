@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { PropertyCard } from './PropertyCard';
-import { Inquiry, Property } from '../types';
-import { 
-  Heart, Building, PhoneCall, Calculator, Trash2, Eye, User, 
-  Clock, CheckCircle, Loader2, ArrowRight, Mail, Phone, Calendar
-} from 'lucide-react';
+import { Heart, Calculator, CheckCircle, Loader2 } from 'lucide-react';
 import { INDIAN_CITIES } from '../data/cities';
 import { APP_LOGO } from '../assets/logo';
 
@@ -13,27 +9,19 @@ export const UserDashboard: React.FC = () => {
   const { 
     properties, 
     wishlistIds, 
-    inquiries, 
-    updateInquiryStatus, 
-    deleteProperty, 
-    viewPropertyDetail,
     selectedCity,
     showToast,
-    siteSettings,
-    currentUser,
-    openAuthModal,
-    logout
+    siteSettings
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'wishlist' | 'posted' | 'leads' | 'valuation'>('wishlist');
+  const [activeTab, setActiveTab] = useState<'wishlist' | 'valuation'>('wishlist');
 
   // Filter properties
   const savedProperties = properties.filter(p => wishlistIds.includes(p.id));
-  const userPostedProperties = properties.filter(p => p.postedBy === 'Owner' || p.id.startsWith('prop-'));
 
   // AI Valuation State
-  const [valCity, setValCity] = useState(selectedCity || 'Mumbai');
-  const [valLocality, setValLocality] = useState('Bandra West');
+  const [valCity, setValCity] = useState(selectedCity || 'Jaipur');
+  const [valLocality, setValLocality] = useState('Mansarovar');
   const [valType, setValType] = useState('Apartment');
   const [valBhk, setValBhk] = useState(3);
   const [valSqFt, setValSqFt] = useState(1350);
@@ -78,7 +66,7 @@ export const UserDashboard: React.FC = () => {
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Header Title & Google Account Profile Card */}
+        {/* Header Title & Dashboard Card */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-3xl border border-gray-200 shadow-xs">
           <div className="flex items-center gap-3">
             <img 
@@ -95,7 +83,7 @@ export const UserDashboard: React.FC = () => {
                 {siteSettings.portalName} – Dashboard
               </h1>
               <p className="text-xs text-gray-500 mt-0.5">
-                Manage saved properties, track direct leads, and compute property valuation reports.
+                View your saved properties and generate instant market valuation reports.
               </p>
             </div>
           </div>
@@ -124,30 +112,6 @@ export const UserDashboard: React.FC = () => {
           >
             <Heart className="w-4 h-4" />
             <span>Saved Properties ({savedProperties.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('posted')}
-            className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'posted'
-                ? 'bg-red-600 text-white shadow-md'
-                : 'text-gray-600 hover:text-red-600 hover:bg-gray-50'
-            }`}
-          >
-            <Building className="w-4 h-4" />
-            <span>My Posted Properties ({userPostedProperties.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('leads')}
-            className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'leads'
-                ? 'bg-red-600 text-white shadow-md'
-                : 'text-gray-600 hover:text-red-600 hover:bg-gray-50'
-            }`}
-          >
-            <PhoneCall className="w-4 h-4" />
-            <span>Received Leads ({inquiries.length})</span>
           </button>
 
           <button
@@ -182,152 +146,7 @@ export const UserDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 2: MY POSTED PROPERTIES */}
-        {activeTab === 'posted' && (
-          <div className="space-y-4">
-            {userPostedProperties.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center space-y-4">
-                <Building className="w-12 h-12 text-gray-300 mx-auto" />
-                <h3 className="text-lg font-bold text-gray-900">You haven't posted any property yet</h3>
-                <p className="text-xs text-gray-500">Post your property for FREE to reach thousands of homebuyers.</p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
-                <div className="divide-y divide-gray-200">
-                  {userPostedProperties.map(prop => (
-                    <div key={prop.id} className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={prop.images[0]}
-                          alt={prop.title}
-                          className="w-20 h-20 rounded-xl object-cover shrink-0 bg-gray-100"
-                        />
-                        <div>
-                          <span className="text-[10px] font-extrabold uppercase text-red-600 bg-red-50 px-2 py-0.5 rounded">
-                            {prop.propertyType} • {prop.listingType}
-                          </span>
-                          <h3 className="text-sm font-bold text-gray-900 mt-1 line-clamp-1">{prop.title}</h3>
-                          <p className="text-xs font-semibold text-red-600">{prop.priceDisplay}</p>
-                          <p className="text-[11px] text-gray-400">{prop.locality}, {prop.city}</p>
-                        </div>
-                      </div>
-
-                      {/* Stats & Actions */}
-                      <div className="flex items-center gap-6 self-end sm:self-center">
-                        <div className="text-right text-xs">
-                          <span className="text-gray-400 block font-medium">Views</span>
-                          <strong className="text-gray-900 font-bold">{prop.viewsCount}</strong>
-                        </div>
-
-                        <div className="text-right text-xs">
-                          <span className="text-gray-400 block font-medium">Leads</span>
-                          <strong className="text-red-600 font-extrabold">{prop.leadsCount}</strong>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => viewPropertyDetail(prop)}
-                            className="p-2 text-gray-600 hover:text-slate-900 hover:bg-gray-100 rounded-lg"
-                            title="View Property"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => deleteProperty(prop.id)}
-                            className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
-                            title="Delete Listing"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: RECEIVED INQUIRIES / LEADS TABLE */}
-        {activeTab === 'leads' && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
-            <div className="p-5 border-b border-gray-200 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-gray-900">Buyer & Tenant Direct Leads</h3>
-                <p className="text-xs text-gray-500">Inquiries received from interested buyers for your listings.</p>
-              </div>
-              <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full">
-                {inquiries.length} Inquiries
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
-                  <tr>
-                    <th className="p-4">Buyer Details</th>
-                    <th className="p-4">Property</th>
-                    <th className="p-4">Message / Request</th>
-                    <th className="p-4">Date</th>
-                    <th className="p-4">Lead Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {inquiries.map(inq => (
-                    <tr key={inq.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-4">
-                        <div className="font-bold text-gray-900">{inq.userName}</div>
-                        <div className="text-gray-500 flex items-center gap-1 mt-0.5">
-                          <Phone className="w-3 h-3 text-emerald-600" /> {inq.userPhone}
-                        </div>
-                        <div className="text-gray-400 flex items-center gap-1 mt-0.5">
-                          <Mail className="w-3 h-3" /> {inq.userEmail}
-                        </div>
-                      </td>
-
-                      <td className="p-4">
-                        <div className="font-semibold text-gray-900 max-w-xs line-clamp-1">{inq.propertyTitle}</div>
-                        <span className="text-[10px] text-gray-400 uppercase font-bold">{inq.userType}</span>
-                      </td>
-
-                      <td className="p-4 max-w-xs">
-                        <p className="text-gray-700 italic line-clamp-2">"{inq.message}"</p>
-                        {inq.scheduleVisitDate && (
-                          <div className="text-[10px] text-red-600 font-bold flex items-center gap-1 mt-1">
-                            <Calendar className="w-3 h-3" /> Requested Visit: {inq.scheduleVisitDate}
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="p-4 text-gray-500 font-medium whitespace-nowrap">
-                        {inq.createdAt}
-                      </td>
-
-                      <td className="p-4">
-                        <select
-                          value={inq.status}
-                          onChange={(e) => updateInquiryStatus(inq.id, e.target.value as any)}
-                          className="p-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 focus:outline-none cursor-pointer"
-                        >
-                          <option value="New">🟢 New</option>
-                          <option value="Contacted">🟡 Contacted</option>
-                          <option value="Site Visit Scheduled">🔵 Site Visit Scheduled</option>
-                          <option value="Closed">✅ Closed / Converted</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: SMART PROPERTY VALUATION TOOL */}
+        {/* TAB 2: SMART PROPERTY VALUATION TOOL */}
         {activeTab === 'valuation' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
