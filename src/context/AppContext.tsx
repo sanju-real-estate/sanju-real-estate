@@ -141,7 +141,91 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [selectedCity, setSelectedCity] = useState<string>('Jaipur');
-  const [activeView, setActiveView] = useState<'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin'>('home');
+  const [activeView, setActiveViewState] = useState<'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin'>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname.toLowerCase();
+        const search = window.location.search.toLowerCase();
+        const hash = window.location.hash.toLowerCase();
+
+        if (path.includes('/admin') || search.includes('admin=true') || hash.includes('admin')) {
+          return 'admin';
+        }
+        if (path.includes('/post-property') || hash.includes('post-property')) {
+          return 'post-property';
+        }
+        if (path.includes('/listings') || hash.includes('listings')) {
+          return 'listings';
+        }
+        if (path.includes('/valuation') || hash.includes('valuation')) {
+          return 'valuation';
+        }
+        if (path.includes('/dashboard') || hash.includes('dashboard')) {
+          return 'dashboard';
+        }
+      }
+    } catch (e) {}
+    return 'home';
+  });
+
+  const setActiveView = (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin') => {
+    setActiveViewState(view);
+    try {
+      if (typeof window !== 'undefined') {
+        if (view === 'admin') {
+          if (window.location.pathname !== '/admin') {
+            window.history.pushState({ view: 'admin' }, '', '/admin');
+          }
+        } else if (view === 'home') {
+          if (window.location.pathname !== '/') {
+            window.history.pushState({ view: 'home' }, '', '/');
+          }
+        } else if (view === 'listings') {
+          if (window.location.pathname !== '/listings') {
+            window.history.pushState({ view: 'listings' }, '', '/listings');
+          }
+        } else if (view === 'post-property') {
+          if (window.location.pathname !== '/post-property') {
+            window.history.pushState({ view: 'post-property' }, '', '/post-property');
+          }
+        } else if (view === 'valuation') {
+          if (window.location.pathname !== '/valuation') {
+            window.history.pushState({ view: 'valuation' }, '', '/valuation');
+          }
+        } else if (view === 'dashboard') {
+          if (window.location.pathname !== '/dashboard') {
+            window.history.pushState({ view: 'dashboard' }, '', '/dashboard');
+          }
+        }
+      }
+    } catch (e) {}
+  };
+
+  // Listen to browser Back/Forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const path = window.location.pathname.toLowerCase();
+        const search = window.location.search.toLowerCase();
+        if (path.includes('/admin') || search.includes('admin=true')) {
+          setActiveViewState('admin');
+        } else if (path.includes('/post-property')) {
+          setActiveViewState('post-property');
+        } else if (path.includes('/listings')) {
+          setActiveViewState('listings');
+        } else if (path.includes('/valuation')) {
+          setActiveViewState('valuation');
+        } else if (path.includes('/dashboard')) {
+          setActiveViewState('dashboard');
+        } else {
+          setActiveViewState('home');
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(INITIAL_PROPERTIES[0]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);

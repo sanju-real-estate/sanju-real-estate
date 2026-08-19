@@ -10,7 +10,6 @@ import { UserDashboard } from './components/UserDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LeadModal } from './components/LeadModal';
 import { AiAssistantDrawer } from './components/AiAssistantDrawer';
-import { AuthModal } from './components/AuthModal';
 import { ToastContainer } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Property } from './types';
@@ -72,9 +71,6 @@ const MainContent: React.FC = () => {
         onClose={() => setModalProperty(null)}
       />
 
-      {/* Authentication Modal */}
-      <AuthModal />
-
       {/* AI Assistant Drawer */}
       <AiAssistantDrawer />
 
@@ -129,16 +125,6 @@ const MainContent: React.FC = () => {
                     WhatsApp
                   </a>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <button
-                  onClick={() => setActiveView('admin')}
-                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition-colors flex items-center gap-2 cursor-pointer"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Admin Panel Login</span>
-                </button>
               </div>
             </div>
 

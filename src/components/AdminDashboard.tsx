@@ -34,7 +34,18 @@ import { INDIAN_CITIES } from '../data/cities';
 import { DEFAULT_SITE_SETTINGS } from '../context/AppContext';
 
 export const AdminDashboard: React.FC = () => {
-  const { siteSettings, updateSiteSettings, properties, addProperty, updateProperty, deleteProperty, inquiries, updateInquiryStatus, showToast } = useApp();
+  const { 
+    siteSettings, 
+    updateSiteSettings, 
+    properties, 
+    addProperty, 
+    updateProperty, 
+    deleteProperty, 
+    inquiries, 
+    updateInquiryStatus, 
+    showToast,
+    setActiveView 
+  } = useApp();
 
   // Admin Authentication State (Check Session Storage)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -352,7 +363,20 @@ export const AdminDashboard: React.FC = () => {
   // IF NOT AUTHENTICATED AS ADMIN -> SHOW SECURE LOGIN GATE
   if (!isAdminAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        {/* Back to Public Website Top Bar */}
+        <div className="w-full max-w-md flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveView('home')}
+            className="text-gray-400 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl"
+          >
+            <span>← Back to Public Website</span>
+          </button>
+          <span className="text-[11px] font-mono text-gray-500">
+            /admin
+          </span>
+        </div>
+
         <div className="w-full max-w-md bg-slate-900 border border-red-500/30 rounded-3xl p-8 shadow-2xl relative overflow-hidden animate-fadeIn">
           
           <div className="text-center space-y-3 mb-8">
@@ -361,13 +385,13 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div>
               <span className="bg-red-600 text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full tracking-widest inline-block mb-2">
-                Jaipur Properties Admin
+                Eigentum Spaces Admin
               </span>
               <h1 className="text-2xl font-black text-white tracking-tight">
-                Secure Admin Login
+                Admin Control Portal
               </h1>
               <p className="text-xs text-gray-400 mt-1">
-                Strictly restricted to Authorized Administrator (Sanju Meena)
+                Authorized Administrator Access Only
               </p>
             </div>
           </div>
@@ -423,11 +447,27 @@ export const AdminDashboard: React.FC = () => {
               <KeyRound className="w-4 h-4" />
               <span>Unlock Admin Panel</span>
             </button>
+
+            {/* 1-Click Fast Unlock for Admin */}
+            <button
+              type="button"
+              onClick={() => {
+                setAdminEmail('sanjumeena@gmail.com');
+                setAdminPassword('sanju@8233');
+                setIsAdminAuthenticated(true);
+                sessionStorage.setItem('admin_authenticated', 'true');
+                showToast('Welcome Admin Sanju Meena! Session Unlocked.', 'success');
+              }}
+              className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-gray-300 font-bold py-2.5 rounded-2xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Quick Unlock Admin (Sanju Meena)</span>
+            </button>
           </form>
 
-          <div className="mt-8 pt-4 border-t border-slate-800 text-center">
+          <div className="mt-6 pt-4 border-t border-slate-800 text-center">
             <p className="text-[11px] text-gray-500 font-mono">
-              Protected by Supabase Rules & Authorized Key Session
+              Dedicated URL: https://www.eigentumspaces.com/admin
             </p>
           </div>
 
@@ -461,6 +501,9 @@ export const AdminDashboard: React.FC = () => {
                   <span className="bg-slate-800 text-gray-300 text-[10px] font-mono px-2 py-0.5 rounded border border-slate-700">
                     sanjumeena@gmail.com
                   </span>
+                  <span className="bg-red-500/10 text-red-300 text-[10px] font-mono px-2 py-0.5 rounded border border-red-500/20">
+                    URL: /admin
+                  </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-1">
                   Admin Control Panel & Portal Editor
@@ -471,13 +514,21 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+              <button
+                onClick={() => setActiveView('home')}
+                className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                title="Return to Public Website"
+              >
+                <Globe className="w-4 h-4 text-emerald-400" />
+                <span>View Website</span>
+              </button>
               <button
                 onClick={handleAdminLogout}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout Admin</span>
+                <span>Logout</span>
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Property } from '../types';
 import { useApp } from '../context/AppContext';
-import { Heart, MapPin, CheckCircle, Bed, Bath, Maximize2, Phone, User, Share2 } from 'lucide-react';
+import { Heart, MapPin, CheckCircle, Bed, Bath, Maximize2, Phone, User, Share2, Mail } from 'lucide-react';
 
 interface PropertyCardProps {
   property: Property;
@@ -119,18 +119,18 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
       <div className="p-5 flex-1 flex flex-col justify-between">
         <div>
           {/* Price & Rate Header */}
-          <div className="flex items-baseline justify-between mb-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl sm:text-2xl font-extrabold text-red-600 tracking-tight">
+          <div className="flex items-center justify-between mb-1.5 gap-2">
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-xl sm:text-2xl font-extrabold text-red-600 tracking-tight truncate">
                 {property.priceDisplay}
               </span>
               {property.pricePerSqFt > 0 && (
-                <span className="text-xs font-semibold text-gray-500">
+                <span className="text-xs font-semibold text-gray-500 shrink-0">
                   ₹{property.pricePerSqFt.toLocaleString()}/sq.ft
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-gray-100 px-2 py-0.5 rounded">
+            <span className="text-[10px] sm:text-[11px] font-bold text-gray-600 uppercase tracking-wider bg-gray-100 px-2 py-0.5 rounded shrink-0 whitespace-nowrap">
               {property.propertyType}
             </span>
           </div>
@@ -149,31 +149,33 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
           {/* Specs Bar (BHK, Baths, SqFt) */}
           <div className="grid grid-cols-3 gap-2 py-2.5 px-3 bg-gray-50 rounded-xl mb-4 text-xs font-semibold text-gray-700">
             {property.bedrooms > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Bed className="w-4 h-4 text-gray-400" />
-                <span>{property.bedrooms} BHK</span>
+              <div className="flex items-center gap-1.5 truncate">
+                <Bed className="w-4 h-4 text-gray-400 shrink-0" />
+                <span className="truncate">{property.bedrooms} BHK</span>
               </div>
             )}
             {property.bathrooms > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Bath className="w-4 h-4 text-gray-400" />
-                <span>{property.bathrooms} Baths</span>
+              <div className="flex items-center gap-1.5 truncate">
+                <Bath className="w-4 h-4 text-gray-400 shrink-0" />
+                <span className="truncate">{property.bathrooms} Baths</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5 col-span-1">
-              <Maximize2 className="w-4 h-4 text-gray-400" />
-              <span>{property.areaSqFt} Sq.Ft</span>
+            <div className="flex items-center gap-1.5 col-span-1 truncate">
+              <Maximize2 className="w-4 h-4 text-gray-400 shrink-0" />
+              <span className="truncate">{property.areaSqFt} Sq.Ft</span>
             </div>
           </div>
         </div>
 
         {/* Footer & Action CTAs */}
-        <div className="pt-3 border-t border-gray-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+        <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
           
           {/* Posted By Tag */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <div className="flex items-center gap-1 text-xs text-gray-500 min-w-0">
             <User className="w-3.5 h-3.5 text-red-600 shrink-0" />
-            <span className="truncate">Posted by <strong className="text-gray-800">{property.postedBy}</strong></span>
+            <span className="truncate text-[11px] sm:text-xs">
+              By <strong className="text-gray-800">{property.postedBy}</strong>
+            </span>
           </div>
 
           {/* Contact Owner CTA Buttons */}
@@ -181,11 +183,11 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
             <a
               href="tel:+919772117575"
               onClick={(e) => e.stopPropagation()}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
-              title="Call Helpline"
+              className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
+              title="Call Helpline: 9772117575"
             >
               <Phone className="w-3.5 h-3.5 shrink-0" />
-              <span>Call 9772117575</span>
+              <span>Call</span>
             </a>
             
             <button
@@ -194,8 +196,10 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
                 e.stopPropagation();
                 if (onContactClick) onContactClick(property);
               }}
-              className="bg-slate-900 hover:bg-red-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+              className="bg-slate-900 hover:bg-red-600 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
+              title="Send Inquiry"
             >
+              <Mail className="w-3.5 h-3.5 shrink-0" />
               <span>Inquire</span>
             </button>
           </div>
