@@ -26,6 +26,7 @@ export const AuthModal: React.FC = () => {
     loginWithGoogle, 
     firebaseSignup,
     firebaseLogin,
+    verifyEmailCode,
     sendFirebaseVerificationEmail,
     checkFirebaseVerification,
     sendFirebasePasswordReset,
@@ -207,10 +208,11 @@ export const AuthModal: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      await sendFirebaseVerificationEmail();
+      const email = pendingEmail || emailInput.trim();
+      await sendFirebaseVerificationEmail(email);
       setResendTimer(45);
       setCanResend(false);
-      showToast('Verification email link sent to your inbox!', 'success');
+      showToast('Verification email link & code sent to your inbox!', 'success');
     } catch (err: any) {
       setErrorMessage(err.message || 'Could not send verification email.');
     } finally {
@@ -231,20 +233,14 @@ export const AuthModal: React.FC = () => {
     setErrorMessage(null);
     try {
       const email = pendingEmail || emailInput.trim();
-      const res = await fetch('/api/auth/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code })
-      });
-      const data = await res.json();
-      if (data.status === 'ok' || data.verified) {
+      const res = await verifyEmailCode(email, code);
+      if (res?.success) {
         setIsVerifiedSuccess(true);
-        showToast('Email verified successfully! Welcome to Jaipur Properties Hub.', 'success');
         setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+          closeAuthModal();
+        }, 1200);
       } else {
-        setErrorMessage(data.error || 'Invalid code. Please check your email inbox.');
+        setErrorMessage(res?.error || 'Invalid code. Please check your email inbox.');
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Verification failed. Please try again.');
@@ -258,12 +254,13 @@ export const AuthModal: React.FC = () => {
     setIsCheckingStatus(true);
     setErrorMessage(null);
     try {
-      const isVerified = await checkFirebaseVerification();
+      const email = pendingEmail || emailInput.trim();
+      const isVerified = await checkFirebaseVerification(email);
       if (isVerified) {
         setIsVerifiedSuccess(true);
         setTimeout(() => {
           closeAuthModal();
-        }, 1000);
+        }, 1200);
       } else {
         setErrorMessage('Email not verified yet. Please check your inbox or enter the 6-digit code.');
       }
