@@ -607,7 +607,7 @@ Sitemap: ${protocol}://${host}/sitemap.xml
   res.send(robotsTxt);
 });
 
-// Dynamic sitemap.xml with live property URLs and XML tags
+// Dynamic sitemap.xml with live property URLs
 app.get("/sitemap.xml", (req, res) => {
   const host = req.get("host") || "www.eigentumspaces.com";
   const protocol = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https" ? "https" : "https";
@@ -625,8 +625,7 @@ app.get("/sitemap.xml", (req, res) => {
   ];
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 `;
 
   staticPages.forEach(p => {
@@ -649,21 +648,7 @@ app.get("/sitemap.xml", (req, res) => {
     <loc>${propUrl}</loc>
     <lastmod>${lastMod}</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.8</priority>`;
-    
-    if (prop.images && Array.isArray(prop.images) && prop.images.length > 0) {
-      prop.images.slice(0, 3).forEach((imgUrl: string) => {
-        if (imgUrl && !imgUrl.startsWith('data:')) {
-          xml += `
-    <image:image>
-      <image:loc>${imgUrl.replace(/&/g, '&amp;')}</image:loc>
-      <image:title>${(prop.title || 'Property in Jaipur').replace(/&/g, '&amp;')}</image:title>
-    </image:image>`;
-        }
-      });
-    }
-
-    xml += `
+    <priority>0.8</priority>
   </url>
 `;
   });
