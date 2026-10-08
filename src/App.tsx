@@ -80,7 +80,7 @@ const MainContent: React.FC = () => {
                   }}
                   className="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black text-xs px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
-                  <span>Explore Township Landing Page</span>
+                  <span>Explore Vrindavan City Township</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>

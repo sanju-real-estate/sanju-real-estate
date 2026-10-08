@@ -252,7 +252,7 @@ export const VrindavanSpotlightSection: React.FC = () => {
                 }}
                 className="w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-400 text-emerald-950 font-black text-sm py-3.5 px-4 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer group"
               >
-                <span>Explore Full Vrindavan Landing Page</span>
+                <span>View Complete Township Details & Plots</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
 
