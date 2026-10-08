@@ -22,6 +22,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // File-system persistence fallback for live server
 const DATA_DIR = path.join(process.cwd(), "data");
+const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
+
 if (!fs.existsSync(DATA_DIR)) {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -29,6 +31,16 @@ if (!fs.existsSync(DATA_DIR)) {
     console.warn("Could not create data directory:", e);
   }
 }
+
+if (!fs.existsSync(UPLOADS_DIR)) {
+  try {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  } catch (e) {
+    console.warn("Could not create uploads directory:", e);
+  }
+}
+
+app.use("/uploads", express.static(UPLOADS_DIR));
 
 const SETTINGS_FILE_PATH = path.join(process.cwd(), "site_settings.json");
 const DATA_SETTINGS_FILE_PATH = path.join(DATA_DIR, "site_settings.json");
@@ -500,6 +512,35 @@ app.get("/api/sync-all", (req, res) => {
   });
 });
 
+// Image Upload API
+app.post("/api/upload-image", async (req, res) => {
+  try {
+    const { image, filename } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: "Missing image data" });
+    }
+
+    if (typeof image === 'string' && image.startsWith('data:image/')) {
+      const matches = image.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const rawExt = matches[1].toLowerCase();
+        const ext = rawExt === 'jpeg' ? 'jpg' : rawExt === 'svg+xml' ? 'svg' : rawExt;
+        const buffer = Buffer.from(matches[2], 'base64');
+        const cleanName = `prop_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const filePath = path.join(UPLOADS_DIR, cleanName);
+        fs.writeFileSync(filePath, buffer);
+        const publicUrl = `/uploads/${cleanName}`;
+        return res.json({ status: "ok", url: publicUrl });
+      }
+    }
+
+    return res.json({ status: "ok", url: image });
+  } catch (error: any) {
+    console.error("Upload image error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // Properties REST APIs
 app.get("/api/properties", (req, res) => {
   res.json({ properties: globalProperties, version: globalSyncVersion });
@@ -520,15 +561,15 @@ app.post("/api/properties", async (req, res) => {
       postedDate: newProperty.postedDate || new Date().toISOString().split('T')[0]
     };
 
-    // Prepend to list
-    globalProperties = [createdProperty, ...globalProperties.filter(p => p.id !== createdProperty.id)];
+    // Prepend to list & remove any duplicate id
+    globalProperties = [createdProperty, ...globalProperties.filter(p => String(p.id) !== String(createdProperty.id))];
     globalSyncVersion = Date.now();
     savePropertiesToDisk();
 
     // Background Supabase Sync
     syncPropertiesToSupabase().catch(() => {});
 
-    return res.json({ status: "ok", property: createdProperty, version: globalSyncVersion });
+    return res.json({ status: "ok", property: createdProperty, properties: globalProperties, version: globalSyncVersion });
   } catch (error: any) {
     console.error("POST /api/properties error:", error);
     return res.status(500).json({ error: error.message });
@@ -542,15 +583,15 @@ app.put("/api/properties/:id", async (req, res) => {
 
     let found = false;
     globalProperties = globalProperties.map(p => {
-      if (p.id === id) {
+      if (String(p.id) === String(id) || p.slug === id) {
         found = true;
-        return { ...p, ...updates };
+        return { ...p, ...updates, updatedAt: new Date().toISOString() };
       }
       return p;
     });
 
-    if (!found) {
-      return res.status(404).json({ error: "Property not found" });
+    if (!found && updates && (updates.title || updates.price)) {
+      globalProperties.unshift({ id, ...updates });
     }
 
     globalSyncVersion = Date.now();
@@ -559,7 +600,7 @@ app.put("/api/properties/:id", async (req, res) => {
     // Background Supabase Sync
     syncPropertiesToSupabase().catch(() => {});
 
-    return res.json({ status: "ok", version: globalSyncVersion });
+    return res.json({ status: "ok", properties: globalProperties, version: globalSyncVersion });
   } catch (error: any) {
     console.error("PUT /api/properties/:id error:", error);
     return res.status(500).json({ error: error.message });
@@ -569,14 +610,15 @@ app.put("/api/properties/:id", async (req, res) => {
 app.delete("/api/properties/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    globalProperties = globalProperties.filter(p => p.id !== id);
+    const initialLen = globalProperties.length;
+    globalProperties = globalProperties.filter(p => String(p.id) !== String(id) && p.slug !== id);
     globalSyncVersion = Date.now();
     savePropertiesToDisk();
 
     // Background Supabase Sync
     syncPropertiesToSupabase().catch(() => {});
 
-    return res.json({ status: "ok", version: globalSyncVersion });
+    return res.json({ status: "ok", deletedCount: initialLen - globalProperties.length, properties: globalProperties, version: globalSyncVersion });
   } catch (error: any) {
     console.error("DELETE /api/properties/:id error:", error);
     return res.status(500).json({ error: error.message });
@@ -605,6 +647,77 @@ Sitemap: ${protocol}://${host}/sitemap.xml
 `;
   res.header("Content-Type", "text/plain");
   res.send(robotsTxt);
+});
+
+// Dynamic llms.txt according to https://llmstxt.org/ standard
+app.get("/llms.txt", (req, res) => {
+  const host = req.get("host") || "www.eigentumspaces.com";
+  const protocol = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https" ? "https" : "https";
+  const baseUrl = `${protocol}://${host}`;
+
+  const llmsContent = `# Jaipur Properties Hub / Eigentum Spaces
+> Official Verified Real Estate & Property Portal in Jaipur, Rajasthan, India.
+
+Jaipur Properties Hub (operated by Eigentum Spaces) is a specialized real estate portal for verified residential, luxury villas, builder floors, commercial office spaces, and JDA-approved residential plots across Jaipur.
+
+## Primary Real Estate Sections
+
+- [Properties for Sale](${baseUrl}/buy): Verified 1 BHK, 2 BHK, 3 BHK, 4 BHK apartments, luxury independent villas, and penthouses for sale in Jaipur.
+- [Properties for Rent](${baseUrl}/rent): Verified rental flats, furnished homes, independent houses, and builder floors across Jaipur.
+- [Commercial Properties](${baseUrl}/commercial): Prime commercial offices, showrooms, retail shops, and corporate spaces on Tonk Road, Vaishali Nagar, and Malviya Nagar.
+- [New Projects](${baseUrl}/new-projects): RERA and JDA approved upcoming builder projects and gated communities in Jaipur.
+- [Property Valuation & EMI Calculator](${baseUrl}/valuation): Real-time per sq.ft rate estimation, rental yield analysis, stamp duty calculation, and home loan EMI estimator.
+- [Post Property](${baseUrl}/post-property): Verified property listing submission for owners, builders, and verified agents.
+
+## Prime Localities in Jaipur
+- Vaishali Nagar: Premium residential hubs, luxury 3/4 BHK apartments, and commercial high-streets.
+- Malviya Nagar: High-demand residential villas near World Trade Park and Gaurav Tower.
+- Jagatpura & Mahal Road: Modern high-rise apartment complexes, educational hubs, and airport connectivity.
+- Mansarovar: High-demand residential colonies and budget apartments.
+- C-Scheme: Ultra-luxury heritage, bungalows, and premium high-end apartments.
+
+## Contact Information
+- Helpline / WhatsApp: +91 97721 17575
+- Email: eigeltumspaces@gmail.com
+- Office Address: Vaishali Nagar, Jaipur, Rajasthan 302021, India
+`;
+  res.header("Content-Type", "text/plain; charset=utf-8");
+  res.send(llmsContent);
+});
+
+// Dynamic llms-full.txt
+app.get("/llms-full.txt", (req, res) => {
+  const host = req.get("host") || "www.eigentumspaces.com";
+  const protocol = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https" ? "https" : "https";
+  const baseUrl = `${protocol}://${host}`;
+
+  const fullContent = `# Jaipur Properties Hub / Eigentum Spaces - Full Context Specification
+
+> Complete documentation and structured directory for AI Search Agents, Perplexity, Gemini, ChatGPT, and Web Crawlers.
+
+## Brand Overview
+Jaipur Properties Hub provides verified property listings in Jaipur, Rajasthan, India. All listings are curated and verified with clear pricing, carpet area details, amenities, and owner contact details.
+
+## Portal URLs & Architecture
+- Homepage: ${baseUrl}/
+- Buy Residential: ${baseUrl}/buy
+- Rent Residential: ${baseUrl}/rent
+- Commercial Spaces: ${baseUrl}/commercial
+- New Builder Projects: ${baseUrl}/new-projects
+- AI Property Valuation & EMI: ${baseUrl}/valuation
+- User Saved Dashboard: ${baseUrl}/dashboard
+- XML Sitemap: ${baseUrl}/sitemap.xml
+- Robots Rules: ${baseUrl}/robots.txt
+
+## Contact
+- Agency Name: Jaipur Properties Hub (Eigentum Spaces)
+- Phone Helpline: +91 97721 17575
+- WhatsApp: +91 97721 17575
+- Email: eigeltumspaces@gmail.com
+- Head Office: Vaishali Nagar, Jaipur, Rajasthan 302021
+`;
+  res.header("Content-Type", "text/plain; charset=utf-8");
+  res.send(fullContent);
 });
 
 // Dynamic sitemap.xml with live property URLs

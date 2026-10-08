@@ -34,6 +34,16 @@ import {
 import { APP_LOGO } from '../assets/logo';
 import { INDIAN_CITIES } from '../data/cities';
 import { DEFAULT_SITE_SETTINGS } from '../context/AppContext';
+import { uploadImageFile } from '../utils/imageUpload';
+
+const ADMIN_IMAGE_PRESETS = [
+  { name: 'Luxury Villa', url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80' },
+  { name: 'Apartment Interior', url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80' },
+  { name: 'Living Room', url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80' },
+  { name: 'Skyscraper Tower', url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80' },
+  { name: 'Bunglow Lawn', url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80' },
+  { name: 'Modern Office', url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80' }
+];
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -73,6 +83,11 @@ export const AdminDashboard: React.FC = () => {
   const [editFormData, setEditFormData] = useState<Partial<Property>>({});
   const [editImageInput, setEditImageInput] = useState('');
   const [isUpdatingProperty, setIsUpdatingProperty] = useState(false);
+  const [isUploadingEditImage, setIsUploadingEditImage] = useState(false);
+
+  // Property Deletion Confirmation Modal State
+  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
+  const [isDeletingProperty, setIsDeletingProperty] = useState(false);
 
   // New Property Form State
   const [newProp, setNewProp] = useState<Partial<Property>>({
@@ -114,6 +129,7 @@ export const AdminDashboard: React.FC = () => {
 
   const [propImageInput, setPropImageInput] = useState('');
   const [isPostingProp, setIsPostingProp] = useState(false);
+  const [isUploadingNewPropImage, setIsUploadingNewPropImage] = useState(false);
 
   // Sync state when context updates from Firestore / Supabase
   useEffect(() => {
@@ -232,6 +248,27 @@ export const AdminDashboard: React.FC = () => {
         images: [...(prev.images || []), propImageInput.trim()]
       }));
       setPropImageInput('');
+      showToast('Photo URL added to new property', 'success');
+    }
+  };
+
+  const handleNewPropFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingNewPropImage(true);
+    try {
+      const uploadPromises = Array.from(files).map((f: File) => uploadImageFile(f));
+      const urls = await Promise.all(uploadPromises);
+      setNewProp(prev => ({
+        ...prev,
+        images: [...(prev.images || []), ...urls]
+      }));
+      showToast(`Uploaded ${urls.length} photo(s) to property!`, 'success');
+    } catch (err: any) {
+      showToast('Upload failed: ' + (err?.message || 'Error'), 'error');
+    } finally {
+      setIsUploadingNewPropImage(false);
+      e.target.value = '';
     }
   };
 
@@ -246,48 +283,58 @@ export const AdminDashboard: React.FC = () => {
     setEditImageInput('');
   };
 
-  // Upload Photo directly via file picker for editing property
-  const handleEditFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Image size should be less than 5MB', 'error');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setEditFormData(prev => ({
-          ...prev,
-          images: [...(prev.images || []), base64String]
-        }));
-        showToast('Photo added to property gallery', 'success');
-      };
-      reader.readAsDataURL(file);
+  // Upload Photo directly via file picker for editing property (Multi-File + Storage)
+  const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingEditImage(true);
+    try {
+      const uploadPromises = Array.from(files).map((file: File) => uploadImageFile(file));
+      const urls = await Promise.all(uploadPromises);
+      setEditFormData(prev => ({
+        ...prev,
+        images: [...(prev.images || []), ...urls]
+      }));
+      showToast(`Added ${urls.length} photo(s) to gallery!`, 'success');
+    } catch (err: any) {
+      showToast('Photo upload failed: ' + (err?.message || 'Error processing file'), 'error');
+    } finally {
+      setIsUploadingEditImage(false);
+      e.target.value = '';
     }
   };
 
   // Upload Floor Plan Photo (2D or 3D) for editing property
-  const handleFloorPlanFileUpload = (type: '2D' | '3D', e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFloorPlanFileUpload = async (type: '2D' | '3D', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Floor plan size should be less than 5MB', 'error');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
+      try {
+        const uploadedUrl = await uploadImageFile(file);
         if (type === '2D') {
-          setEditFormData(prev => ({ ...prev, floorPlanUrl: base64String }));
+          setEditFormData(prev => ({ ...prev, floorPlanUrl: uploadedUrl }));
           showToast('2D Floor Plan layout photo uploaded', 'success');
         } else {
-          setEditFormData(prev => ({ ...prev, floorPlan3DUrl: base64String }));
+          setEditFormData(prev => ({ ...prev, floorPlan3DUrl: uploadedUrl }));
           showToast('3D Isometric Floor Plan photo uploaded', 'success');
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (err: any) {
+        showToast('Floor plan upload failed: ' + (err?.message || 'Error'), 'error');
+      }
     }
+  };
+
+  // Add photo via Preset for editing property
+  const handleAddPresetToEdit = (url: string) => {
+    if ((editFormData.images || []).includes(url)) {
+      showToast('Photo is already in gallery', 'info');
+      return;
+    }
+    setEditFormData(prev => ({
+      ...prev,
+      images: [...(prev.images || []), url]
+    }));
+    showToast('Photo preset added', 'success');
   };
 
   // Add photo via URL for editing property
@@ -298,6 +345,7 @@ export const AdminDashboard: React.FC = () => {
         images: [...(prev.images || []), editImageInput.trim()]
       }));
       setEditImageInput('');
+      showToast('Photo URL added', 'success');
     }
   };
 
@@ -308,6 +356,21 @@ export const AdminDashboard: React.FC = () => {
       images: (prev.images || []).filter((_, idx) => idx !== indexToRemove)
     }));
     showToast('Photo removed from property', 'info');
+  };
+
+  // Make cover photo in edit mode
+  const handleSetCoverEditImage = (index: number) => {
+    if (index === 0) return;
+    setEditFormData(prev => {
+      const current = prev.images || [];
+      const target = current[index];
+      const others = current.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        images: [target, ...others]
+      };
+    });
+    showToast('Set as main cover photo', 'success');
   };
 
   // Save Property Updates Live
@@ -330,7 +393,7 @@ export const AdminDashboard: React.FC = () => {
         priceDisplay: editFormData.priceDisplay || formattedPrice,
         images: (editFormData.images && editFormData.images.length > 0) 
           ? editFormData.images 
-          : [APP_LOGO]
+          : [ADMIN_IMAGE_PRESETS[0].url]
       };
 
       await updateProperty(editingProperty.id, updates);
@@ -341,6 +404,22 @@ export const AdminDashboard: React.FC = () => {
       showToast('Error updating property', 'error');
     } finally {
       setIsUpdatingProperty(false);
+    }
+  };
+
+  // Delete Property Handler with Guaranteed In-App Confirmation
+  const handleConfirmDeleteProperty = async () => {
+    if (!propertyToDelete) return;
+    setIsDeletingProperty(true);
+    try {
+      deleteProperty(propertyToDelete.id);
+      showToast(`Property "${propertyToDelete.title}" deleted permanently from server!`, 'info');
+      setPropertyToDelete(null);
+    } catch (err: any) {
+      console.error('Delete property error:', err);
+      showToast('Failed to delete property: ' + (err?.message || 'Unknown error'), 'error');
+    } finally {
+      setIsDeletingProperty(false);
     }
   };
 
@@ -812,7 +891,7 @@ export const AdminDashboard: React.FC = () => {
                       Google / Bing Ready
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                     <a
                       href="/sitemap.xml"
                       target="_blank"
@@ -821,7 +900,7 @@ export const AdminDashboard: React.FC = () => {
                     >
                       <div>
                         <p className="font-bold text-white group-hover:text-red-400 transition-colors">/sitemap.xml</p>
-                        <p className="text-[10px] text-gray-400">Auto-updating XML Sitemap with all properties</p>
+                        <p className="text-[10px] text-gray-400">Search engines sitemap</p>
                       </div>
                       <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-white" />
                     </a>
@@ -834,7 +913,20 @@ export const AdminDashboard: React.FC = () => {
                     >
                       <div>
                         <p className="font-bold text-white group-hover:text-red-400 transition-colors">/robots.txt</p>
-                        <p className="text-[10px] text-gray-400">Search engine crawler instructions & sitemap link</p>
+                        <p className="text-[10px] text-gray-400">Crawler instructions</p>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                    </a>
+
+                    <a
+                      href="/llms.txt"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl flex items-center justify-between group transition-colors"
+                    >
+                      <div>
+                        <p className="font-bold text-white group-hover:text-red-400 transition-colors">/llms.txt</p>
+                        <p className="text-[10px] text-gray-400">AI Agents & LLM schema</p>
                       </div>
                       <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-white" />
                     </a>
@@ -974,30 +1066,102 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Property Images (URLs)</label>
-                  <div className="flex gap-2 mb-2">
+                {/* Property Images Section */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase tracking-wider text-gray-900 flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-red-600" />
+                      Property Images ({newProp.images?.length || 0})
+                    </label>
+                    <span className="text-[11px] text-gray-500">First photo is cover</span>
+                  </div>
+
+                  {/* Existing thumbnails */}
+                  {newProp.images && newProp.images.length > 0 && (
+                    <div className="flex items-center gap-2 overflow-x-auto py-1">
+                      {newProp.images.map((img, idx) => (
+                        <div key={idx} className="w-16 h-12 rounded-lg overflow-hidden border border-gray-300 relative shrink-0 group">
+                          <img src={img} alt="Prop" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewProp(prev => ({
+                              ...prev,
+                              images: (prev.images || []).filter((_, i) => i !== idx)
+                            }))}
+                            className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded text-[10px] cursor-pointer"
+                            title="Remove photo"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Device upload */}
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-red-300 hover:border-red-500 bg-white hover:bg-red-50/40 p-2.5 rounded-xl cursor-pointer text-xs font-bold text-red-600 transition-colors">
+                    {isUploadingNewPropImage ? (
+                      <span>Uploading & Optimizing Photos...</span>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        <span>Upload Photos from Device (JPG/PNG/WebP, multiple)</span>
+                      </>
+                    )}
+                    <input 
+                      type="file" 
+                      multiple
+                      accept="image/*" 
+                      onChange={handleNewPropFileUpload} 
+                      disabled={isUploadingNewPropImage}
+                      className="hidden" 
+                    />
+                  </label>
+
+                  {/* HD Presets */}
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      Or Choose HD Preset
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                      {ADMIN_IMAGE_PRESETS.map((preset, idx) => (
+                        <button
+                          type="button"
+                          key={idx}
+                          onClick={() => {
+                            if (!newProp.images?.includes(preset.url)) {
+                              setNewProp(prev => ({ ...prev, images: [...(prev.images || []), preset.url] }));
+                              showToast('Preset photo added', 'success');
+                            }
+                          }}
+                          className="relative rounded-lg overflow-hidden aspect-video border border-gray-200 hover:border-red-500 text-left cursor-pointer group"
+                        >
+                          <img src={preset.url} alt={preset.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          <div className="absolute inset-0 bg-black/60 flex items-end p-1">
+                            <span className="text-[8px] font-bold text-white leading-tight truncate">{preset.name}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* URL input */}
+                  <div className="flex gap-2">
                     <input
                       type="url"
                       value={propImageInput}
                       onChange={(e) => setPropImageInput(e.target.value)}
-                      placeholder="Paste image URL..."
-                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono"
+                      placeholder="Or paste image URL here..."
+                      className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs"
                     />
                     <button
                       type="button"
                       onClick={handleAddPropImage}
                       className="bg-slate-900 text-white text-xs font-bold px-4 rounded-xl cursor-pointer"
                     >
-                      Add Image
+                      Add URL
                     </button>
-                  </div>
-                  <div className="flex items-center gap-2 overflow-x-auto py-1">
-                    {newProp.images?.map((img, idx) => (
-                      <div key={idx} className="w-16 h-12 rounded-lg overflow-hidden border border-gray-200 relative shrink-0">
-                        <img src={img} alt="Prop" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
                   </div>
                 </div>
 
@@ -1158,12 +1322,7 @@ export const AdminDashboard: React.FC = () => {
 
                         <button
                           type="button"
-                          onClick={() => {
-                            if (window.confirm(`Delete property "${prop.title}" permanently?`)) {
-                              deleteProperty(prop.id);
-                              showToast('Property deleted', 'info');
-                            }
-                          }}
+                          onClick={() => setPropertyToDelete(prop)}
                           className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl cursor-pointer transition-colors"
                           title="Delete Property"
                         >
@@ -1173,6 +1332,67 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* IN-APP PROPERTY DELETE CONFIRMATION MODAL */}
+                {propertyToDelete && (
+                  <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-gray-100 animate-scaleUp text-center">
+                      <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                        <Trash2 className="w-8 h-8" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-black text-gray-900">
+                          Delete Property Listing?
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          Are you sure you want to permanently delete this property? This action will remove it from the live website, database, and all connected devices.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 text-left flex items-center gap-3">
+                        <img 
+                          src={propertyToDelete.images?.[0] || APP_LOGO} 
+                          alt={propertyToDelete.title} 
+                          className="w-14 h-14 rounded-xl object-cover border border-gray-200 shrink-0"
+                          onError={(e) => { e.currentTarget.src = APP_LOGO; }}
+                        />
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs text-gray-900 truncate">{propertyToDelete.title}</p>
+                          <p className="text-[11px] text-gray-500">{propertyToDelete.locality}, {propertyToDelete.city}</p>
+                          <p className="text-xs font-black text-red-600">{propertyToDelete.priceDisplay}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setPropertyToDelete(null)}
+                          disabled={isDeletingProperty}
+                          className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl cursor-pointer transition-colors"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleConfirmDeleteProperty}
+                          disabled={isDeletingProperty}
+                          className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white text-xs font-black rounded-xl shadow-lg cursor-pointer transition-colors flex items-center justify-center gap-2"
+                        >
+                          {isDeletingProperty ? (
+                            <span>Deleting...</span>
+                          ) : (
+                            <>
+                              <Trash2 className="w-4 h-4" />
+                              <span>Yes, Delete</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* EDIT PROPERTY MODAL */}
                 {editingProperty && (
@@ -1200,14 +1420,14 @@ export const AdminDashboard: React.FC = () => {
 
                       <form onSubmit={handleSavePropertyUpdates} className="space-y-5">
                         
-                        {/* PHOTO GALLERY SECTION (Upload, Delete, Preview) */}
+                        {/* PHOTO GALLERY SECTION (Upload, Delete, Preview, Presets) */}
                         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-black uppercase tracking-wider text-gray-900 flex items-center gap-1.5">
                               <ImageIcon className="w-4 h-4 text-red-600" />
                               Property Photos Gallery ({editFormData.images?.length || 0})
                             </label>
-                            <span className="text-[11px] text-gray-500 font-medium">Click 🗑️ to delete photo</span>
+                            <span className="text-[11px] text-gray-500 font-medium">First photo is Main Cover</span>
                           </div>
 
                           {/* Existing Photos Grid */}
@@ -1220,10 +1440,18 @@ export const AdminDashboard: React.FC = () => {
                                   className="w-full h-full object-cover"
                                   onError={(e) => { e.currentTarget.src = APP_LOGO; }}
                                 />
-                                {index === 0 && (
+                                {index === 0 ? (
                                   <span className="absolute top-1 left-1 bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow">
                                     Cover
                                   </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetCoverEditImage(index)}
+                                    className="absolute top-1 left-1 bg-black/70 hover:bg-black text-white text-[8px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                  >
+                                    Cover
+                                  </button>
                                 )}
                                 <button
                                   type="button"
@@ -1237,18 +1465,49 @@ export const AdminDashboard: React.FC = () => {
                             ))}
                           </div>
 
-                          {/* Upload Direct Photo File */}
-                          <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
-                            <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-red-300 hover:border-red-500 bg-white hover:bg-red-50/40 p-3 rounded-xl cursor-pointer text-xs font-bold text-red-600 transition-colors">
-                              <Upload className="w-4 h-4" />
-                              <span>Upload Photo from Device (JPG/PNG)</span>
+                          {/* Direct Device Upload Zone */}
+                          <div className="pt-2 border-t border-slate-200">
+                            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-red-300 hover:border-red-500 bg-white hover:bg-red-50/40 p-3 rounded-xl cursor-pointer text-xs font-bold text-red-600 transition-colors">
+                              {isUploadingEditImage ? (
+                                <span>Uploading & Optimizing Photos...</span>
+                              ) : (
+                                <>
+                                  <Upload className="w-4 h-4" />
+                                  <span>Upload Photos from Device (JPG/PNG/WebP, multiple allowed)</span>
+                                </>
+                              )}
                               <input 
                                 type="file" 
+                                multiple
                                 accept="image/*" 
                                 onChange={handleEditFileUpload} 
+                                disabled={isUploadingEditImage}
                                 className="hidden" 
                               />
                             </label>
+                          </div>
+
+                          {/* 1-Click HD Presets */}
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-amber-500" />
+                              Or Add from HD Presets
+                            </p>
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                              {ADMIN_IMAGE_PRESETS.map((preset, idx) => (
+                                <button
+                                  type="button"
+                                  key={idx}
+                                  onClick={() => handleAddPresetToEdit(preset.url)}
+                                  className="relative rounded-lg overflow-hidden aspect-video border border-gray-200 hover:border-red-500 text-left cursor-pointer group"
+                                >
+                                  <img src={preset.url} alt={preset.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                  <div className="absolute inset-0 bg-black/60 flex items-end p-1">
+                                    <span className="text-[8px] font-bold text-white leading-tight truncate">{preset.name}</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
                           </div>
 
                           {/* Add Photo via URL */}

@@ -1,0 +1,91 @@
+[
+  {
+    "id": "inq-1787392032222",
+    "status": "Site Visit Scheduled",
+    "message": "I am interested in this property. Please share full details and schedule a site visit.",
+    "userName": "CHOUDHARY RAVI",
+    "userType": "Buyer",
+    "createdAt": "22 Aug 2026, 3:17 pm",
+    "userEmail": "rc151766@gmail.com",
+    "userPhone": "8116680368",
+    "propertyId": "prop-1787296363211",
+    "propertyTitle": "Uniqe City",
+    "scheduleVisitDate": ""
+  },
+  {
+    "id": "inq-1787131425497",
+    "status": "Closed",
+    "message": "I am interested in this property. Please share full details and schedule a site visit.",
+    "userName": "drgadfg",
+    "userType": "Buyer",
+    "createdAt": "19 Aug 2026, 2:53 pm",
+    "userEmail": "",
+    "userPhone": "544564654546",
+    "propertyId": "prop-1787131166066",
+    "propertyTitle": "Dream Property Dhundh Rahe Ho? Google Nahi, Humse Pucho!",
+    "scheduleVisitDate": ""
+  },
+  {
+    "id": "inq-1787131372929",
+    "status": "Closed",
+    "message": "I am interested in this property. Please share full details and schedule a site visit.",
+    "userName": "Indiaresults",
+    "userType": "Investor",
+    "createdAt": "19 Aug 2026, 2:52 pm",
+    "userEmail": "indiaresults.digital@gmail.com",
+    "userPhone": "9056585221",
+    "propertyId": "prop-1787131166066",
+    "propertyTitle": "Dream Property Dhundh Rahe Ho? Google Nahi, Humse Pucho!",
+    "scheduleVisitDate": "2026-08-29"
+  },
+  {
+    "id": "inq-1787131356465",
+    "status": "Closed",
+    "message": "I am interested in this property. Please share full details and schedule a site visit.",
+    "userName": "Indiaresults",
+    "userType": "Buyer",
+    "createdAt": "19 Aug 2026, 2:52 pm",
+    "userEmail": "indiaresults.digital@gmail.com",
+    "userPhone": "9056585221",
+    "propertyId": "prop-1787131166066",
+    "propertyTitle": "Dream Property Dhundh Rahe Ho? Google Nahi, Humse Pucho!",
+    "scheduleVisitDate": ""
+  },
+  {
+    "id": "inq-1",
+    "status": "Closed",
+    "message": "Interested in taking a site visit this coming Sunday afternoon. Is price negotiable?",
+    "userName": "Karan Malhotra",
+    "userType": "Buyer",
+    "createdAt": "2026-08-08 14:30",
+    "userEmail": "karan.m@gmail.com",
+    "userPhone": "+91 98112 33445",
+    "propertyId": "jpr-1",
+    "propertyTitle": "3 BHK Luxury Apartment in Vaishali Nagar",
+    "scheduleVisitDate": "2026-08-16"
+  },
+  {
+    "id": "inq-2",
+    "status": "Closed",
+    "message": "Is home loan approval available from HDFC / ICICI for this society?",
+    "userName": "Ananya Roy",
+    "userType": "Buyer",
+    "createdAt": "2026-08-07 10:15",
+    "userEmail": "ananya.roy@yahoo.com",
+    "userPhone": "+91 98301 99887",
+    "propertyId": "jpr-1",
+    "propertyTitle": "3 BHK Luxury Apartment in Vaishali Nagar"
+  },
+  {
+    "id": "inq-3",
+    "status": "Closed",
+    "message": "Looking for villa investment in Malviya Nagar. Please share floor layout PDF.",
+    "userName": "Sanjay Reddy",
+    "userType": "Investor",
+    "createdAt": "2026-08-06 18:45",
+    "userEmail": "sanjay.reddy@techcorp.com",
+    "userPhone": "+91 98490 12121",
+    "propertyId": "jpr-2",
+    "propertyTitle": "4 BHK Royal Independent Villa with Private Garden"
+  }
+]

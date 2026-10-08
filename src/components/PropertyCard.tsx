@@ -34,7 +34,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
   const isList = layout === 'list';
 
   return (
-    <div
+    <article
+      role="article"
+      aria-label={`${property.title} - ${property.priceDisplay}`}
       onClick={() => viewPropertyDetail(property)}
       className={`group bg-white rounded-2xl border border-gray-200 hover:border-red-300 shadow-xs hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer flex ${
         isList ? 'flex-col sm:flex-row' : 'flex-col'
@@ -52,7 +54,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
           {property.isVerified && (
             <span className="bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs flex items-center gap-1 shadow-xs">
-              <CheckCircle className="w-3 h-3" /> Verified
+              <CheckCircle className="w-3 h-3" aria-hidden="true" /> Verified
             </span>
           )}
           {property.isExclusive && (
@@ -69,6 +71,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
         <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
           <button
             type="button"
+            aria-label={`Share ${property.title}`}
             onClick={(e) => {
               e.stopPropagation();
               handleShare(e);
@@ -76,11 +79,12 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
             className="w-8 h-8 rounded-full bg-white/80 hover:bg-white text-gray-700 hover:text-red-600 flex items-center justify-center backdrop-blur-md shadow-xs transition-colors"
             title="Share property"
           >
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-4 h-4" aria-hidden="true" />
           </button>
 
           <button
             type="button"
+            aria-label={isSaved ? `Remove ${property.title} from Saved Properties` : `Save ${property.title} to Saved Properties`}
             onClick={(e) => {
               e.stopPropagation();
               toggleWishlist(property.id);
@@ -92,7 +96,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
             }`}
             title={isSaved ? 'Remove from Wishlist' : 'Save Property'}
           >
-            <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+            <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} aria-hidden="true" />
           </button>
         </div>
 
@@ -103,6 +107,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
               <button
                 key={idx}
                 type="button"
+                aria-label={`View photo ${idx + 1} of ${property.title}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveImageIdx(idx);
@@ -143,7 +148,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
 
           {/* Location Badge */}
           <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
-            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" aria-hidden="true" />
             <span className="line-clamp-1 font-medium">{property.locality}, {property.city}</span>
           </div>
 
@@ -151,18 +156,18 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
           <div className="grid grid-cols-3 gap-2 py-2.5 px-3 bg-gray-50 rounded-xl mb-4 text-xs font-semibold text-gray-700">
             {property.bedrooms > 0 && (
               <div className="flex items-center gap-1.5 truncate">
-                <Bed className="w-4 h-4 text-gray-400 shrink-0" />
+                <Bed className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
                 <span className="truncate">{property.bedrooms} BHK</span>
               </div>
             )}
             {property.bathrooms > 0 && (
               <div className="flex items-center gap-1.5 truncate">
-                <Bath className="w-4 h-4 text-gray-400 shrink-0" />
+                <Bath className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
                 <span className="truncate">{property.bathrooms} Baths</span>
               </div>
             )}
             <div className="flex items-center gap-1.5 col-span-1 truncate">
-              <Maximize2 className="w-4 h-4 text-gray-400 shrink-0" />
+              <Maximize2 className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
               <span className="truncate">{property.areaSqFt} Sq.Ft</span>
             </div>
           </div>
@@ -173,7 +178,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
           
           {/* Posted By Tag */}
           <div className="flex items-center gap-1 text-xs text-gray-500 min-w-0">
-            <User className="w-3.5 h-3.5 text-red-600 shrink-0" />
+            <User className="w-3.5 h-3.5 text-red-600 shrink-0" aria-hidden="true" />
             <span className="truncate text-[11px] sm:text-xs">
               By <strong className="text-gray-800">{property.postedBy}</strong>
             </span>
@@ -183,16 +188,18 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
             <a
               href="tel:+919772117575"
+              aria-label={`Call Broker Helpline for ${property.title}`}
               onClick={(e) => e.stopPropagation()}
               className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
               title="Call Helpline: 9772117575"
             >
-              <Phone className="w-3.5 h-3.5 shrink-0" />
+              <Phone className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               <span>Call</span>
             </a>
             
             <button
               type="button"
+              aria-label={`Send Inquiry for ${property.title}`}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onContactClick) onContactClick(property);
@@ -200,13 +207,13 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
               className="bg-slate-900 hover:bg-red-600 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
               title="Send Inquiry"
             >
-              <Mail className="w-3.5 h-3.5 shrink-0" />
+              <Mail className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               <span>Inquire</span>
             </button>
           </div>
 
         </div>
       </div>
-    </div>
+    </article>
   );
 };

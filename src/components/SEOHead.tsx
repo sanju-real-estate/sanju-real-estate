@@ -37,6 +37,12 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ property }) => {
           { name: property.locality, url: `${origin}/listings?locality=${encodeURIComponent(property.locality)}` },
           { name: property.title, url: canonicalUrl }
         );
+      } else if (activeView === 'vrindavan') {
+        title = `VRINDAVAN CITY – Premium Gated Township | Avika Colonizers & Developers`;
+        description = `JDA Approved & RERA Registered residential plots in Vrindavan City on Main Jaipur-Sikar Express Highway & Jhunjhunu Bypass Road. Launch Price ₹55,900/- per Sq. Yard. Plot sizes 51 to 250 Gaj. Up to 80% loanable with zero brokerage.`;
+        keywords = `Vrindavan City Jaipur, Avika Colonizers, Sikar road plots, JDA approved plots Jaipur, residential plots Sikar Highway, gated township Jaipur`;
+        ogImage = `${origin}/images/vrindavan/hero-gate-entrance.jpg`;
+        breadcrumbs.push({ name: 'Vrindavan City', url: `${origin}/vrindavan` });
       } else if (activeView === 'listings') {
         title = `Verified Properties for Sale & Rent in ${selectedCity} | ${siteSettings.portalName}`;
         description = `Browse 100% verified flats, houses, villas, and commercial spaces in ${selectedCity}. Filter by locality, BHK, price, and amenities.`;

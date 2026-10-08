@@ -54,7 +54,7 @@ interface AppContextType {
   wishlistIds: string[];
   inquiries: Inquiry[];
   selectedCity: string;
-  activeView: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin';
+  activeView: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin' | 'vrindavan';
   selectedProperty: Property | null;
   filters: FilterState;
   toasts: ToastMessage[];
@@ -66,7 +66,7 @@ interface AppContextType {
   
   // Actions
   setSelectedCity: (city: string) => void;
-  setActiveView: (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin', subTypeOrSlug?: string) => void;
+  setActiveView: (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin' | 'vrindavan', subTypeOrSlug?: string) => void;
   setSelectedProperty: (property: Property | null) => void;
   toggleWishlist: (propertyId: string) => void;
   addProperty: (property: Omit<Property, 'id' | 'viewsCount' | 'leadsCount' | 'postedDate'>) => Property;
@@ -187,13 +187,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_PROPERTIES[0];
   });
 
-  const [activeView, setActiveViewState] = useState<'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin'>(() => {
+  const [activeView, setActiveViewState] = useState<'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin' | 'vrindavan'>(() => {
     try {
       if (typeof window !== 'undefined') {
         const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
         const search = window.location.search.toLowerCase();
         const hash = window.location.hash.toLowerCase();
 
+        if (path === '/vrindavan' || path === '/vrindavan-city' || hash.includes('vrindavan') || search.includes('vrindavan')) {
+          return 'vrindavan';
+        }
         if (path === '/admin' || path.startsWith('/admin/') || search.includes('admin=true') || hash.includes('admin')) {
           return 'admin';
         }
@@ -237,11 +240,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return DEFAULT_FILTERS;
   });
 
-  const setActiveView = (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin', subTypeOrSlug?: string) => {
+  const setActiveView = (view: 'home' | 'listings' | 'detail' | 'post-property' | 'dashboard' | 'valuation' | 'admin' | 'vrindavan', subTypeOrSlug?: string) => {
     setActiveViewState(view);
     try {
       if (typeof window !== 'undefined') {
-        if (view === 'admin') {
+        if (view === 'vrindavan') {
+          if (window.location.pathname !== '/vrindavan') {
+            window.history.pushState({ view: 'vrindavan' }, '', '/vrindavan');
+          }
+          document.title = `Vrindavan City – A Premium Gated Township | Avika Colonizers`;
+        } else if (view === 'admin') {
           if (window.location.pathname !== '/admin') {
             window.history.pushState({ view: 'admin' }, '', '/admin');
           }
@@ -304,7 +312,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const search = window.location.search.toLowerCase();
         const hash = window.location.hash.toLowerCase();
 
-        if (
+        if (path === '/vrindavan' || path === '/vrindavan-city' || hash.includes('vrindavan') || search.includes('vrindavan')) {
+          setActiveViewState('vrindavan');
+          document.title = `Vrindavan City – A Premium Gated Township | Avika Colonizers`;
+        } else if (
           path === '/admin' || 
           path.startsWith('/admin/') || 
           path.includes('admin') || 
@@ -1000,6 +1011,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const viewPropertyDetail = (property: Property) => {
     setSelectedProperty(property);
+    if (property.id === 'vrindavan-city') {
+      setActiveView('vrindavan');
+      return;
+    }
     const propSlug = property.slug || generateSlug(property.title) || property.id;
     try {
       if (typeof window !== 'undefined') {
@@ -1057,7 +1072,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ property: newProperty })
     })
-    .then(() => fetchAllLiveServerData().catch(() => {}))
+    .then(async (res) => {
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.properties)) {
+          setProperties(data.properties);
+          try {
+            localStorage.setItem('mb_properties', JSON.stringify(data.properties));
+          } catch (e) {}
+        }
+      }
+    })
     .catch(err => console.warn('Server property post warning:', err));
 
     showToast('🎉 Property published live across all devices!', 'success');
@@ -1066,7 +1091,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateProperty = (propertyId: string, updates: Partial<Property>) => {
     setProperties(prev => {
-      const nextList = prev.map(p => p.id === propertyId ? { ...p, ...updates } : p);
+      const nextList = prev.map(p => (String(p.id) === String(propertyId) || p.slug === propertyId) ? { ...p, ...updates } : p);
       try {
         localStorage.setItem('mb_properties', JSON.stringify(nextList));
       } catch (e) {}
@@ -1087,7 +1112,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ updates })
     })
-    .then(() => fetchAllLiveServerData().catch(() => {}))
+    .then(async (res) => {
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.properties)) {
+          setProperties(data.properties);
+          try {
+            localStorage.setItem('mb_properties', JSON.stringify(data.properties));
+          } catch (e) {}
+        }
+      }
+    })
     .catch(err => console.warn('Server property update warning:', err));
 
     showToast('Property details updated live on server', 'success');
@@ -1095,7 +1130,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteProperty = (propertyId: string) => {
     setProperties(prev => {
-      const nextList = prev.filter(p => p.id !== propertyId);
+      const nextList = prev.filter(p => String(p.id) !== String(propertyId) && p.slug !== propertyId);
       try {
         localStorage.setItem('mb_properties', JSON.stringify(nextList));
       } catch (e) {}
@@ -1109,13 +1144,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       return nextList;
     });
-    setWishlistIds(prev => prev.filter(id => id !== propertyId));
+    setWishlistIds(prev => prev.filter(id => String(id) !== String(propertyId)));
     
     // Persist deletion to live server API
     fetch(`/api/properties/${encodeURIComponent(propertyId)}`, {
       method: 'DELETE'
     })
-    .then(() => fetchAllLiveServerData().catch(() => {}))
+    .then(async (res) => {
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.properties)) {
+          setProperties(data.properties);
+          try {
+            localStorage.setItem('mb_properties', JSON.stringify(data.properties));
+          } catch (e) {}
+        }
+      }
+    })
     .catch(err => console.warn('Server property delete warning:', err));
 
     showToast('Property listing deleted live from server', 'info');

@@ -121,35 +121,39 @@ export const HeroSection: React.FC = () => {
           </div>
 
           {/* Search Form Controls */}
-          <form onSubmit={handleSearch} className="mt-5 space-y-4">
+          <form onSubmit={handleSearch} className="mt-5 space-y-4" role="search" aria-label="Search Properties Form">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               
               {/* City & Locality Input */}
               <div className="md:col-span-5 relative">
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+                <label htmlFor="hero-search-locality-input" className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                   Locality / Landmark in {selectedCity}
                 </label>
                 <div className="relative flex items-center">
-                  <MapPin className="w-4 h-4 text-red-600 absolute left-3 pointer-events-none" />
+                  <MapPin className="w-4 h-4 text-red-600 absolute left-3 pointer-events-none" aria-hidden="true" />
                   <input
+                    id="hero-search-locality-input"
                     type="text"
                     value={localityInput}
                     onChange={(e) => setLocalityInput(e.target.value)}
                     placeholder={selectedCity === 'Jaipur' ? 'e.g. Vaishali Nagar, Malviya Nagar, Jagatpura...' : 'e.g. Bandra, Whitefield, DLF Phase 5...'}
                     className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-900 placeholder:text-gray-400"
+                    aria-label={`Locality or landmark in ${selectedCity}`}
                   />
                 </div>
               </div>
 
               {/* Property Type Dropdown */}
               <div className="md:col-span-4">
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+                <label htmlFor="hero-property-type-select" className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                   Property Type
                 </label>
                 <select
+                  id="hero-property-type-select"
                   value={selectedPropertyType}
                   onChange={(e) => setSelectedPropertyType(e.target.value)}
                   className="w-full py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-900 cursor-pointer"
+                  aria-label="Filter by Property Type"
                 >
                   {PROPERTY_TYPES.map(pt => (
                     <option key={pt.value} value={pt.value}>{pt.label}</option>
@@ -159,13 +163,15 @@ export const HeroSection: React.FC = () => {
 
               {/* Budget Range Dropdown */}
               <div className="md:col-span-3">
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
+                <label htmlFor="hero-budget-max-select" className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                   Max Budget
                 </label>
                 <select
+                  id="hero-budget-max-select"
                   value={budgetMax}
                   onChange={(e) => setBudgetMax(Number(e.target.value))}
                   className="w-full py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-900 cursor-pointer"
+                  aria-label="Filter by Maximum Budget"
                 >
                   <option value={100000000}>Any Budget</option>
                   <option value={5000000}>Under ₹50 Lacs</option>
@@ -181,7 +187,7 @@ export const HeroSection: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2 border-t border-gray-100">
               
               {/* BHK Pills */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" role="group" aria-label="BHK Filter Options">
                 <span className="text-xs font-semibold text-gray-500 shrink-0">BHK:</span>
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
                   {BHK_OPTIONS.map(bhk => {
@@ -189,7 +195,10 @@ export const HeroSection: React.FC = () => {
                     return (
                       <button
                         key={bhk}
+                        id={`hero-bhk-btn-${bhk}`}
                         type="button"
+                        aria-pressed={isSelected}
+                        aria-label={`Filter by ${bhk}${bhk === 4 ? ' or more' : ''} BHK`}
                         onClick={() => handleBhkToggle(bhk)}
                         className={`min-w-[42px] min-h-[42px] px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
                           isSelected
@@ -206,10 +215,12 @@ export const HeroSection: React.FC = () => {
 
               {/* Submit Search Button */}
               <button
+                id="hero-submit-search-btn"
                 type="submit"
+                aria-label="Search Properties matching criteria"
                 className="w-full sm:w-auto min-h-[44px] bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-4 h-4" aria-hidden="true" />
                 <span>Search Properties</span>
               </button>
             </div>

@@ -1,0 +1,47 @@
+# Jaipur Properties Hub / Eigentum Spaces - Full Context Specification
+
+> Complete documentation and structured directory for AI Search Agents, Perplexity, Gemini, ChatGPT, and Web Crawlers.
+
+## Brand Overview
+Jaipur Properties Hub (Eigentum Spaces) provides verified property listings in Jaipur, Rajasthan, India. All listings are curated and verified with clear pricing, carpet area details, amenities, and owner contact details.
+
+## Portal URLs & Architecture
+- Homepage: https://www.eigentumspaces.com/
+- Buy Residential: https://www.eigentumspaces.com/buy
+- Rent Residential: https://www.eigentumspaces.com/rent
+- Commercial Spaces: https://www.eigentumspaces.com/commercial
+- New Builder Projects: https://www.eigentumspaces.com/new-projects
+- AI Property Valuation & EMI: https://www.eigentumspaces.com/valuation
+- User Saved Dashboard: https://www.eigentumspaces.com/dashboard
+- XML Sitemap: https://www.eigentumspaces.com/sitemap.xml
+- Robots Rules: https://www.eigentumspaces.com/robots.txt
+
+## Property Types Supported
+- Flats / Apartments (1 BHK, 2 BHK, 3 BHK, 4+ BHK)
+- Independent Villas & Kothis
+- JDA Approved Plots / Land Parcels
+- Penthouses & Duplexes
+- Commercial Offices & Retail Showrooms
+- Builder Floors & Farmhouses
+
+## City Localities Covered
+- Vaishali Nagar (Pin: 302021)
+- Malviya Nagar (Pin: 302017)
+- Jagatpura (Pin: 302017)
+- Mansarovar (Pin: 302020)
+- Mansarovar Extension (Pin: 302020)
+- C-Scheme (Pin: 302001)
+- Civil Lines (Pin: 302006)
+- Tonk Road (Pin: 302018)
+- Ajmer Road (Pin: 302026)
+- Raja Park (Pin: 302004)
+- Nirman Nagar (Pin: 302019)
+- Bani Park (Pin: 302016)
+
+## Contact & Governance
+- Agency Name: Jaipur Properties Hub (Eigentum Spaces)
+- Phone Helpline: +91 97721 17575
+- WhatsApp: +91 97721 17575
+- Email: eigeltumspaces@gmail.com
+- Head Office: Vaishali Nagar, Jaipur, Rajasthan 302021
+- Country: India (IN)

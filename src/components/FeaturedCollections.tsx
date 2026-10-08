@@ -92,10 +92,12 @@ export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ onCont
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {TOP_LOCALITIES.map(loc => (
-              <div
+              <button
                 key={loc.id}
+                type="button"
+                aria-label={`Explore properties in ${loc.name}, average rate ₹${loc.avgPriceSqFt} per sq.ft`}
                 onClick={() => handleLocalityClick(loc.name)}
-                className="group bg-slate-800/90 rounded-2xl border border-slate-700/80 hover:border-red-500/80 p-4 transition-all duration-300 cursor-pointer flex flex-col justify-between hover:shadow-2xl"
+                className="group text-left bg-slate-800/90 rounded-2xl border border-slate-700/80 hover:border-red-500/80 p-4 transition-all duration-300 cursor-pointer flex flex-col justify-between hover:shadow-2xl"
               >
                 <div>
                   <div className="relative h-40 rounded-xl overflow-hidden mb-4 bg-slate-950">
@@ -127,9 +129,9 @@ export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ onCont
 
                 <div className="pt-3 border-t border-slate-700/80 flex items-center justify-between text-xs text-red-400 font-bold group-hover:text-red-300">
                   <span>Explore Properties</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

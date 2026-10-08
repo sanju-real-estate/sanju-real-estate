@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Heart, PlusCircle, UserCheck, Menu, X, Calculator, Phone, ShieldCheck } from 'lucide-react';
+import { Heart, PlusCircle, UserCheck, Menu, X, Calculator, Phone, ShieldCheck, Sparkles } from 'lucide-react';
 import { APP_LOGO } from '../assets/logo';
 
 export const Navbar: React.FC = () => {
@@ -17,7 +17,7 @@ export const Navbar: React.FC = () => {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleNavClick = (view: 'home' | 'listings' | 'post-property' | 'dashboard' | 'valuation' | 'admin', listingType?: string) => {
+  const handleNavClick = (view: 'home' | 'listings' | 'post-property' | 'dashboard' | 'valuation' | 'admin' | 'vrindavan', listingType?: string) => {
     if (listingType) {
       setFilters(prev => ({ ...prev, listingType: listingType as any }));
     }
@@ -27,31 +27,35 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-xs w-full">
+    <header role="banner" className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-xs w-full">
       {/* Top Banner Bar */}
       <div className="bg-slate-900 text-gray-300 text-xs py-1 px-2.5 sm:px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             <span className="flex items-center gap-1.5 font-medium text-emerald-400 text-[11px] sm:text-xs truncate">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" aria-hidden="true"></span>
               <span className="truncate">{siteSettings.portalName}</span>
             </span>
-            <span className="text-gray-600 hidden xs:inline">|</span>
+            <span className="text-gray-600 hidden xs:inline" aria-hidden="true">|</span>
             <a 
               href={`tel:${siteSettings.helplinePhone}`}
+              aria-label={`Call Helpline at ${siteSettings.helplinePhone}`}
               className="hidden xs:flex items-center gap-1 text-emerald-400 font-extrabold hover:text-emerald-300 transition-colors text-[11px] sm:text-xs shrink-0"
             >
-              <Phone className="w-3 h-3 text-emerald-400 shrink-0" />
+              <Phone className="w-3 h-3 text-emerald-400 shrink-0" aria-hidden="true" />
               <span>{siteSettings.helplinePhone}</span>
             </a>
           </div>
 
           <div className="flex items-center gap-2 text-gray-300 shrink-0">
             <button 
+              id="navbar-valuation-btn"
+              type="button"
+              aria-label="Open Property Price Estimator and EMI Calculator"
               onClick={() => handleNavClick('valuation')} 
               className="hover:text-white flex items-center gap-1 text-red-400 font-medium transition-colors cursor-pointer py-0.5 text-[11px] sm:text-xs"
             >
-              <Calculator className="w-3.5 h-3.5 shrink-0" />
+              <Calculator className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               <span className="hidden sm:inline">Price Estimator</span>
               <span className="sm:hidden">Estimator</span>
             </button>
@@ -66,6 +70,9 @@ export const Navbar: React.FC = () => {
           {/* Logo & Portal Name */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button 
+              id="navbar-brand-logo"
+              type="button"
+              aria-label={`Go to ${siteSettings.portalName} Home`}
               onClick={() => handleNavClick('home')}
               className="flex items-center gap-2 sm:gap-2.5 group text-left cursor-pointer shrink-0"
             >
@@ -96,8 +103,11 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Center Navigation Tabs (Desktop xl+) */}
-          <nav className="hidden xl:flex items-center gap-1 shrink-0">
+          <nav role="navigation" aria-label="Main Navigation" className="hidden xl:flex items-center gap-1 shrink-0">
             <button
+              id="nav-buy-btn"
+              type="button"
+              aria-label="Browse Properties for Sale (Buy)"
               onClick={() => handleNavClick('listings', 'Buy')}
               className={`px-3 py-2 text-xs xl:text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                 activeView === 'listings' ? 'text-red-600 bg-red-50 font-semibold' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
@@ -106,23 +116,49 @@ export const Navbar: React.FC = () => {
               Buy
             </button>
             <button
+              id="nav-rent-btn"
+              type="button"
+              aria-label="Browse Properties for Rent"
               onClick={() => handleNavClick('listings', 'Rent')}
               className="px-3 py-2 text-xs xl:text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
             >
               Rent
             </button>
             <button
+              id="nav-commercial-btn"
+              type="button"
+              aria-label="Browse Commercial Properties"
               onClick={() => handleNavClick('listings', 'Commercial')}
               className="px-3 py-2 text-xs xl:text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
             >
               Commercial
             </button>
             <button
+              id="nav-newprojects-btn"
+              type="button"
+              aria-label="Browse New Builder Projects"
               onClick={() => handleNavClick('listings', 'New Projects')}
               className="px-3 py-2 text-xs xl:text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
             >
               <span>New Projects</span>
               <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full">New</span>
+            </button>
+            <button
+              id="nav-vrindavan-btn"
+              type="button"
+              aria-label="Vrindavan City Premium Gated Township"
+              onClick={() => handleNavClick('vrindavan')}
+              className={`px-3 py-1.5 text-xs xl:text-sm font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
+                activeView === 'vrindavan'
+                  ? 'bg-[#064e3b] text-amber-300 ring-2 ring-amber-400'
+                  : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-300'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+              <span>Vrindavan City</span>
+              <span className="bg-amber-400 text-emerald-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase">
+                Hot Launch
+              </span>
             </button>
           </nav>
 
@@ -130,11 +166,14 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
             {/* Wishlist Icon */}
             <button
+              id="navbar-wishlist-btn"
+              type="button"
+              aria-label={`Saved Properties (${wishlistIds.length} items)`}
               onClick={() => handleNavClick('dashboard')}
               className="relative p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
               title="Saved Properties"
             >
-              <Heart className="w-5 h-5" />
+              <Heart className="w-5 h-5" aria-hidden="true" />
               {wishlistIds.length > 0 && (
                 <span className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {wishlistIds.length}
@@ -144,6 +183,9 @@ export const Navbar: React.FC = () => {
 
             {/* User Dashboard (lg+) */}
             <button
+              id="navbar-dashboard-btn"
+              type="button"
+              aria-label="Open User Dashboard"
               onClick={() => handleNavClick('dashboard')}
               className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer shrink-0 ${
                 activeView === 'dashboard'
@@ -151,27 +193,32 @@ export const Navbar: React.FC = () => {
                   : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <UserCheck className="w-4 h-4 text-gray-500" />
+              <UserCheck className="w-4 h-4 text-gray-500" aria-hidden="true" />
               <span>Dashboard</span>
             </button>
 
             {/* Direct Helpline Call CTA */}
             <a
               href={`tel:${siteSettings.helplinePhone}`}
+              aria-label={`Direct Call Helpline: ${siteSettings.helplinePhone}`}
               className="hidden sm:flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all shadow-xs shrink-0"
               title="Call Helpline"
             >
-              <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" aria-hidden="true" />
               <span>Call Us</span>
             </a>
 
             {/* Mobile / Tablet Menu Toggle */}
             <button
+              id="navbar-mobile-toggle"
+              type="button"
+              aria-label="Toggle navigation menu"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-navigation-drawer"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-1.5 text-gray-700 hover:text-gray-900 xl:hidden rounded-lg hover:bg-gray-100 cursor-pointer shrink-0"
-              title="Menu"
             >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMobileMenuOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -179,7 +226,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer Navigation */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg">
+        <nav id="mobile-navigation-drawer" role="navigation" aria-label="Mobile Navigation" className="lg:hidden border-t border-gray-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg">
           {/* Mobile Direct Phone & WhatsApp Call Card */}
           <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -210,6 +257,18 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1">
+            <button
+              onClick={() => handleNavClick('vrindavan')}
+              className="text-left py-3 px-3 text-sm font-bold text-emerald-950 bg-emerald-50 hover:bg-emerald-100 rounded-xl min-h-[44px] flex items-center justify-between border border-emerald-300 shadow-xs"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+                <span>Vrindavan City (Sikar Road)</span>
+              </div>
+              <span className="bg-amber-400 text-emerald-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                Hot Launch
+              </span>
+            </button>
             <button
               onClick={() => handleNavClick('home')}
               className="text-left py-3 px-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-xl min-h-[44px] flex items-center"
@@ -252,7 +311,7 @@ export const Navbar: React.FC = () => {
             </button>
           </div>
 
-        </div>
+        </nav>
       )}
     </header>
   );
