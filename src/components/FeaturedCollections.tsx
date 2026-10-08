@@ -12,8 +12,14 @@ interface FeaturedCollectionsProps {
 export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ onContactClick }) => {
   const { properties, selectedCity, setFilters, setActiveView } = useApp();
 
-  // Filter collections
-  const ownerProperties = properties.filter(p => p.postedBy === 'Owner').slice(0, 3);
+  // Filter collections - Ensure ₹30 Lakh Shree Govindam flat is always prominently featured
+  const allOwners = properties.filter(p => p.postedBy === 'Owner');
+  const govindamFlat = allOwners.find(p => p.id === 'prop-1787557001195' || p.title.toLowerCase().includes('govindam'));
+  const otherOwners = allOwners.filter(p => p.id !== 'prop-1787557001195' && !p.title.toLowerCase().includes('govindam'));
+  const ownerProperties = govindamFlat 
+    ? [govindamFlat, ...otherOwners].slice(0, 3) 
+    : allOwners.slice(0, 3);
+
   const budgetHomes = properties.filter(p => p.price <= 15000000).slice(0, 3);
   const newProjects = properties.filter(p => p.listingType === 'New Projects' || p.constructionStatus === 'Under Construction').slice(0, 3);
 

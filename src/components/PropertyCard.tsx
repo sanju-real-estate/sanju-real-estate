@@ -100,9 +100,16 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
           </button>
         </div>
 
+        {/* Special 30 Lakh Hot Deal Badge */}
+        {property.priceDisplay === '₹30 Lac' && (
+          <div className="absolute bottom-3 left-3 bg-red-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-lg z-10">
+            🔥 ₹30 Lakh Flat
+          </div>
+        )}
+
         {/* Thumbnail Dots */}
         {property.images.length > 1 && (
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1 z-10">
+          <div className="absolute bottom-3 right-3 flex justify-end gap-1 z-10">
             {property.images.slice(0, 4).map((_, idx) => (
               <button
                 key={idx}
@@ -152,21 +159,26 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
             <span className="line-clamp-1 font-medium">{property.locality}, {property.city}</span>
           </div>
 
-          {/* Specs Bar (BHK, Baths, SqFt) */}
-          <div className="grid grid-cols-3 gap-2 py-2.5 px-3 bg-gray-50 rounded-xl mb-4 text-xs font-semibold text-gray-700">
-            {property.bedrooms > 0 && (
-              <div className="flex items-center gap-1.5 truncate">
-                <Bed className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
-                <span className="truncate">{property.bedrooms} BHK</span>
+          {/* Specs Bar (BHK, Baths, SqFt or Plot specs) */}
+          <div className="grid grid-cols-3 gap-2 py-2 px-3 bg-gray-50 rounded-xl mb-4 text-xs font-semibold text-gray-700">
+            {property.bedrooms > 0 ? (
+              <>
+                <div className="flex items-center gap-1.5 truncate">
+                  <Bed className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{property.bedrooms} BHK</span>
+                </div>
+                <div className="flex items-center gap-1.5 truncate">
+                  <Bath className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{property.bathrooms} Baths</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-1.5 truncate col-span-2">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
+                <span className="truncate text-emerald-800 font-bold">{property.facing || 'JDA Approved'}</span>
               </div>
             )}
-            {property.bathrooms > 0 && (
-              <div className="flex items-center gap-1.5 truncate">
-                <Bath className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
-                <span className="truncate">{property.bathrooms} Baths</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 col-span-1 truncate">
+            <div className="flex items-center gap-1.5 col-span-1 truncate justify-end">
               <Maximize2 className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
               <span className="truncate">{property.areaSqFt} Sq.Ft</span>
             </div>
@@ -187,7 +199,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
           {/* Contact Owner CTA Buttons */}
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
             <a
-              href="tel:+919772117575"
+              href={`tel:${property.postedByPhone ? property.postedByPhone.replace(/\s+/g, '') : '+919772117575'}`}
               aria-label={`Call Broker Helpline for ${property.title}`}
               onClick={(e) => e.stopPropagation()}
               className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
@@ -195,6 +207,18 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onContactC
             >
               <Phone className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               <span>Call</span>
+            </a>
+
+            <a
+              href={`https://wa.me/91${(property.postedByPhone || '9772117575').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello! I am interested in: ' + property.title + ' (' + property.priceDisplay + ')')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`WhatsApp about ${property.title}`}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#25D366] hover:bg-[#20ba5a] text-white px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
+              title="Chat on WhatsApp"
+            >
+              <span>WhatsApp</span>
             </a>
             
             <button

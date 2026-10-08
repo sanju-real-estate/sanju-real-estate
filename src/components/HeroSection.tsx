@@ -62,9 +62,9 @@ export const HeroSection: React.FC = () => {
 
   return (
     <div className="relative bg-slate-900 text-white pt-8 pb-16 overflow-hidden">
-      {/* Background Image Overlay with subtle dark gradient */}
-      <div className="absolute inset-0 z-0 opacity-25 bg-[url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80')] bg-cover bg-center" />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/80 to-slate-900/90 z-0" />
+      {/* Background Image Overlay with real Vrindavan gate entrance photo */}
+      <div className="absolute inset-0 z-0 opacity-30 bg-[url('/images/vrindavan/hero-gate-entrance.jpg')] bg-cover bg-center" />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/85 to-slate-900/90 z-0" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         

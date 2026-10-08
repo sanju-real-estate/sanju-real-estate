@@ -139,108 +139,68 @@ export const VrindavanLandingPage: React.FC = () => {
         </div>
       )}
 
-      {/* Top Notification Announcement Bar */}
-      <div className="bg-gradient-to-r from-[#022c22] via-[#064e3b] to-[#022c22] text-amber-300 text-xs py-2 px-4 border-b border-amber-500/30">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-center sm:text-left">
-          <div className="flex items-center gap-2 mx-auto sm:mx-0">
-            <span className="bg-amber-400 text-emerald-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-              🔥 Grand Launch Offer
+      {/* Township Sub-Navigation Bar */}
+      <div className="sticky top-14 sm:top-16 z-30 bg-[#022c22]/95 backdrop-blur-md border-b border-amber-500/30 text-amber-300 py-2.5 px-3 sm:px-6 shadow-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="font-extrabold text-white text-xs sm:text-sm font-serif tracking-wide">
+              VRINDAVAN CITY
             </span>
-            <span className="font-medium text-[11px] sm:text-xs">
-              JDA Approved Plots starting at <strong className="text-white font-extrabold">₹55,900/- per Sq. Yard</strong> | Zero Brokerage!
+            <span className="bg-amber-400 text-emerald-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase">
+              JDA APPROVED
             </span>
-          </div>
-          <div className="hidden md:flex items-center gap-4 text-xs font-semibold text-white">
-            <a 
-              href={`tel:+91${officialPhone}`} 
-              className="flex items-center gap-1.5 hover:text-amber-400 transition-colors"
-            >
-              <Phone className="w-3.5 h-3.5 text-amber-400" />
-              <span>Direct Booking: +91 {officialPhone}</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Luxury Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-amber-100/80 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Brand Identity */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#064e3b] to-[#022c22] border-2 border-amber-400/60 p-1 flex items-center justify-center shadow-md">
-              <Building2 className="w-7 h-7 text-amber-300" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl sm:text-2xl font-black tracking-tight text-[#064e3b] font-serif">
-                  VRINDAVAN CITY
-                </span>
-                <span className="hidden sm:inline-block bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  JDA APPROVED
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-500 font-semibold tracking-wide">
-                BY AVIKA COLONIZERS & DEVELOPERS • आपके विश्वास का आवास
-              </p>
-            </div>
+            <span className="hidden md:inline text-xs text-gray-300">
+              • Sikar Road Highway Plots @ ₹55,900/sq.yd
+            </span>
           </div>
 
-          {/* Quick Actions (Desktop) */}
-          <div className="hidden lg:flex items-center gap-6">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0 text-xs font-semibold">
             <button 
+              type="button"
               onClick={() => scrollToSection('highlights')} 
-              className="text-xs font-bold text-gray-700 hover:text-emerald-700 transition-colors cursor-pointer"
+              className="text-gray-200 hover:text-amber-300 transition-colors py-1 px-1.5 cursor-pointer whitespace-nowrap"
             >
               Highlights
             </button>
             <button 
+              type="button"
               onClick={() => scrollToSection('pricing')} 
-              className="text-xs font-bold text-gray-700 hover:text-emerald-700 transition-colors cursor-pointer"
+              className="text-gray-200 hover:text-amber-300 transition-colors py-1 px-1.5 cursor-pointer whitespace-nowrap"
             >
-              Pricing & Plots
+              Plot Rates
             </button>
             <button 
+              type="button"
               onClick={() => scrollToSection('amenities')} 
-              className="text-xs font-bold text-gray-700 hover:text-emerald-700 transition-colors cursor-pointer"
+              className="text-gray-200 hover:text-amber-300 transition-colors py-1 px-1.5 cursor-pointer whitespace-nowrap"
             >
               Amenities
             </button>
             <button 
+              type="button"
               onClick={() => scrollToSection('location')} 
-              className="text-xs font-bold text-gray-700 hover:text-emerald-700 transition-colors cursor-pointer"
+              className="text-gray-200 hover:text-amber-300 transition-colors py-1 px-1.5 cursor-pointer whitespace-nowrap"
             >
-              Location Map
+              Location
             </button>
             <button 
+              type="button"
               onClick={() => scrollToSection('gallery')} 
-              className="text-xs font-bold text-gray-700 hover:text-emerald-700 transition-colors cursor-pointer"
+              className="text-gray-200 hover:text-amber-300 transition-colors py-1 px-1.5 cursor-pointer whitespace-nowrap"
             >
-              Photos
+              Real Photos
             </button>
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <a 
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-1.5 bg-[#25D366] hover:bg-[#20ba5a] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-md cursor-pointer"
-            >
-              <MessageCircle className="w-4 h-4 fill-current" />
-              <span>WhatsApp</span>
-            </a>
-
             <button 
-              onClick={() => scrollToSection('lead-form')}
-              className="bg-gradient-to-r from-[#064e3b] to-[#047857] hover:from-[#047857] hover:to-[#064e3b] text-amber-300 border border-amber-400/40 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center gap-1.5"
+              type="button"
+              onClick={() => scrollToSection('lead-form')} 
+              className="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black px-3 py-1 rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer whitespace-nowrap"
             >
-              <Calendar className="w-4 h-4 text-amber-300" />
-              <span>Book Site Visit</span>
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Book Visit</span>
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* 1. HERO SECTION (First Impression & Hook) */}
       <section className="relative min-h-[90vh] lg:min-h-[92vh] flex items-center justify-center overflow-hidden bg-slate-950">
@@ -1213,127 +1173,17 @@ export const VrindavanLandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 8. FOOTER */}
-      <footer className="bg-[#022c22] text-gray-300 border-t-2 border-amber-500/40 text-xs py-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-12 border-b border-emerald-800/80">
-            
-            {/* Col 1: Developer Info */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-emerald-900 border border-amber-400 p-1 flex items-center justify-center text-amber-300">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-base font-black text-amber-300 font-serif block">
-                    VRINDAVAN CITY
-                  </span>
-                  <span className="text-[10px] text-gray-400 font-semibold">
-                    BY AVIKA COLONIZERS & DEVELOPERS
-                  </span>
-                </div>
-              </div>
-              <p className="text-gray-400 text-xs leading-relaxed">
-                Avika Group – आपके विश्वास का आवास. Creating modern, high-quality residential townships with complete legal compliance and state-of-the-art infrastructure.
-              </p>
-            </div>
-
-            {/* Col 2: Project Specifications */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-bold text-amber-300 uppercase tracking-wider font-serif">
-                Project Highlights
-              </h4>
-              <ul className="space-y-1.5 text-gray-300">
-                <li className="flex items-center gap-1.5">
-                  <Award className="w-3.5 h-3.5 text-amber-400" />
-                  <span>JDA Approved Township</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                  <span>RERA Registered Project</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Launch Rate: ₹55,900/- per Sq. Yard</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Up to 80% Bank Loan Approved</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Zero Brokerage Direct Deals</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 3: Road & Location */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-bold text-amber-300 uppercase tracking-wider font-serif">
-                Location & Connectivity
-              </h4>
-              <p className="text-gray-300 leading-relaxed">
-                Mothu ka bas, Main Jaipur-Sikar Express Highway & Jaipur-Jhunjhunu Bypass Road, Jaipur, Rajasthan.
-              </p>
-              <p className="text-amber-200 text-[11px]">
-                Opposite Annapoorna Highway Treats, near City Escape.
-              </p>
-              <div className="pt-1 text-gray-400">
-                <span>Road Widths: 25ft, 30ft, 60ft, 125ft</span>
-              </div>
-            </div>
-
-            {/* Col 4: Contact & Inquiries */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-amber-300 uppercase tracking-wider font-serif">
-                Official Developer Contact
-              </h4>
-              <div className="space-y-2">
-                <a 
-                  href={`tel:+91${officialPhone}`}
-                  className="flex items-center gap-2 text-white hover:text-amber-300 transition-colors font-bold text-sm"
-                >
-                  <Phone className="w-4 h-4 text-amber-400" />
-                  <span>+91 {officialPhone}</span>
-                </a>
-                <a 
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors font-semibold"
-                >
-                  <MessageCircle className="w-4 h-4 text-[#25D366] fill-current" />
-                  <span>WhatsApp: +91 {officialPhone}</span>
-                </a>
-              </div>
-              <p className="text-[11px] text-gray-400">
-                Book your site visit with complimentary cab pickup from Jaipur.
-              </p>
-            </div>
-
-          </div>
-
-          {/* Legal Disclaimer & Copyright */}
-          <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-400 text-[11px]">
-            <div>
-              © {new Date().getFullYear()} Vrindavan City by Avika Colonizers & Developers. All rights reserved.
-            </div>
-            <div className="flex items-center gap-4">
-              <span>Terms & Conditions</span>
-              <span>•</span>
-              <span>Privacy Policy</span>
-              <span>•</span>
-              <span>RERA Disclaimer</span>
-            </div>
-          </div>
-
-          <div className="text-[10px] text-gray-500 mt-4 text-center leading-relaxed">
+      {/* Legal & Indicative Disclaimer Note */}
+      <div className="bg-[#022c22] text-gray-400 py-6 px-4 text-center border-t border-amber-500/30 text-[11px] leading-relaxed">
+        <div className="max-w-5xl mx-auto space-y-1">
+          <p className="text-amber-300 font-semibold">
+            Vrindavan City – Main Jaipur-Sikar Highway (Mothu ka bas) • JDA Approved & RERA Registered Township
+          </p>
+          <p className="text-gray-400 text-[10px]">
             Disclaimer: All visual representations, plot numbers, dimensions, and images are indicative artistic impressions and project site photographs. Buyers are advised to inspect government JDA/RERA registration records and documents before entering into any transaction.
-          </div>
-
+          </p>
         </div>
-      </footer>
+      </div>
 
       {/* Floating Bottom Sticky Bar for Mobile Users */}
       <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-3 py-2 sm:hidden flex items-center justify-between gap-2 shadow-2xl">

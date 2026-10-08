@@ -246,7 +246,7 @@ export const Navbar: React.FC = () => {
                 <span>Call 9772117575</span>
               </a>
               <a
-                href="https://wa.me/919772117575?text=Hello%20Jaipur%20Properties%20Hub"
+                href={`https://wa.me/919772117575?text=Hello%20${encodeURIComponent(siteSettings.portalName)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5"
